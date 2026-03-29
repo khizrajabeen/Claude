@@ -1,47 +1,97 @@
-# Crypto Auto Trading Bot Configuration
-# =======================================
-# Copy this file to config.local.yaml and fill in your API keys.
-# NEVER commit config.local.yaml — it contains secrets.
+# ============================================================
+#  AI Crypto Trading Bot — Configuration
+# ============================================================
+# Copy to config.local.yaml and fill in API keys.
+# NEVER commit config.local.yaml.
 
 exchange:
-  name: "binance"            # Exchange: binance, coinbase, kraken, bybit, etc.
-  api_key: ""                # Your exchange API key
-  api_secret: ""             # Your exchange API secret
-  sandbox: true              # Use testnet/sandbox mode (HIGHLY recommended for testing)
+  name: "binance"
+  api_key: ""
+  api_secret: ""
+  sandbox: true                    # Start with testnet
 
+# ── Data Collection ──────────────────────────────────────────
+data:
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+  timeframes:
+    - "1m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+  lookback_days: 90               # Historical data for training
+  orderbook_depth: 20             # Levels of orderbook to capture
+
+# ── ML Model ─────────────────────────────────────────────────
+model:
+  ensemble_weights:
+    xgboost: 0.35
+    lightgbm: 0.35
+    lstm: 0.20
+    transformer: 0.10
+  retrain_interval_hours: 24       # Retrain every N hours
+  min_confidence: 0.65             # Min prediction confidence to trade
+  sequence_length: 60              # Lookback window for LSTM/Transformer
+  features_top_k: 80              # Use top K features by importance
+
+# ── Reinforcement Learning (Position Sizing) ─────────────────
+rl_agent:
+  algorithm: "PPO"
+  learning_rate: 0.0003
+  gamma: 0.99
+  total_timesteps: 500000
+  reward_type: "sharpe"           # "sharpe", "sortino", "pnl"
+
+# ── Trading ──────────────────────────────────────────────────
 trading:
-  symbol: "BTC/USDT"         # Trading pair
-  timeframe: "1h"            # Candle timeframe: 1m, 5m, 15m, 1h, 4h, 1d
-  strategy: "sma_crossover"  # Strategy: sma_crossover, rsi, bollinger_bands
-  amount: 0.001              # Order size per trade (in base currency)
-  max_open_trades: 3         # Maximum concurrent open positions
+  primary_symbol: "BTC/USDT"
+  mode: "paper"                   # "paper" or "live"
+  base_order_pct: 2.0             # Base order size as % of portfolio
+  max_order_pct: 15.0             # Max order size as % of portfolio (scaled up)
+  max_open_positions: 5
+  leverage: 1                     # Start at 1x, RL agent can scale up
+  max_leverage: 10                # Hard ceiling
 
-risk_management:
-  stop_loss_pct: 2.0         # Stop-loss percentage
-  take_profit_pct: 4.0       # Take-profit percentage
-  max_daily_loss_pct: 5.0    # Max daily loss before halting (% of portfolio)
-  max_position_size_pct: 10.0  # Max single position as % of portfolio
+# ── Dynamic Position Scaling ─────────────────────────────────
+scaling:
+  # Portfolio tiers — as portfolio grows, aggression increases
+  tiers:
+    - max_portfolio: 1000         # $0–$1K: conservative
+      max_leverage: 2
+      max_position_pct: 5.0
+      risk_per_trade_pct: 1.0
+    - max_portfolio: 10000        # $1K–$10K: moderate
+      max_leverage: 5
+      max_position_pct: 10.0
+      risk_per_trade_pct: 2.0
+    - max_portfolio: 50000        # $10K–$50K: aggressive
+      max_leverage: 8
+      max_position_pct: 15.0
+      risk_per_trade_pct: 3.0
+    - max_portfolio: 1000000      # $50K+: full power
+      max_leverage: 10
+      max_position_pct: 20.0
+      risk_per_trade_pct: 4.0
 
-strategies:
-  sma_crossover:
-    fast_period: 10
-    slow_period: 30
+# ── Risk Management ──────────────────────────────────────────
+risk:
+  max_daily_drawdown_pct: 5.0     # Halt trading if daily loss exceeds this
+  max_total_drawdown_pct: 15.0    # Halt trading if total drawdown exceeds this
+  trailing_stop_pct: 1.5          # Trailing stop-loss
+  min_risk_reward_ratio: 2.0      # Only take trades with RR >= 2:1
+  cooldown_after_loss_seconds: 300  # 5 min cooldown after a losing trade
 
-  rsi:
-    period: 14
-    overbought: 70
-    oversold: 30
+# ── Paper Trading ────────────────────────────────────────────
+paper:
+  initial_balance: 10000.0        # Starting paper balance (USDT)
+  slippage_pct: 0.05              # Simulated slippage
+  maker_fee_pct: 0.02             # Simulated maker fee
+  taker_fee_pct: 0.04             # Simulated taker fee
 
-  bollinger_bands:
-    period: 20
-    std_dev: 2.0
-
+# ── Logging ──────────────────────────────────────────────────
 logging:
-  level: "INFO"              # DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
   log_to_file: true
   log_file: "trading_bot.log"
-
-notifications:
-  enabled: false
-  # Add webhook URL for trade notifications (Slack, Discord, etc.)
-  webhook_url: ""

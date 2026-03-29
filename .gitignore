@@ -9,3 +9,16 @@ trading_bot.log
 *.log
 .venv/
 venv/
+
+# Model artifacts
+models/*.pkl
+models/*.pt
+models/*.zip
+
+# Data (can be large)
+data/*.parquet
+data/*.json
+data/*.csv
+
+# Jupyter
+.ipynb_checkpoints/

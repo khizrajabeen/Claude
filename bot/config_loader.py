@@ -33,16 +33,16 @@ def load_config(config_path: str = "config.yaml") -> dict:
 
 def _validate_config(config: dict) -> None:
     """Validate required configuration fields."""
-    required_sections = ["exchange", "trading", "risk_management"]
+    required_sections = ["exchange", "trading", "data", "risk"]
     for section in required_sections:
         if section not in config:
             raise ValueError(f"Missing required config section: '{section}'")
 
     if not config["exchange"].get("name"):
         raise ValueError("Exchange name is required")
-    if not config["trading"].get("symbol"):
-        raise ValueError("Trading symbol is required")
-    if config["risk_management"]["stop_loss_pct"] <= 0:
-        raise ValueError("Stop-loss must be positive")
-    if config["risk_management"]["take_profit_pct"] <= 0:
-        raise ValueError("Take-profit must be positive")
+    if not config["trading"].get("primary_symbol"):
+        raise ValueError("Trading primary_symbol is required")
+    if not config["data"].get("timeframes"):
+        raise ValueError("At least one timeframe is required")
+    if config["risk"]["max_daily_drawdown_pct"] <= 0:
+        raise ValueError("max_daily_drawdown_pct must be positive")
