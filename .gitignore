@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+config.local.yaml
+trading_bot.log
+*.log
+.venv/
+venv/

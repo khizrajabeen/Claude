@@ -1,0 +1,47 @@
+# Crypto Auto Trading Bot Configuration
+# =======================================
+# Copy this file to config.local.yaml and fill in your API keys.
+# NEVER commit config.local.yaml — it contains secrets.
+
+exchange:
+  name: "binance"            # Exchange: binance, coinbase, kraken, bybit, etc.
+  api_key: ""                # Your exchange API key
+  api_secret: ""             # Your exchange API secret
+  sandbox: true              # Use testnet/sandbox mode (HIGHLY recommended for testing)
+
+trading:
+  symbol: "BTC/USDT"         # Trading pair
+  timeframe: "1h"            # Candle timeframe: 1m, 5m, 15m, 1h, 4h, 1d
+  strategy: "sma_crossover"  # Strategy: sma_crossover, rsi, bollinger_bands
+  amount: 0.001              # Order size per trade (in base currency)
+  max_open_trades: 3         # Maximum concurrent open positions
+
+risk_management:
+  stop_loss_pct: 2.0         # Stop-loss percentage
+  take_profit_pct: 4.0       # Take-profit percentage
+  max_daily_loss_pct: 5.0    # Max daily loss before halting (% of portfolio)
+  max_position_size_pct: 10.0  # Max single position as % of portfolio
+
+strategies:
+  sma_crossover:
+    fast_period: 10
+    slow_period: 30
+
+  rsi:
+    period: 14
+    overbought: 70
+    oversold: 30
+
+  bollinger_bands:
+    period: 20
+    std_dev: 2.0
+
+logging:
+  level: "INFO"              # DEBUG, INFO, WARNING, ERROR
+  log_to_file: true
+  log_file: "trading_bot.log"
+
+notifications:
+  enabled: false
+  # Add webhook URL for trade notifications (Slack, Discord, etc.)
+  webhook_url: ""
