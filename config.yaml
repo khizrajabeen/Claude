@@ -1,5 +1,5 @@
 # ============================================================
-#  AI Crypto Trading Bot — Configuration
+#  AI Crypto Trading Bot v2.1 — Configuration
 # ============================================================
 # Copy to config.local.yaml and fill in API keys.
 # NEVER commit config.local.yaml.
@@ -8,21 +8,25 @@ exchange:
   name: "binance"
   api_key: ""
   api_secret: ""
-  sandbox: true                    # Start with testnet
+  sandbox: true
 
 # ── Data Collection ──────────────────────────────────────────
 data:
   symbols:
     - "BTC/USDT"
     - "ETH/USDT"
+    - "SOL/USDT"
+    - "BNB/USDT"
+    - "XRP/USDT"
+  auto_discover_coins: false       # Auto-detect top coins by volume
+  auto_discover_count: 15          # How many to discover
   timeframes:
-    - "1m"
     - "5m"
     - "15m"
     - "1h"
     - "4h"
-  lookback_days: 90               # Historical data for training
-  orderbook_depth: 20             # Levels of orderbook to capture
+  lookback_days: 90
+  orderbook_depth: 20
 
 # ── ML Model ─────────────────────────────────────────────────
 model:
@@ -31,10 +35,34 @@ model:
     lightgbm: 0.35
     lstm: 0.20
     transformer: 0.10
-  retrain_interval_hours: 24       # Retrain every N hours
-  min_confidence: 0.65             # Min prediction confidence to trade
-  sequence_length: 60              # Lookback window for LSTM/Transformer
-  features_top_k: 80              # Use top K features by importance
+  retrain_interval_hours: 24
+  min_confidence: 0.65
+  sequence_length: 60
+  features_top_k: 80
+  multi_coin_training: true        # Train on all coins for better generalization
+  multi_strategy: true             # Train separate models per strategy type
+
+# ── Multi-Strategy ───────────────────────────────────────────
+# 5 strategies, bot picks the best one automatically:
+#   momentum       — trending markets
+#   mean_reversion — ranging/sideways markets
+#   breakout       — quiet → volatile transitions
+#   scalp          — short timeframes, high volume
+#   news           — sentiment-driven trades
+strategies:
+  enabled:
+    - momentum
+    - mean_reversion
+    - breakout
+    - scalp
+    - news
+
+# ── News / Sentiment ────────────────────────────────────────
+news:
+  enabled: true
+  fetch_interval_seconds: 300      # Check news every 5 min
+  signal_threshold: 0.6            # Min sentiment score to trigger trade
+  max_age_hours: 24                # Ignore news older than this
 
 # ── Reinforcement Learning (Position Sizing) ─────────────────
 rl_agent:
@@ -42,53 +70,52 @@ rl_agent:
   learning_rate: 0.0003
   gamma: 0.99
   total_timesteps: 500000
-  reward_type: "sharpe"           # "sharpe", "sortino", "pnl"
+  reward_type: "sharpe"
 
 # ── Trading ──────────────────────────────────────────────────
 trading:
   primary_symbol: "BTC/USDT"
-  mode: "paper"                   # "paper" or "live"
-  base_order_pct: 2.0             # Base order size as % of portfolio
-  max_order_pct: 15.0             # Max order size as % of portfolio (scaled up)
+  mode: "paper"                    # "paper" or "live"
+  base_order_pct: 2.0
+  max_order_pct: 15.0
   max_open_positions: 5
-  leverage: 1                     # Start at 1x, RL agent can scale up
-  max_leverage: 10                # Hard ceiling
+  leverage: 1
+  max_leverage: 10
 
 # ── Dynamic Position Scaling ─────────────────────────────────
 scaling:
-  # Portfolio tiers — as portfolio grows, aggression increases
   tiers:
-    - max_portfolio: 1000         # $0–$1K: conservative
+    - max_portfolio: 1000
       max_leverage: 2
       max_position_pct: 5.0
       risk_per_trade_pct: 1.0
-    - max_portfolio: 10000        # $1K–$10K: moderate
+    - max_portfolio: 10000
       max_leverage: 5
       max_position_pct: 10.0
       risk_per_trade_pct: 2.0
-    - max_portfolio: 50000        # $10K–$50K: aggressive
+    - max_portfolio: 50000
       max_leverage: 8
       max_position_pct: 15.0
       risk_per_trade_pct: 3.0
-    - max_portfolio: 1000000      # $50K+: full power
+    - max_portfolio: 1000000
       max_leverage: 10
       max_position_pct: 20.0
       risk_per_trade_pct: 4.0
 
 # ── Risk Management ──────────────────────────────────────────
 risk:
-  max_daily_drawdown_pct: 5.0     # Halt trading if daily loss exceeds this
-  max_total_drawdown_pct: 15.0    # Halt trading if total drawdown exceeds this
-  trailing_stop_pct: 1.5          # Trailing stop-loss
-  min_risk_reward_ratio: 2.0      # Only take trades with RR >= 2:1
-  cooldown_after_loss_seconds: 300  # 5 min cooldown after a losing trade
+  max_daily_drawdown_pct: 5.0
+  max_total_drawdown_pct: 15.0
+  trailing_stop_pct: 1.5
+  min_risk_reward_ratio: 2.0
+  cooldown_after_loss_seconds: 300
 
 # ── Paper Trading ────────────────────────────────────────────
 paper:
-  initial_balance: 10000.0        # Starting paper balance (USDT)
-  slippage_pct: 0.05              # Simulated slippage
-  maker_fee_pct: 0.02             # Simulated maker fee
-  taker_fee_pct: 0.04             # Simulated taker fee
+  initial_balance: 10000.0
+  slippage_pct: 0.05
+  maker_fee_pct: 0.02
+  taker_fee_pct: 0.04
 
 # ── Logging ──────────────────────────────────────────────────
 logging:
