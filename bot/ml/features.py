@@ -60,13 +60,10 @@ class FeatureEngine:
         if trades_df is not None and not trades_df.empty:
             self._add_trade_flow_features(feat, trades_df)
 
-        # Target: forward return (for training)
-        feat["target_return_1"] = feat["close"].pct_change(1).shift(-1)
-        feat["target_return_5"] = feat["close"].pct_change(5).shift(-5)
-        feat["target_direction"] = (feat["target_return_1"] > 0).astype(int)
-
-        feat = feat.replace([np.inf, -np.inf], np.nan)
-        return feat
+        # No targets here. Labels come from bot/ml/labeling.py, which
+        # knows about stops, targets and holding time; a next-bar direction
+        # column sitting in the feature frame is an invitation to leak.
+        return feat.replace([np.inf, -np.inf], np.nan)
 
     # ── 1. Returns ────────────────────────────────────────────
 
@@ -444,8 +441,5 @@ class FeatureEngine:
 
     def get_feature_columns(self, df: pd.DataFrame) -> list[str]:
         """Return names of feature columns (exclude targets and raw OHLCV)."""
-        exclude = {
-            "open", "high", "low", "close", "volume",
-            "target_return_1", "target_return_5", "target_direction",
-        }
+        exclude = {"open", "high", "low", "close", "volume"}
         return [c for c in df.columns if c not in exclude]

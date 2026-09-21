@@ -1,199 +1,351 @@
-"""Walk-forward backtester — realistic historical simulation.
+"""Historical replay of the daily session.
 
-Unlike naive backtests, this uses walk-forward analysis:
-  1. Train on window [0, T]
-  2. Test on window [T, T+step]
-  3. Slide forward and repeat
+This is not a second trading engine. It downloads history once, wraps it in
+an exchange that only ever answers with bars at or before the simulated
+clock, and then runs the *same* ``DailySession`` that trades live. Whatever
+the replay measures is what the live path does, because it is the same code.
 
-This prevents look-ahead bias and gives realistic performance estimates.
+Two honest limitations, stated rather than hidden:
+
+  * News is replayed as neutral. Public RSS feeds do not serve history, so
+    a replay cannot reconstruct what the wire said on a past morning. The
+    news tilt is disabled for replays and the report says so; sentiment is
+    evaluated forward, in paper trading, not backwards.
+  * Intrabar order is unknown. When one bar contains both the stop and the
+    target, the stop is assumed to fill first.
 """
 
-import logging
-import time
-from datetime import datetime
+from __future__ import annotations
 
-import numpy as np
+import logging
+from datetime import datetime, timedelta, timezone
+
 import pandas as pd
 
-from bot.ml.features import FeatureEngine
-from bot.ml.model import EnsembleModel
-from bot.trading.paper_trader import PaperTrader
-from bot.trading.position_sizer import DynamicPositionSizer
-from bot.analysis.regime import RegimeDetector
-from bot.ml.rl_agent import KellyCriterionSizer
+from bot.analysis.indicators import TIMEFRAME_SECONDS
+from bot.daily.journal import Journal
+from bot.daily.schedule import build_schedule, next_schedule
+from bot.daily.session import DailySession, SimulatedClock
+from bot.exchange import ExchangeClient
+from bot.trading.broker import PaperBroker
+from bot.utils.metrics import summarize_trades
 
 logger = logging.getLogger("trading_bot")
 
 
-class WalkForwardBacktester:
-    """Walk-forward backtesting engine."""
+class ReplayExchange:
+    """Serves historical bars as though they were live, clipped to `now`.
+
+    Every read goes through the clock, so no part of the session can see a
+    bar that had not printed yet.
+    """
+
+    def __init__(self, frames: dict[str, dict[str, pd.DataFrame]], clock: SimulatedClock,
+                 limits: dict | None = None, volumes: dict | None = None):
+        self.frames = frames          # symbol -> timeframe -> DataFrame
+        self.clock = clock
+        self._limits = limits or {}
+        self._volumes = volumes or {}
+
+    def resolve_symbol(self, symbol: str) -> str | None:
+        return symbol if symbol in self.frames else None
+
+    def _visible(self, symbol: str, timeframe: str) -> pd.DataFrame:
+        df = self.frames.get(symbol, {}).get(timeframe)
+        if df is None or df.empty:
+            return pd.DataFrame()
+        return df.loc[df.index <= self.clock.now()]
+
+    def fetch_ohlcv(self, symbol: str, timeframe: str, limit: int = 500,
+                    since: int | None = None) -> pd.DataFrame:
+        return self._visible(symbol, timeframe).tail(limit)
+
+    def get_current_price(self, symbol: str) -> float:
+        for timeframe in sorted(self.frames.get(symbol, {}),
+                                key=lambda tf: TIMEFRAME_SECONDS.get(tf, 3600)):
+            visible = self._visible(symbol, timeframe)
+            if not visible.empty:
+                return float(visible["close"].iloc[-1])
+        raise LookupError(f"no replay price for {symbol}")
+
+    def market_limits(self, symbol: str) -> dict:
+        return self._limits.get(symbol, {"min_qty": 0.0, "qty_step": 0.0, "min_notional": 0.0})
+
+    def quote_volume_24h(self, symbol: str) -> float | None:
+        """Rolling 24h quote volume from the bars themselves."""
+        cached = self._volumes.get(symbol)
+        if cached:
+            return cached
+        for timeframe in self.frames.get(symbol, {}):
+            visible = self._visible(symbol, timeframe)
+            if visible.empty:
+                continue
+            bars = max(1, int(86_400 / TIMEFRAME_SECONDS.get(timeframe, 3600)))
+            window = visible.tail(bars)
+            return float((window["close"] * window["volume"]).sum())
+        return None
+
+    def spread_bps(self, symbol: str) -> float | None:
+        return None  # not reconstructible from OHLCV; the base slippage covers it
+
+    def fetch_funding_rate(self, symbol: str) -> float | None:
+        return None  # historical funding is not fetched in this build
+
+
+class DailyReplay:
+    """Replays the daily cycle over historical data."""
 
     def __init__(self, config: dict):
-        self.config = config
-        self.feature_engine = FeatureEngine(config)
-        self.regime_detector = RegimeDetector(config)
-        self.position_sizer = DynamicPositionSizer(config)
-        self.kelly = KellyCriterionSizer(kelly_fraction=0.25)
+        # Replays get their own journal so they never overwrite live records.
+        self.config = _replay_config(config)
+        self.symbols = list(self.config["data"]["symbols"])
+        self.timeframe = self.config["data"]["timeframe"]
+        self.htf = self.config["data"].get("higher_timeframe", "4h")
 
-    def run(
-        self,
-        df: pd.DataFrame,
-        train_window: int = 5000,
-        test_window: int = 500,
-        step: int = 500,
-    ) -> dict:
-        """Run walk-forward backtest.
+    def run(self, days: int = 30, frames: dict | None = None) -> dict:
+        """Replay `days` trading days and return the aggregate result."""
+        logger.info("═" * 62)
+        logger.info("  HISTORICAL REPLAY — %d day(s)", days)
+        logger.info("  News is neutral in replay (RSS serves no history)")
+        logger.info("═" * 62)
 
-        Args:
-            df: Full OHLCV DataFrame
-            train_window: Number of candles for training
-            test_window: Number of candles for testing
-            step: Step size for sliding window
+        frames = frames if frames is not None else self._download(days)
+        if not frames:
+            logger.error("No historical data available — nothing to replay.")
+            return {"days": 0, "error": "no data"}
 
-        Returns:
-            dict with performance metrics and trade list
-        """
-        logger.info("=" * 60)
-        logger.info("  WALK-FORWARD BACKTEST")
-        logger.info(f"  Data: {len(df)} candles")
-        logger.info(f"  Train window: {train_window} | Test: {test_window} | Step: {step}")
-        logger.info("=" * 60)
+        start, end = _data_span(frames, self.timeframe)
+        if start is None:
+            return {"days": 0, "error": "no data"}
 
-        paper = PaperTrader(self.config)
-        all_signals = []
-        start_time = time.time()
+        # Begin at the first day boundary for which a full warm-up of bars
+        # exists, so the first day is not traded on half an ATR.
+        warmup_bars = int(self.config["filters"].get("min_bars", 120))
+        bar_seconds = TIMEFRAME_SECONDS.get(self.timeframe, 3600)
+        first_tradeable = start + timedelta(seconds=warmup_bars * bar_seconds)
 
-        n_folds = 0
-        i = train_window
+        clock = SimulatedClock(first_tradeable)
+        exchange = ReplayExchange(frames, clock, limits=self._limits())
+        journal = Journal(self.config)
+        # Each replay starts from nothing. Accumulating runs in one file
+        # would silently mix results from different parameters.
+        _clear_directory(journal.dir)
+        journal = Journal(self.config)
+        broker = PaperBroker(self.config)
+        state = journal.load_state()
+        state.cash = broker.cash
+        state.initial_equity = broker.cash
+        state.peak_equity = broker.cash
 
-        while i + test_window <= len(df):
-            n_folds += 1
-            train_df = df.iloc[i - train_window : i]
-            test_df = df.iloc[i : i + test_window]
+        session = DailySession(self.config, exchange, broker, journal, state, clock=clock)
+        # Drive prices from the replay exchange rather than a live ticker.
+        session._price_source = lambda symbols, now: _replay_prices(exchange, symbols)
 
-            logger.info(
-                f"Fold {n_folds}: train [{i-train_window}:{i}] → test [{i}:{i+test_window}]"
-            )
+        schedule = build_schedule(self.config, clock.now())
+        results = []
+        while schedule.close_at <= end and len(results) < days:
+            clock._now = max(clock.now(), schedule.open_at)
+            result = session.run_day(schedule)
+            results.append(result)
+            schedule = next_schedule(schedule, self.config)
+            clock._now = schedule.open_at
 
-            # Build features on training data
-            train_feat = self.feature_engine.build_features(train_df)
-            feature_cols = self.feature_engine.get_feature_columns(train_feat)
+        trades = journal.load_trades()
+        summary = summarize_trades(
+            trades, starting_equity=self.config["paper"]["initial_balance"]
+        )
+        day_rows = journal.load_days()
 
-            # Train a fresh model for this fold
-            model = EnsembleModel(self.config)
-            try:
-                model.train(train_feat, feature_cols)
-            except Exception as e:
-                logger.warning(f"Training failed on fold {n_folds}: {e}")
-                i += step
+        equity_start = self.config["paper"]["initial_balance"]
+        equity_end = day_rows[-1]["ending_equity"] if day_rows else equity_start
+
+        report = {
+            "days": len(results),
+            "period": {"from": str(start.date()), "to": str(end.date())},
+            "symbols": self.symbols,
+            "starting_equity": equity_start,
+            "ending_equity": equity_end,
+            "total_return_pct": round((equity_end - equity_start) / equity_start * 100, 3)
+            if equity_start else 0.0,
+            "trades": summary,
+            "daily": day_rows,
+            "journal_dir": str(journal.dir),
+            "caveats": [
+                "news sentiment is neutral in replay (no historical RSS)",
+                "stop assumed to fill before target when a bar spans both",
+                "spread modelled by the flat slippage term only",
+            ],
+        }
+        self._log_report(report)
+        return report
+
+    # ── Data ──────────────────────────────────────────────────
+
+    def _download(self, days: int) -> dict:
+        """Fetch enough history for `days` sessions plus indicator warm-up."""
+        exchange = ExchangeClient(self.config)
+        bar_seconds = TIMEFRAME_SECONDS.get(self.timeframe, 3600)
+        warmup = int(self.config["filters"].get("min_bars", 120))
+        needed = int(days * 86_400 / bar_seconds) + warmup + 50
+
+        frames: dict[str, dict[str, pd.DataFrame]] = {}
+        for symbol in self.symbols:
+            resolved = exchange.resolve_symbol(symbol)
+            if resolved is None:
+                logger.warning("%s not listed on %s — excluded from replay",
+                               symbol, self.config["exchange"]["name"])
                 continue
-
-            # Test on out-of-sample data
-            for j in range(len(test_df)):
-                idx = i + j
-                if idx < train_window:
+            try:
+                base = _paged_ohlcv(exchange, resolved, self.timeframe, needed)
+                if base.empty or len(base) < warmup + 24:
+                    logger.warning("%s: only %d bars — excluded", symbol, len(base))
                     continue
+                htf_needed = max(120, int(needed * bar_seconds
+                                          / TIMEFRAME_SECONDS.get(self.htf, 14_400)) + 60)
+                htf = _paged_ohlcv(exchange, resolved, self.htf, htf_needed)
+                frames[symbol] = {self.timeframe: base, self.htf: htf}
+                logger.info("  %-10s %d bars %s, %d bars %s",
+                            symbol, len(base), self.timeframe, len(htf), self.htf)
+            except Exception as e:
+                logger.warning("Download failed for %s: %s", symbol, e)
+        self._exchange = exchange
+        return frames
 
-                # Build features up to current point (no future data)
-                lookback = df.iloc[max(0, idx - 200) : idx + 1]
-                try:
-                    feat = self.feature_engine.build_features(lookback)
-                except Exception:
-                    continue
+    def _limits(self) -> dict:
+        exchange = getattr(self, "_exchange", None)
+        if exchange is None:
+            return {}
+        out = {}
+        for symbol in self.symbols:
+            try:
+                resolved = exchange.resolve_symbol(symbol)
+                if resolved:
+                    out[symbol] = exchange.market_limits(resolved)
+            except Exception:
+                pass
+        return out
 
-                if len(feat) < 2:
-                    continue
+    def _log_report(self, report: dict) -> None:
+        s = report["trades"]
+        logger.info("═" * 62)
+        logger.info("  REPLAY RESULT — %d days (%s → %s)",
+                    report["days"], report["period"]["from"], report["period"]["to"])
+        logger.info("═" * 62)
+        logger.info("  Equity        : $%.2f → $%.2f (%+.2f%%)",
+                    report["starting_equity"], report["ending_equity"],
+                    report["total_return_pct"])
+        if not s.get("total_trades"):
+            logger.info("  No trades were taken.")
+            logger.info("═" * 62)
+            return
+        logger.info("  Trades        : %d (%dW / %dL, %.1f%%)",
+                    s["total_trades"], s["wins"], s["losses"], s["win_rate"])
+        logger.info("  Expectancy    : %+.3fR per trade", s["expectancy_r"])
+        logger.info("  Avg win/loss  : %+.2fR / %-.2fR", s["avg_win_r"], s["avg_loss_r"])
+        logger.info("  Profit factor : %.2f", s["profit_factor"])
+        logger.info("  Sharpe (daily): %.2f", s["sharpe_daily"])
+        logger.info("  Max drawdown  : %.2f%%", s["max_drawdown_pct"])
+        logger.info("  Costs         : fees $%.2f | funding $%+.2f",
+                    s["total_fees"], s["total_funding"])
+        logger.info("  Avg MAE/MFE   : %.2fR / %.2fR", s["avg_mae_r"], s["avg_mfe_r"])
+        logger.info("  Exits         : %s", s["exit_reasons"])
+        logger.info("─" * 62)
+        for caveat in report["caveats"]:
+            logger.info("  caveat: %s", caveat)
+        logger.info("═" * 62)
 
-                current_price = float(lookback["close"].iloc[-1])
-                symbol = self.config["trading"]["primary_symbol"]
 
-                # Check exits on existing positions
-                paper.check_exits(symbol, current_price)
+# ── helpers ──────────────────────────────────────────────────
 
-                # Get ML prediction
-                try:
-                    pred = model.predict(feat)
-                except Exception:
-                    continue
+def _replay_config(config: dict) -> dict:
+    """A replay's config: no news, and its own records directory.
 
-                confidence = pred["confidence"]
-                min_conf = self.config.get("model", {}).get("min_confidence", 0.65)
+    The replay directory hangs off whatever journal directory is
+    configured, so a replay can never write over live records — and a test
+    pointing the journal at a temporary path keeps its replay there too.
+    """
+    import copy
+    from pathlib import Path
 
-                if confidence < min_conf:
-                    continue
+    cfg = copy.deepcopy(config)
+    cfg.setdefault("news", {})["enabled"] = False
 
-                # Get regime
-                regime_result = self.regime_detector.detect(lookback)
-                regime = regime_result["regime"]
+    journal = cfg.setdefault("journal", {})
+    live_dir = Path(journal.get("dir", "state"))
+    journal["dir"] = str(journal.get("replay_dir") or live_dir / "replay")
 
-                # Position sizing
-                sizing = self.position_sizer.compute(
-                    portfolio_value=paper.balance,
-                    model_confidence=confidence,
-                    predicted_return=pred["predicted_return"],
-                    regime=regime,
-                    regime_confidence=regime_result["confidence"],
-                    kelly_fraction=self.kelly.get_kelly_size(),
-                )
+    # A replay has no reason to wait between management passes.
+    cfg.setdefault("session", {})["entry_stagger_seconds"] = 0
+    return cfg
 
-                if sizing["position_pct"] == 0:
-                    continue
 
-                # Check risk-reward
-                min_rr = self.risk_config_get("min_risk_reward_ratio", 2.0)
-                predicted_return_abs = abs(pred["predicted_return"])
-                risk_pct = self.config.get("risk", {}).get("trailing_stop_pct", 1.5)
-                if predicted_return_abs > 0 and (predicted_return_abs * 100 / risk_pct) < min_rr:
-                    continue
+def _paged_ohlcv(exchange: ExchangeClient, symbol: str, timeframe: str,
+                 needed: int) -> pd.DataFrame:
+    """Collect `needed` bars ending at the present.
 
-                direction = sizing["direction"]
-                existing = paper.get_open_positions(symbol)
+    Venues differ: most return bars going *forward* from `since`, and each
+    caps the page size differently (OKX 300, Kraken 721, KuCoin 1000). So
+    anchor on the newest page first — fetched with no `since` at all — and
+    then walk backwards from its oldest bar. Anchoring the other way round
+    silently yields a window that ends weeks ago.
+    """
+    bar_ms = TIMEFRAME_SECONDS.get(timeframe, 3600) * 1000
 
-                # Open position if none exists in same direction
-                if not any(p.side == direction for p in existing):
-                    amount = (paper.balance * sizing["position_pct"] / 100) / current_price
-                    if amount > 0:
-                        paper.open_position(
-                            symbol=symbol,
-                            side=direction,
-                            amount=amount,
-                            price=current_price,
-                            leverage=sizing["leverage"],
-                            stop_loss_pct=risk_pct,
-                            take_profit_pct=risk_pct * min_rr,
-                            trailing_stop_pct=self.config.get("risk", {}).get("trailing_stop_pct", 1.5),
-                        )
-                        all_signals.append({
-                            "idx": idx,
-                            "price": current_price,
-                            "direction": direction,
-                            "confidence": confidence,
-                            "position_pct": sizing["position_pct"],
-                            "leverage": sizing["leverage"],
-                        })
+    newest = exchange.fetch_ohlcv(symbol, timeframe, limit=1000)
+    if newest.empty:
+        return pd.DataFrame()
 
-                        # Update Kelly
-                        if len(paper.trade_journal) > 0:
-                            last_trade = paper.trade_journal[-1]
-                            self.kelly.update(last_trade.pnl)
+    chunks = [newest]
+    collected = len(newest)
+    oldest_ms = int(newest.index[0].timestamp() * 1000)
+    page = max(len(newest), 100)
 
-                # Close opposite positions
-                for pos in existing:
-                    if pos.side != direction and confidence > 0.7:
-                        paper.close_position(pos, current_price, "signal_reversal")
+    while collected < needed:
+        since = oldest_ms - page * bar_ms
+        df = exchange.fetch_ohlcv(symbol, timeframe, limit=page, since=since)
+        if df.empty:
+            break
+        new_oldest = int(df.index[0].timestamp() * 1000)
+        if new_oldest >= oldest_ms:
+            break  # the venue ignored `since`; another call would loop forever
+        chunks.append(df)
+        collected += len(df)
+        oldest_ms = new_oldest
 
-            i += step
+    combined = pd.concat(chunks)
+    combined = combined[~combined.index.duplicated(keep="last")].sort_index()
+    return combined.tail(needed)
 
-        elapsed = time.time() - start_time
-        logger.info(f"Backtest completed in {elapsed:.0f}s ({n_folds} folds)")
 
-        paper.print_stats()
-        stats = paper.get_stats()
-        stats["n_folds"] = n_folds
-        stats["signals"] = all_signals
-        stats["elapsed_seconds"] = elapsed
+def _clear_directory(path) -> None:
+    """Empty a replay's records directory, leaving the directory itself."""
+    import shutil
+    from pathlib import Path
 
-        return stats
+    path = Path(path)
+    if not path.exists():
+        return
+    for child in path.iterdir():
+        shutil.rmtree(child) if child.is_dir() else child.unlink()
 
-    def risk_config_get(self, key, default):
-        return self.config.get("risk", {}).get(key, default)
+
+def _data_span(frames: dict, timeframe: str):
+    starts, ends = [], []
+    for tfs in frames.values():
+        df = tfs.get(timeframe)
+        if df is not None and not df.empty:
+            starts.append(df.index[0])
+            ends.append(df.index[-1])
+    if not starts:
+        return None, None
+    return max(starts), min(ends)
+
+
+def _replay_prices(exchange: ReplayExchange, symbols: list[str]) -> dict[str, float]:
+    prices = {}
+    for symbol in symbols:
+        try:
+            prices[symbol] = exchange.get_current_price(symbol)
+        except LookupError:
+            continue
+    return prices

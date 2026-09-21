@@ -1,186 +1,281 @@
-# AI Crypto Trading Bot v2.1
+# Daily Crypto Trading Bot
 
-Production-grade AI trading bot with multi-coin training, multi-strategy auto-selection, news sentiment trading, and dynamic portfolio scaling.
+A crypto trading bot built around a **trading day**. Each day it reads the
+news and the tape, writes a plan, works that plan inside a bounded entry
+window, manages the book against volatility-scaled stops for the rest of
+the session, closes out, and writes the day to disk — so tomorrow starts
+from a real record rather than from zero.
 
-**No RSI. No Bollinger Bands. No lagging indicators. Pure ML + order flow + news.**
-
-## What Makes This Different
-
-| Amateur Bots | This Bot |
-|---|---|
-| RSI/BB/MACD signals | XGBoost + LightGBM + LSTM + Transformer ensemble |
-| One coin | Trains on 15+ coins simultaneously |
-| One strategy | 5 strategies, auto-picks best for conditions |
-| No news awareness | Real-time news sentiment analysis |
-| Fixed position sizes | RL agent (PPO) + Kelly Criterion |
-| Fixed leverage | Portfolio-tier scaling ($100 → 2x, $50K → 10x) |
-| No order flow | Whale detection, CVD, iceberg detection |
-| Manual data download | Auto-discovers top coins, auto-downloads data |
-
-## Quick Start
+Everything runs in paper mode against live public market data. No API keys
+are needed to run it.
 
 ```bash
-# 1. Install
 pip install -r requirements.txt
 
-# 2. Configure API keys
-cp .env.example .env    # Add your exchange API key + secret
-
-# 3. Download data (auto-discovers top coins)
-python main.py download --auto-discover
-
-# 4. Train (uses GPU if available)
-python main.py train
-
-# 5. Paper trade (zero risk)
-python main.py paper
-
-# 6. Check news sentiment
-python main.py news
-
-# 7. Go live (testnet first!)
-python main.py live --sandbox
+python main.py briefing      # what the market and the news look like right now
+python main.py plan          # ... and what the bot would trade
+python main.py replay --days 60   # replay the same logic over history
+python main.py day           # run one full trading day (paper)
+python main.py run           # run day after day
+python main.py report        # the record so far
 ```
 
-## All Commands
+---
+
+## The daily cycle
 
 ```
-python main.py <mode> [options]
-
-Modes:
-  train          Train ML models on all coins + all strategies
-  download       Download/refresh market data
-  paper          Paper trade with AI signals
-  live           Live trade (real money)
-  backtest       Walk-forward backtest
-  analyze        One-shot market analysis
-  news           Check crypto news sentiment
-
-Options:
-  --config FILE        Config file (default: config.yaml)
-  --symbol PAIR        Override trading pair (e.g. ETH/USDT)
-  --sandbox            Force testnet mode
-  --days N             Override lookback days
-  --auto-discover      Auto-detect top coins by volume
-  --single-coin        Train on primary coin only
-  --no-multi-strategy  Skip multi-strategy training
-  --train-window N     Backtest training window (candles)
-  --test-window N      Backtest testing window (candles)
+00:00 UTC  BRIEFING   read yesterday's record, refresh news, read every
+                      symbol: ATR, trend, regime, liquidity, funding
+   ↓
+00:00-02:00 ENTRY     work the plan; re-check prices before each fill
+   ↓
+until 23:30 MANAGE    every 5 min: mark, accrue funding, trail stops,
+                      honour exits, watch the circuit breakers
+   ↓
+23:30      FLATTEN    close the intraday book (or carry, if configured)
+   ↓
+23:30+     REPORT     write trades.csv, days.csv, state.json
+   ↓
+           next day starts from that record
 ```
 
-## 5 Auto-Selected Strategies
+The day boundary is UTC midnight by default. Crypto never closes, so a
+"day" is a convention — this one is anchored to the boundary exchanges use
+for daily candles and for perpetual funding, which settles at 00:00, 08:00
+and 16:00 UTC. All of it is configurable under `session:`.
 
-The bot trains 5 separate ML models and auto-picks the best one based on current market conditions:
+### What carries into tomorrow
 
-| Strategy | Best For | Key Features |
-|---|---|---|
-| **Momentum** | Trending markets (ADX>30) | ROC, EMA crossovers, MACD, higher-TF trend |
-| **Mean Reversion** | Ranging/sideways | Z-scores, Stochastic, Williams %R, orderbook imbalance |
-| **Breakout** | Quiet→volatile transitions | Volatility ratios, ATR, S/R distance |
-| **Scalp** | High volume, short TF | 1-min returns, orderbook spread, trade flow |
-| **News** | Strong sentiment signals | Headline sentiment, article volume, consensus |
+`state/` holds everything the next session needs:
 
-The `StrategySelector` scores each strategy by:
-- **Regime fitness** (is this strategy suited to current market?)
-- **Model confidence** (how sure is the ML prediction?)
-- **Historical performance** (has this strategy been working?)
-- **Predicted return** (how big is the expected move?)
+| File | What it holds |
+|---|---|
+| `state.json` | cash, open positions, streaks, cooldowns, peak equity |
+| `trades.csv` | every closed round trip, with R-multiple, MAE/MFE, costs |
+| `days.csv` | one row per trading day: equity, return, W/L, fees, drawdown |
+| `briefings/<date>.json` | that morning's read and the plan it produced |
+| `session.lock` | held while a bot is trading, so two cannot share a directory |
 
-## News Sentiment Trading
+One date gets one row: re-running a day after a crash corrects that day's
+record rather than adding a second one, and a second bot pointed at the
+same directory is refused rather than allowed to interleave its writes.
 
-Aggregates crypto news from 6+ sources in real-time:
-- CoinTelegraph, CoinDesk, Bitcoin Magazine, CryptoNews
-- Reddit r/CryptoCurrency, r/Bitcoin
+Tomorrow's briefing reads yesterday's closing equity, the positions it
+inherited, and the rolling win rate and expectancy from `trades.csv` —
+which then feed the day's risk budget. A bad stretch sizes the next day
+down; a good one lets it back to the configured base, never above it.
 
-Features:
-- Time-weighted sentiment scoring (recent news weighted higher)
-- Coin-specific keyword detection (15+ coins)
-- Whale/institutional language detection
-- Auto-trade triggers on strong consensus
+---
+
+## How a trade gets taken
+
+**1. The edge score.** A regime-weighted blend of four views, each
+normalised to roughly [-1, 1]:
+
+| View | Inputs |
+|---|---|
+| Trend | EMA structure gated by ADX/DI, confirmed on the higher timeframe |
+| Momentum | MACD histogram in ATR units, overnight move |
+| Mean reversion | z-score, RSI stretch, position in the Donchian range |
+| News | sentiment tilt, scaled by consensus |
+| Order book | top-of-book imbalance (small weight — confirmation only) |
+
+Weights shift with the regime. A z-score of −2 is a buy in a range and a
+falling knife in a downtrend, so the same reading gets different treatment
+depending on which regime the detector reports.
+
+**2. Filters and vetoes.** Thin books, wide spreads and volatility outside a
+sane band are dropped before scoring matters. A setup that fights the
+higher timeframe is vetoed, as is one that strong news opposes.
+
+**3. Sizing.** Risk is fixed in dollars and the stop is placed at a multiple
+of ATR:
+
+```
+stop distance = atr_stop_mult × ATR
+quantity      = (equity × risk_per_trade_pct) / stop distance
+```
+
+When volatility expands the stop widens and the position shrinks, so dollar
+risk stays constant across assets and regimes. That is what stops losses
+from clustering in exactly the periods that hurt most. Size is then capped
+by a notional limit, a per-position volatility budget, and whatever the
+exchange's lot rules allow.
+
+**4. Portfolio gates.** Each candidate is checked against a running book, so
+limits see the cumulative effect of the plan:
+
+- **portfolio heat** — total open risk if every stop hit at once (4%)
+- **correlation cap** — crypto majors trade as one factor, so same-side
+  crowding is capped (3)
+- **net beta** — beta-weighted exposure against equity (1.5×)
+- **daily loss breaker** — measured on equity, unrealised included (2%)
+- **drawdown halt** — hard stop against peak equity (15%)
+- **loss cooldown** — no new entries for a while after consecutive losses
+
+**5. Management.** Stops only ever ratchet forward: to just past entry once
+1R is banked (with a pad so fees cannot turn a winner into a loser), then
+trailing 2.5 ATR behind the extreme. There is a time stop for trades that
+go nowhere and a maximum holding period.
+
+---
+
+## Execution costs
+
+A backtest that ignores costs is a story. This one charges:
+
+- maker/taker fees in basis points, separately
+- slippage: a base term, plus half the spread, plus market impact
+- **impact via the square-root law** — `coefficient × daily_vol × √(order/ADV)`,
+  so a $1,500 order in a $50M book costs ~4bps and a $2M order in a $5M book
+  costs ~100bps
+- **perpetual funding**, accrued at each 00:00/08:00/16:00 UTC settlement a
+  position is held through: longs pay a positive rate, shorts receive it
+
+Margin is reserved on open, so two positions cannot spend the same dollar,
+and equity is cash plus unrealised PnL, so the breakers see a losing open
+position rather than only realised damage.
+
+---
+
+## Replay
+
+`python main.py replay --days 60` runs the **same `DailySession`** over
+historical bars, with a simulated clock and an exchange that only answers
+with bars at or before that clock. There is no separate backtest engine to
+drift out of sync with the live path.
+
+Two limitations, stated in every report rather than hidden:
+
+- **News is neutral in replay.** Public RSS feeds serve no history, so a
+  replay cannot reconstruct what the wire said on a past morning. Sentiment
+  is evaluated forward, in paper trading, not backwards.
+- **Intrabar order is unknown.** When one bar contains both the stop and the
+  target, the stop is assumed to fill first — the pessimistic assumption is
+  the only defensible one without tick data, and the optimistic one is how
+  backtests lie.
+
+Replays write to `state/replay/` and never touch live records.
+
+`--fast` on the live modes compresses the session clock so a whole day runs
+in minutes. It is for exercising the lifecycle, not for measuring anything:
+the clock moves but live market data does not move with it, so bar-driven
+exits will not fire. Use `replay` to measure.
+
+### A measured result
+
+45 days of hourly bars, six majors on OKX, default settings:
+
+```
+Equity        : $10,000.00 → $10,069.30 (+0.69%)
+Trades        : 47 (19W / 28L, 40.4%)
+Expectancy    : +0.043R per trade
+Avg win/loss  : +1.37R / 0.86R
+Profit factor : 1.13
+Sharpe (daily): 0.97
+Max drawdown  : 4.79%
+Costs         : fees $89.07 | funding $7.38
+Exits         : stop_loss 22, take_profit 10, end_of_day 15
+```
+
+Read that honestly: **roughly break-even after costs.** An expectancy of
++0.043R over 47 trades is well inside noise — it is not evidence of an
+edge, and 45 days is nowhere near the sample needed to claim one. What the
+numbers do show is that the mechanics are sound: stop-outs cost about −1R,
+targets pay about +1.9R, and drawdown stayed inside its budget. The risk
+plumbing works. Finding an actual edge to run through it is separate work.
+
+---
+
+## Machine learning (optional, off by default)
+
+The daily session needs none of this. When enabled it adds a fifth view to
+the edge blend.
 
 ```bash
-python main.py news                     # All coins
-python main.py news --symbol ETH/USDT   # Specific coin
+pip install -r requirements-ml.txt
+python main.py train --days 180
 ```
 
-## Multi-Coin Training
+- **Triple-barrier labels** (`bot/ml/labeling.py`). Each bar is labelled by
+  which barrier price touches first — target, stop, or the clock — with
+  barriers set from the same ATR the live risk layer uses. A label therefore
+  means "a trade opened here would have won / lost / timed out", instead of
+  "was the next bar up?", which is mostly a coin flip.
+- **Sample weights by label uniqueness.** Two labels spanning the same bars
+  are not two independent facts. Overlapping labels are down-weighted.
+- **Purged K-fold with an embargo** (`bot/ml/validation.py`). Training rows
+  whose label window overlaps the test fold are dropped, and a further band
+  after each fold is embargoed for serial correlation. The test suite
+  demonstrates both that purged folds do not leak and that a naive split
+  does.
+- **Everything fits inside the fold.** Feature selection and the scaler are
+  fit on training rows only.
 
-Training on multiple coins simultaneously gives the model **more data and better generalization** than single-coin training.
+The trainer reports accuracy against the majority-class rate and says
+plainly when there is no edge. A model that cannot beat that baseline is
+reported as useless rather than dressed up.
+
+Sequence models (LSTM, transformer) are deliberately absent. On a few
+thousand crypto bars they have far more capacity than the data supports;
+gradient-boosted trees on well-constructed features are the defensible
+choice at this sample size.
+
+---
+
+## Configuration
+
+`config.yaml` is commented throughout. Put secrets in `.env` or
+`config.local.yaml` (both gitignored). Config is validated at startup and
+fails loudly on combinations that cannot work — risk per trade above the
+heat budget, a daily stop above the hard halt, a malformed pair.
+
+The exchange defaults to Kraken. `binance`, `okx`, `kucoin`, `coinbase` and
+`bybit` all work; symbols are mapped onto whatever quote currency the venue
+actually lists. Note that Kraken's USDT books for smaller majors are thin
+enough that the liquidity filter will skip them — OKX and KuCoin have
+deeper books and longer history.
+
+---
+
+## Tests
 
 ```bash
-# Train on configured coins (config.yaml → data.symbols)
-python main.py train
-
-# Auto-discover top 15 coins by volume and train on all
-python main.py train --auto-discover
-
-# Download data first, then train
-python main.py download --auto-discover
-python main.py train
-
-# Single coin only
-python main.py train --single-coin --symbol ETH/USDT
+python -m pytest tests/ -q      # 118 tests, no network
 ```
 
-## Dynamic Portfolio Scaling
+The suite pins the claims this README makes: that margin cannot be
+double-spent, that dollar risk is constant across volatility, that a
+stop-out costs about −1R, that funding only accrues across settlements,
+that purged folds do not leak while naive splits do, that news windows
+genuinely differ, and that a second process resumes exactly where the first
+one stopped.
 
-Automatically adjusts aggressiveness as your portfolio grows:
+---
 
-| Portfolio | Max Leverage | Max Position | Risk/Trade |
-|---|---|---|---|
-| $0 – $1K | 2x | 5% | 1% |
-| $1K – $10K | 5x | 10% | 2% |
-| $10K – $50K | 8x | 15% | 3% |
-| $50K+ | 10x | 20% | 4% |
+## Live trading
 
-## Risk Management
+Not wired up. `main.py live` refuses and says so. The daily session drives
+the paper broker only; connecting it to real order placement is
+deliberately a separate, reviewed change — and `bot/exchange.py` already
+has the order methods it would need, including resting stop orders so a
+stop survives the bot going offline.
 
-- **Trailing stops** — regime-adjusted (wider in trends, tighter in ranges)
-- **Daily loss limit** — halts at 5% daily drawdown
-- **Total drawdown limit** — kill switch at 15% from peak
-- **Cooldown** — 5 min pause after losing trades
-- **Min R/R ratio** — only takes 2:1+ setups
-- **Kelly Criterion** — fractional (25%) for mathematically optimal sizing
-- **Liquidation protection** — monitors leveraged positions
+Before anyone considers it: the replay above is break-even, the sample is
+small, and forward paper results are the only evidence worth acting on.
 
-## Architecture
+---
+
+## Layout
 
 ```
-main.py                              CLI (7 modes)
-├── bot/ml/
-│   ├── auto_data.py                 Auto coin discovery + data download
-│   ├── data_pipeline.py             Multi-TF data collection
-│   ├── features.py                  200+ feature engineering
-│   ├── model.py                     XGBoost + LightGBM + LSTM + Transformer
-│   ├── strategy_selector.py         5-strategy auto-selection
-│   ├── rl_agent.py                  PPO position sizer + Kelly
-│   └── trainer.py                   Multi-coin, multi-strategy trainer
-├── bot/trading/
-│   ├── signal_engine.py             Brain: ML + news + flow → trades
-│   ├── position_sizer.py            Dynamic sizing with tier scaling
-│   ├── paper_trader.py              Paper trading (slippage, fees)
-│   └── live_trader.py               Live trading (exchange SL/TP, kill switch)
-├── bot/analysis/
-│   ├── orderflow.py                 Whale detection, CVD, icebergs
-│   ├── regime.py                    Market regime classification
-│   └── news_sentiment.py            Multi-source news aggregation
-└── bot/utils/
-    ├── backtester.py                Walk-forward backtesting
-    └── metrics.py                   Sharpe, Sortino, Calmar, etc.
+bot/
+  daily/       schedule, briefing, plan, session, journal
+  risk/        position sizing, portfolio gates, circuit breakers
+  trading/     paper broker, shared position/trade records
+  analysis/    indicators, regime detection, news sentiment
+  ml/          labeling, purged validation, model, trainer
+  utils/       historical replay, performance metrics
+tests/         118 tests
 ```
-
-## HPC / GPU Usage
-
-```bash
-# Check GPU
-python -c "import torch; print(torch.cuda.get_device_name(0))"
-
-# Train with all cores + GPU (365 days, all coins)
-python main.py train --days 365 --auto-discover
-```
-
-XGBoost/LightGBM use all CPU cores. LSTM/Transformer train on GPU.
-
-## Disclaimer
-
-For educational and research purposes. Cryptocurrency trading involves substantial risk. Past performance does not guarantee future results. Always test in paper mode first. Never trade with money you can't afford to lose.
