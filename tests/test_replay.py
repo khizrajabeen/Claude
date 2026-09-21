@@ -113,3 +113,64 @@ def test_drawdown_is_measured_against_equity(config):
     summary = summarize_trades(trades, starting_equity=10_000)
     assert 0 <= summary["max_drawdown_pct"] <= 100
     assert summary["max_drawdown_pct"] < 5
+
+
+# ── Statistical significance ─────────────────────────────────
+
+def make_trades(n, mean_r, sd, seed):
+    from datetime import timedelta
+
+    import numpy as np
+
+    from bot.trading.models import Trade
+
+    rng = np.random.default_rng(seed)
+    out = []
+    for i in range(n):
+        r = float(rng.normal(mean_r, sd))
+        out.append(Trade(
+            id=str(i), symbol="BTC/USDT", side="long", entry_price=100,
+            exit_price=100 + r, quantity=1, leverage=1,
+            opened_at=START + timedelta(hours=i),
+            closed_at=START + timedelta(hours=i + 1),
+            pnl=r * 50, pnl_pct=r, r_multiple=r, fees=0.5, funding=0,
+            slippage_cost=0, exit_reason="signal", risk_usd=50,
+            closed_on_day=(START + timedelta(days=i // 3)).date().isoformat(),
+        ))
+    return out
+
+
+def test_a_great_looking_result_on_few_trades_is_not_significant():
+    """The trap the bench exists to expose: a Sharpe of 13 on 13 trades is
+    a small sample, not a good strategy."""
+    summary = summarize_trades(make_trades(14, 0.35, 1.4, 3), starting_equity=10_000)
+    assert summary["avg_r"] > 0
+    assert not summary["significant"], "14 trades cannot establish an edge"
+    assert summary["trades_for_significance"] > 14
+
+
+def test_a_genuine_edge_over_a_real_sample_is_significant():
+    summary = summarize_trades(make_trades(500, 0.25, 1.2, 4), starting_equity=10_000)
+    assert summary["significant"]
+    assert summary["t_stat"] > 2
+
+
+def test_standard_error_shrinks_with_the_square_root_of_trades():
+    small = summarize_trades(make_trades(50, 0.1, 1.5, 5), starting_equity=10_000)
+    large = summarize_trades(make_trades(800, 0.1, 1.5, 5), starting_equity=10_000)
+    assert large["expectancy_se"] < small["expectancy_se"]
+    # Sixteen times the trades should roughly quarter the error.
+    assert large["expectancy_se"] == pytest.approx(small["expectancy_se"] / 4, rel=0.4)
+
+
+def test_a_flat_strategy_is_reported_as_not_significant():
+    summary = summarize_trades(make_trades(300, 0.0, 1.3, 6), starting_equity=10_000)
+    assert not summary["significant"]
+    assert abs(summary["t_stat"]) < 2
+
+
+def test_single_trade_does_not_crash_the_statistics():
+    summary = summarize_trades(make_trades(1, 0.5, 1.0, 7), starting_equity=10_000)
+    assert summary["total_trades"] == 1
+    assert summary["expectancy_se"] == 0.0
+    assert summary["significant"] is False

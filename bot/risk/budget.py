@@ -338,6 +338,42 @@ class RiskBudget:
 
         return RiskDecision(True, "ok", details)
 
+    # ── Cost gate ─────────────────────────────────────────────
+
+    def clears_costs(self, order: "SizedOrder", conviction: float,
+                     round_trip_bps: float) -> tuple[bool, dict]:
+        """Does the expected move cover the cost of making it?
+
+        A stop at k*ATR and a target at R multiples of that implies an
+        expected gross move. Round-trip fees, spread and slippage are a
+        fixed toll on every trade regardless of how it turns out. If the
+        expected move is not a comfortable multiple of that toll, the trade
+        is negative-expectancy before the market has done anything.
+
+        This is the difference between a system that trades 20 times and
+        one that trades 350: the second pays the toll seventeen times more
+        often for the same gross edge.
+        """
+        if order.entry_price <= 0 or order.r_distance <= 0:
+            return False, {"reason": "no price or stop distance"}
+
+        target_r = float(self.stops.get("target_r_multiple", 2.0))
+        # Expected gross move, scaled by how convinced the book is: a
+        # marginal signal should not be credited with the full target.
+        expected_move = order.r_distance * target_r * max(0.0, min(1.0, conviction))
+        expected_bps = expected_move / order.entry_price * 10_000
+
+        required = float(self.risk.get("min_edge_cost_ratio", 3.0))
+        ratio = expected_bps / round_trip_bps if round_trip_bps > 0 else float("inf")
+
+        details = {
+            "expected_bps": round(expected_bps, 2),
+            "cost_bps": round(round_trip_bps, 2),
+            "ratio": round(ratio, 2),
+            "required": required,
+        }
+        return ratio >= required, details
+
     # ── Exit rules ────────────────────────────────────────────
 
     def update_stop(self, position, price: float, atr: float) -> tuple[float, str]:

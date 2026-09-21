@@ -180,8 +180,9 @@ class VariantBench:
         logger.info("═" * 78)
         logger.info("  VARIANT COMPARISON")
         logger.info("═" * 78)
-        logger.info("  %-14s %8s %8s %8s %7s %9s %8s",
-                    "variant", "return%", "maxDD%", "sharpe", "trades", "expect R", "PF")
+        logger.info("  %-14s %8s %8s %7s %9s %8s %7s %6s",
+                    "variant", "return%", "maxDD%", "trades", "expect R",
+                    "± SE", "t", "real?")
         logger.info("  " + "-" * 74)
 
         rows = []
@@ -196,14 +197,43 @@ class VariantBench:
                 "max_dd_pct": trades.get("max_drawdown_pct", 0.0),
                 "sharpe": trades.get("sharpe_daily", 0.0),
                 "trades": trades.get("total_trades", 0),
-                "expectancy_r": trades.get("expectancy_r", 0.0),
+                "expectancy_r": trades.get("avg_r", 0.0),
+                "expectancy_se": trades.get("expectancy_se", 0.0),
+                "t_stat": trades.get("t_stat", 0.0),
+                "significant": trades.get("significant", False),
+                "trades_for_significance": trades.get("trades_for_significance", 0),
                 "profit_factor": trades.get("profit_factor", 0.0),
             }
             rows.append(row)
             logger.info(
-                "  %-14s %8.2f %8.2f %8.2f %7d %9.3f %8.2f",
-                name, row["return_pct"], row["max_dd_pct"], row["sharpe"],
-                row["trades"], row["expectancy_r"], row["profit_factor"],
+                "  %-14s %8.2f %8.2f %7d %9.3f %8.3f %7.2f %6s",
+                name, row["return_pct"], row["max_dd_pct"], row["trades"],
+                row["expectancy_r"], row["expectancy_se"], row["t_stat"],
+                "yes" if row["significant"] else "no",
+            )
+
+        logger.info("  " + "-" * 74)
+
+        significant = [r for r in rows if r["significant"]]
+        if significant:
+            for row in significant:
+                logger.info("  %s clears |t| >= 2 on %d trades.",
+                            row["variant"], row["trades"])
+        else:
+            logger.info(
+                "  Not one variant clears |t| >= 2. Every expectancy here is "
+                "compatible with having no edge at all."
+            )
+
+        # The trap this table exists to expose.
+        thin = [r for r in rows if 0 < r["trades"] < 30 and r["expectancy_r"] > 0]
+        for row in thin:
+            needed = row["trades_for_significance"]
+            logger.info(
+                "  %s looks best but traded %d times; at this variance it would "
+                "need ~%s to prove the edge is real.",
+                row["variant"], row["trades"],
+                f"{needed} trades" if needed else "far more trades",
             )
 
         logger.info("═" * 78)
@@ -212,15 +242,14 @@ class VariantBench:
 
         first, last = rows[0], rows[-1]
         logger.info(
-            "  %s → %s: return %+.2f pts, drawdown %+.2f pts, Sharpe %+.2f",
+            "  %s → %s: return %+.2f pts, drawdown %+.2f pts",
             first["variant"], last["variant"],
             last["return_pct"] - first["return_pct"],
             last["max_dd_pct"] - first["max_dd_pct"],
-            last["sharpe"] - first["sharpe"],
         )
         logger.info(
-            "  These are one sample over one period. Treat the direction of the "
-            "differences as the signal, not their size."
+            "  One sample, one period. Read the direction of the differences, "
+            "never the size — and read the t column before either."
         )
         logger.info("═" * 78)
 

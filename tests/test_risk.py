@@ -182,3 +182,47 @@ def test_stablecoins_carry_no_market_beta():
     assert symbol_beta("USDT/USD") == 0.0
     assert symbol_beta("BTC/USDT") == 1.0
     assert symbol_beta("WEIRDCOIN/USDT") > 0, "unknown coins are still crypto"
+
+
+# ── Cost gate ────────────────────────────────────────────────
+
+def test_a_trade_must_clear_its_own_costs(config):
+    """The difference between trading 20 times and 350 times is paying the
+    round trip seventeen times more often for the same gross edge."""
+    budget = RiskBudget(config)
+    price = 100.0
+
+    # A wide-ATR market: the expected move dwarfs the toll.
+    wide = budget.size_order("A/USDT", "long", price, atr=1.0, equity=10_000, risk_pct=0.75)
+    clears, detail = budget.clears_costs(wide, conviction=0.5, round_trip_bps=17.0)
+    assert clears and detail["ratio"] > 3.0
+
+    # A tight-ATR market: the same trade is negative-expectancy on costs.
+    tight = budget.size_order("A/USDT", "long", price, atr=0.1, equity=10_000, risk_pct=0.75)
+    blocked, detail = budget.clears_costs(tight, conviction=0.5, round_trip_bps=17.0)
+    assert not blocked and detail["ratio"] < 3.0
+
+
+def test_weak_conviction_is_not_credited_with_the_full_target(config):
+    budget = RiskBudget(config)
+    order = budget.size_order("A/USDT", "long", 100.0, atr=0.3, equity=10_000, risk_pct=0.75)
+
+    _, strong = budget.clears_costs(order, conviction=0.9, round_trip_bps=17.0)
+    _, weak = budget.clears_costs(order, conviction=0.2, round_trip_bps=17.0)
+    assert strong["expected_bps"] > weak["expected_bps"]
+
+
+def test_higher_costs_block_more_trades(config):
+    budget = RiskBudget(config)
+    order = budget.size_order("A/USDT", "long", 100.0, atr=0.4, equity=10_000, risk_pct=0.75)
+
+    cheap, _ = budget.clears_costs(order, 0.5, round_trip_bps=10.0)
+    dear, _ = budget.clears_costs(order, 0.5, round_trip_bps=120.0)
+    assert cheap and not dear
+
+
+def test_a_degenerate_order_never_clears(config):
+    budget = RiskBudget(config)
+    order = budget.size_order("A/USDT", "long", 0.0, atr=1.0, equity=10_000, risk_pct=0.75)
+    clears, _ = budget.clears_costs(order, 1.0, round_trip_bps=17.0)
+    assert not clears

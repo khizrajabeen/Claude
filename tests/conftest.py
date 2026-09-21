@@ -43,6 +43,7 @@ def config(tmp_path):
             "derisk_after_losses": 3,
             "cooldown_after_losses": 2,
             "cooldown_minutes": 120,
+            "min_edge_cost_ratio": 3.0,
         },
         "stops": {
             "atr_period": 14, "atr_stop_mult": 2.0, "target_r_multiple": 2.0,

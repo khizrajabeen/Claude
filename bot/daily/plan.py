@@ -291,6 +291,20 @@ class DayPlanner:
                 min_notional=limits.get("min_notional", 0.0),
             )
 
+            # Costs first: a trade whose expected move does not clear the
+            # round trip is negative-expectancy before the market moves.
+            clears, cost_detail = self.risk.clears_costs(
+                order, abs(candidate.edge), self._round_trip_bps(read)
+            )
+            if not clears:
+                plan.rejected.append([
+                    candidate.symbol,
+                    f"edge {cost_detail['expected_bps']:.0f}bps vs "
+                    f"{cost_detail['cost_bps']:.0f}bps costs "
+                    f"({cost_detail['ratio']:.1f}x < {cost_detail['required']}x)",
+                ])
+                continue
+
             decision = self.risk.check_new_trade(
                 order=order, positions=book, equity=equity,
                 day_start_equity=day_start_equity, peak_equity=peak_equity,
@@ -320,6 +334,18 @@ class DayPlanner:
         return plan
 
     # ── Helpers ───────────────────────────────────────────────
+
+    def _round_trip_bps(self, read: SymbolRead) -> float:
+        """Modelled cost of opening and closing one position, in bps.
+
+        Uses the same fee, spread and slippage numbers the paper broker
+        charges, so the gate and the fill agree.
+        """
+        paper = self.config.get("paper", {})
+        fee = float(paper.get("fee_taker_bps", 5.5)) * 2
+        slippage = float(paper.get("slippage_bps", 3.0)) * 2
+        spread = float(read.spread_bps or 0.0)
+        return fee + slippage + spread
 
     @staticmethod
     def _dominant(view: CombinedView) -> str:

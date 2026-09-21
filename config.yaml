@@ -41,8 +41,10 @@ session:
   flatten_at: "23:30"              # close intraday book before the boundary
   manage_interval_seconds: 900     # how often the book is walked
   max_new_positions_per_day: 3
-  carry_overnight: false           # true = let winners run into tomorrow
-  max_holding_days: 3              # hard cap even when carrying
+  carry_overnight: true            # trend systems need multi-day holds;
+                                   # a nightly flatten pays the round trip again
+                                   # every morning for no reason
+  max_holding_days: 10             # hard cap even when carrying
   max_entry_drift_r: 0.5           # don't chase a plan that already ran
   entry_stagger_seconds: 0
 
@@ -61,6 +63,7 @@ risk:
   derisk_after_losses: 3
   cooldown_after_losses: 2
   cooldown_minutes: 120
+  min_edge_cost_ratio: 3.0         # expected move must be 3x the round trip
 
 # ── Stops, targets and trailing ──────────────────────────────
 stops:

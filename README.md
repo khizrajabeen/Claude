@@ -88,6 +88,45 @@ Adding a strategy is a file in `bot/strategies/` and a line in config. Each
 one sees the same market context and knows nothing about the others; sizing
 and capital allocation are not its business.
 
+### Published systems
+
+Four well-documented systems implemented to their stated rules, so that any
+comparison is against the real thing rather than a paraphrase of it.
+
+| Strategy | Source | The rules, as published |
+|---|---|---|
+| `turtle` | Dennis & Eckhardt, 1983 | 20-bar and 55-bar Donchian entries; N = ATR(20); 2N stop; a unit added every 0.5N to four units; exit on the 10-bar opposite channel. Includes the filter most implementations drop — skip an S1 breakout if the previous one would have won — with the 55-bar failsafe always taken |
+| `clenow` | Clenow, *Following the Trend* | EMA(50) above EMA(100) plus price at a 100-bar extreme; 3 ATR stop; ATR-normalised sizing |
+| `holygrail` | Raschke & Connors, *Street Smarts* | ADX(14) above 30, then wait for the retracement to the 20 EMA and enter in the trend's direction, targeting a retest of the recent swing |
+| `dualmom` | Antonacci, *Dual Momentum Investing* | Hold the strongest names in the universe, but only while their own trailing return clears a hurdle. Failing the absolute gate means cash, not the next name down |
+
+`clenow` is deliberately close to the house `trend` strategy. That is the
+point: two respected formulations with different lookbacks are a check on
+whether a result depends on the specific parameters or on trend following
+as such. `holygrail` is the only pullback entry in the book — every other
+trend system buys strength, so they all fire at the same moment and are
+effectively one bet.
+
+## Autopilot
+
+Nothing here needs configuring. The bot manages its own roster from what
+the strategies have actually earned:
+
+- **Bench the losers.** A strategy with a materially negative record over a
+  real sample stops being funded.
+- **Keep a probe.** Benched is not deleted — a small allocation stays alive,
+  because a strategy switched fully off produces no record and can never
+  earn its way back.
+- **Tilt for the tape.** Trend systems and reversal systems fail in each
+  other's weather, so the roster leans toward whichever suits the current
+  regime.
+
+The obvious failure mode is chasing whatever worked last month. Three
+guards: nothing is judged before 25 trades, the bench threshold sits at
+−0.15R rather than at zero, and no more than half the roster can be benched
+at once — when most strategies are losing, the settings or the market are
+the problem, not the selection.
+
 **On carry, honestly:** published work puts the crypto carry Sharpe above 6
 over 2020–2023, falling through 2024 and turning negative in 2025 as
 delta-neutral yield products crowded the trade. Recent samples show average
