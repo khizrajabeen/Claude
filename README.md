@@ -9,16 +9,30 @@ from a real record rather than from zero.
 Everything runs in paper mode against live public market data. No API keys
 are needed to run it.
 
+> **Where this actually stands.** Nothing in this repository has a
+> demonstrated edge. Across 150 days of hourly bars on six majors, not one
+> configuration clears |t| ≥ 2 — every measured expectancy is compatible
+> with having none. What is trustworthy here is the *measurement*: purged
+> cross-validation, standard errors on every result, and replays that run
+> the same code the live path does. Read the
+> [results](#measured-results) before running anything with money.
+
 ```bash
 pip install -r requirements.txt
 
 python main.py briefing      # what the market and the news look like right now
 python main.py plan          # ... and what the bot would trade
 python main.py replay --days 60   # replay the same logic over history
+python main.py bench --days 150   # compare strategy/portfolio configurations
+python main.py compare       # bake-off across ML models
 python main.py day           # run one full trading day (paper)
 python main.py run           # run day after day
 python main.py report        # the record so far
 ```
+
+Nothing needs configuring. The bot picks its own strategy roster from what
+those strategies have actually earned, weights them by measured risk, and
+scales total exposure to its own realised volatility.
 
 ---
 
@@ -243,66 +257,142 @@ in minutes. It is for exercising the lifecycle, not for measuring anything:
 the clock moves but live market data does not move with it, so bar-driven
 exits will not fire. Use `replay` to measure.
 
-### A measured result
+### Measured results
 
-45 days of hourly bars, six majors on OKX, default settings:
+`python main.py bench --days 150` replays cumulative configurations over
+identical bars, so each step's contribution is attributable. Six majors on
+OKX, hourly:
 
 ```
-Equity        : $10,000.00 → $10,069.30 (+0.69%)
-Trades        : 47 (19W / 28L, 40.4%)
-Expectancy    : +0.043R per trade
-Avg win/loss  : +1.37R / 0.86R
-Profit factor : 1.13
-Sharpe (daily): 0.97
-Max drawdown  : 4.79%
-Costs         : fees $89.07 | funding $7.38
-Exits         : stop_loss 22, take_profit 10, end_of_day 15
+  variant         return%   maxDD%  trades  expect R     ± SE       t  real?
+  single            -1.57     8.36     301    -0.035    0.068   -0.51     no
+  multi-equal       -0.14     7.18     363    -0.025    0.063   -0.40     no
+  multi-parity       0.60     7.27     357    -0.016    0.063   -0.26     no
+  full               0.71     7.71     357    -0.017    0.063   -0.26     no
+  turtle             2.62     1.08      22     0.221    0.282    0.78     no
+  clenow             5.08     0.50      13     0.683    0.368    1.85     no
+  holygrail          0.99     0.74      17     0.428    0.323    1.33     no
+  dualmom           -5.17     6.41     156    -0.106    0.093   -1.14     no
+  published         -6.31     6.92     181    -0.098    0.087   -1.13     no
+  everything        -3.00     6.56     353    -0.037    0.064   -0.58     no
+  autopilot         -3.62     6.51     354    -0.054    0.062   -0.86     no
 ```
 
-Read that honestly: **roughly break-even after costs.** An expectancy of
-+0.043R over 47 trades is well inside noise — it is not evidence of an
-edge, and 45 days is nowhere near the sample needed to claim one. What the
-numbers do show is that the mechanics are sound: stop-outs cost about −1R,
-targets pay about +1.9R, and drawdown stayed inside its budget. The risk
-plumbing works. Finding an actual edge to run through it is separate work.
+**Read the `t` column before anything else.** Not one variant clears
+|t| ≥ 2. Every expectancy in that table is compatible with having no edge
+at all, including the ones that look spectacular.
 
----
+Three things it does show:
 
-## Machine learning (optional, off by default)
+**The layers work in the direction the research predicts.** Going from one
+strategy to five cut drawdown from 8.36% to 7.18% and lifted return by 1.4
+points; risk parity added another 0.7. That is the diversification and
+risk-budgeting claim, reproduced. The differences are not significant, but
+they point the right way and they point the right way for the stated
+reason.
 
-The daily session needs none of this. When enabled it adds a fifth view to
-the edge blend.
+**Clenow's +5.08% at 0.50% drawdown is not a result.** It took 13 trades.
+At the observed variance it needs roughly 16 before the edge means
+anything, and turtle — which looks nearly as good — needs about 145. A
+Sharpe computed on thirteen trades measures the sample size, not the
+strategy. This is precisely why the bench prints standard errors.
+
+**The real finding is about costs, not about gurus.** The systems that made
+money took 13–22 trades in 150 days. The blend took 357 for the same gross
+edge, paying the round trip seventeen times more often. Two changes follow
+from that, both from first principles rather than fitted to this sample: a
+cost gate that refuses any trade whose expected move is under 3× the
+modelled round trip, and overnight carry as the default, since flattening
+nightly pays the spread again every morning for a book whose published
+holding periods are measured in days.
+
+Combining everything made things *worse*, not better — `published` at
+−6.31% is dragged down by `dualmom`'s 156 losing trades. Diversification
+helps when the drivers are individually sound; it launders nothing.
+
+### The changes that followed did not help
+
+Both follow-up changes — the cost gate and overnight carry — are defensible
+from first principles. Re-running the identical bench with them on:
+
+```
+  variant         return%   maxDD%  trades  expect R     ± SE       t   (was)
+  single            -3.65     9.40     236    -0.103    0.072   -1.42   -1.57
+  multi-equal       -4.88     8.08     324    -0.069    0.065   -1.06   -0.14
+  multi-parity      -4.50     8.03     251    -0.110    0.072   -1.52   +0.60
+  full              -5.29     8.74     250    -0.118    0.072   -1.64   +0.71
+  autopilot         -1.71     8.08     212    -0.064    0.081   -0.79   -3.62
+```
+
+The blend got **worse**, not better. The cost gate did what it was designed
+to do — `full` went from 357 trades to 250 — and the result still
+deteriorated. Only `autopilot` improved, from −3.62% to −1.71%, which is
+consistent with the conviction fix finally letting benching bite.
+
+These changes are kept anyway, and that is a judgement call worth stating
+outright. The reasoning behind them is sound and the counter-evidence is
+not significant: every |t| in both tables is below 2, so reverting on this
+sample would be fitting to noise — the exact error the purged validation
+exists to prevent. Both are switchable (`risk.min_edge_cost_ratio`,
+`session.carry_overnight`) precisely because the measurement does not
+settle it.
+
+What the two tables together actually establish is narrower than anyone
+would like: **this system has no demonstrated edge.** The infrastructure
+that lets you know that — purged folds, standard errors, identical-data
+replays — is the part that is trustworthy. The strategies are not yet.
+
+## Machine learning: measured, then left switched off
 
 ```bash
 pip install -r requirements-ml.txt
-python main.py train --days 180
+python main.py compare --days 200     # the bake-off
+python main.py train --days 200       # fit the winner, if there is one
 ```
 
-- **Triple-barrier labels** (`bot/ml/labeling.py`). Each bar is labelled by
-  which barrier price touches first — target, stop, or the clock — with
-  barriers set from the same ATR the live risk layer uses. A label therefore
-  means "a trade opened here would have won / lost / timed out", instead of
-  "was the next bar up?", which is mostly a coin flip.
-- **Sample weights by label uniqueness.** Two labels spanning the same bars
-  are not two independent facts. Overlapping labels are down-weighted.
-- **Purged K-fold with an embargo** (`bot/ml/validation.py`). Training rows
-  whose label window overlaps the test fold are dropped, and a further band
-  after each fold is embargoed for serial correlation. The test suite
-  demonstrates both that purged folds do not leak and that a naive split
-  does.
-- **Everything fits inside the fold.** Feature selection and the scaler are
-  fit on training rows only.
+Nine models across five families — a majority-class baseline, two linear
+models, two tree ensembles, three boosting variants and a shallow net —
+all given the same features, the same triple-barrier labels, the same
+sample weights and the same purged folds, with scaling fit inside each
+fold so nothing gets to peek.
 
-The trainer reports accuracy against the majority-class rate and says
-plainly when there is no edge. A model that cannot beat that baseline is
-reported as useless rather than dressed up.
+The literature disagrees about what should win. Gu, Kelly and Xiu find
+trees and neural networks beat linear models on US equities via nonlinear
+interactions; more recent work on tabular financial features finds
+gradient boosting matching deep learning at a fraction of the cost. The
+zoo exists to test that rather than assume it.
 
-Sequence models (LSTM, transformer) are deliberately absent. On a few
-thousand crypto bars they have far more capacity than the data supports;
-gradient-boosted trees on well-constructed features are the defensible
-choice at this sample size.
+**28,800 rows, 109 features, 5 purged folds, six majors on hourly bars:**
 
----
+```
+  model          family         acc  vs base     AUC   logloss
+  hist_gbm       boosting    0.4844  -0.0265  0.5004    0.7735
+  xgboost        boosting    0.4838  -0.0271  0.5000    0.7766
+  majority       baseline    0.4764  -0.0345  0.5000    0.6951
+  lightgbm       boosting    0.4842  -0.0267  0.4980    0.7732
+  logistic       linear      0.4707  -0.0402  0.4938    0.7355
+  random_forest  trees       0.4808  -0.0301  0.4928    0.7070
+  mlp            neural      0.4803  -0.0306  0.4833    0.9929
+```
+
+**Nothing beats the baseline.** Every AUC sits between 0.483 and 0.500 —
+a coin flip — and every model's accuracy is *below* the majority-class
+rate. The fold-to-fold spread (±0.02 to ±0.04) swallows every difference
+between them.
+
+The literature's ordering does faintly appear — boosting ahead of linear,
+linear ahead of the net — but it is inside the noise and means nothing
+here. The one substantive result is the log-loss column: the MLP is not
+merely no better, it is *worse calibrated* than the baseline (0.99 against
+0.70). Since position sizing consumes probabilities, a confidently wrong
+model is more dangerous than an uncertain one.
+
+This is the expected outcome for generic technical features on
+short-horizon crypto bars, and it is exactly what the purged validation is
+for. An unpurged split would have reported an edge that is not there —
+which is how most published crypto-ML results are produced. `model.enabled`
+stays `false`, and the trainer says so in plain words rather than shipping
+a model that cannot beat guessing.
 
 ## Configuration
 
@@ -322,7 +412,7 @@ deeper books and longer history.
 ## Tests
 
 ```bash
-python -m pytest tests/ -q      # 118 tests, no network
+python -m pytest tests/ -q      # 216 tests, no network
 ```
 
 The suite pins the claims this README makes: that margin cannot be
@@ -331,6 +421,12 @@ stop-out costs about −1R, that funding only accrues across settlements,
 that purged folds do not leak while naive splits do, that news windows
 genuinely differ, and that a second process resumes exactly where the first
 one stopped.
+
+It also pins the awkward ones: that a benched strategy cannot shout louder
+than a trusted one, that a great-looking result on fourteen trades is
+reported as *not* significant, that dual momentum holds cash when nothing
+is rising, and that the bake-off finds a planted signal but invents none
+from noise.
 
 ---
 
@@ -351,11 +447,14 @@ small, and forward paper results are the only evidence worth acting on.
 
 ```
 bot/
+  strategies/  trend, xsmom, breakout, reversion, carry,
+               turtle, clenow, holygrail, dualmom
+  portfolio/   risk-parity allocator, vol targeting, autopilot, tracker
   daily/       schedule, briefing, plan, session, journal
   risk/        position sizing, portfolio gates, circuit breakers
   trading/     paper broker, shared position/trade records
   analysis/    indicators, regime detection, news sentiment
-  ml/          labeling, purged validation, model, trainer
-  utils/       historical replay, performance metrics
-tests/         118 tests
+  ml/          labeling, purged validation, model zoo, bake-off, trainer
+  utils/       historical replay, variant bench, performance metrics
+tests/         216 tests
 ```
