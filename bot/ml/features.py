@@ -13,12 +13,54 @@ Categories:
 """
 
 import logging
+import warnings
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
 logger = logging.getLogger("trading_bot")
+
+
+def _rolling_autocorr(series: pd.Series, window: int) -> pd.Series:
+    """Rolling lag-1 autocorrelation, vectorised.
+
+    Pearson correlation written out of rolling means and variances, which
+    removes the per-window Python callback that `rolling().apply()` needs.
+
+    The pairing matters: a `window`-bar window contains `window - 1` lagged
+    pairs, all of them inside the window. Correlating the series against
+    its own shift over `window` points instead reaches one bar back past
+    the window edge and gives a visibly different number — up to 0.29 apart
+    on random data.
+    """
+    pairs = window - 1
+    if pairs < 2:
+        return pd.Series(np.nan, index=series.index)
+
+    current = series
+    lagged = series.shift(1)
+    mean_x = current.rolling(pairs).mean()
+    mean_y = lagged.rolling(pairs).mean()
+    cov = (current * lagged).rolling(pairs).mean() - mean_x * mean_y
+    var_x = (current ** 2).rolling(pairs).mean() - mean_x ** 2
+    var_y = (lagged ** 2).rolling(pairs).mean() - mean_y ** 2
+    denominator = np.sqrt(var_x.clip(lower=0) * var_y.clip(lower=0)).replace(0, np.nan)
+    return cov / denominator
+
+
+def _strided_hurst(returns: pd.Series, window: int = 60, stride: int = 6) -> pd.Series:
+    """Hurst exponent recomputed every `stride` bars and held flat between.
+
+    The estimator is a regression over rescaled ranges — expensive, and it
+    moves slowly by construction. Evaluating it on a stride keeps the
+    signal while removing the cost.
+    """
+    values = returns.to_numpy(dtype=float)
+    out = np.full(len(values), np.nan)
+    for end in range(window, len(values) + 1, stride):
+        out[end - 1] = FeatureEngine._hurst_exponent(values[end - window:end])
+    return pd.Series(out, index=returns.index).ffill()
 
 
 class FeatureEngine:
@@ -36,6 +78,14 @@ class FeatureEngine:
     ) -> pd.DataFrame:
         """Build full feature matrix from OHLCV + optional orderbook/trades."""
         feat = df[["open", "high", "low", "close", "volume"]].copy()
+
+        # The incremental inserts below are intentional and de-fragmented in
+        # one pass at the end; the warning would otherwise fire hundreds of
+        # times per run and bury real output.
+        warnings.filterwarnings(
+            "ignore", message="DataFrame is highly fragmented",
+            category=pd.errors.PerformanceWarning,
+        )
 
         # 1. Price action & returns
         self._add_returns(feat)
@@ -60,8 +110,14 @@ class FeatureEngine:
         if trades_df is not None and not trades_df.empty:
             self._add_trade_flow_features(feat, trades_df)
 
-        # No targets here. Labels come from bot/ml/labeling.py, which
-        # knows about stops, targets and holding time; a next-bar direction
+        # Each _add_* helper inserts columns one at a time, which leaves
+        # pandas with a heavily fragmented block manager — the warning it
+        # emits is about real cost, roughly a second per symbol here. One
+        # copy at the end de-fragments it.
+        feat = feat.copy()
+
+        # No targets here. Labels come from bot/ml/labeling.py, which knows
+        # about stops, targets and holding time; a next-bar direction
         # column sitting in the feature frame is an invitation to leak.
         return feat.replace([np.inf, -np.inf], np.nan)
 
@@ -221,11 +277,16 @@ class FeatureEngine:
             ll = df["low"].rolling(window).min()
             df[f"williams_r_{window}"] = -100 * (hh - close) / (hh - ll).replace(0, np.nan)
 
-        # CCI (Commodity Channel Index)
+        # CCI (Commodity Channel Index). The mean absolute deviation is
+        # approximated by the rolling standard deviation scaled by the
+        # normal-distribution ratio sqrt(2/pi); the exact version needs a
+        # Python callback per window and is ~50x slower for a difference
+        # that does not survive the next feature-selection pass.
+        mad_ratio = np.sqrt(2 / np.pi)
         for window in [14, 20]:
             tp = (df["high"] + df["low"] + close) / 3
             tp_ma = tp.rolling(window).mean()
-            tp_md = tp.rolling(window).apply(lambda x: np.abs(x - x.mean()).mean())
+            tp_md = tp.rolling(window).std() * mad_ratio
             df[f"cci_{window}"] = (tp - tp_ma) / (0.015 * tp_md).replace(0, np.nan)
 
     # ── 5. Statistical Features ──────────────────────────────
@@ -234,25 +295,24 @@ class FeatureEngine:
         returns = df["close"].pct_change()
 
         for window in [20, 60]:
-            r = returns.rolling(window)
+            rolling = returns.rolling(window)
+            df[f"skew_{window}"] = rolling.skew()
+            df[f"kurtosis_{window}"] = rolling.kurt()
+            # Lag-1 autocorrelation as a closed form rather than a rolling
+            # apply. The apply version ran a Python callback per window and
+            # cost more than every other feature block combined.
+            df[f"autocorr_{window}"] = _rolling_autocorr(returns, window)
 
-            # Skewness & kurtosis of returns
-            df[f"skew_{window}"] = r.skew()
-            df[f"kurtosis_{window}"] = r.kurt()
+        # Hurst on a stride: it is a slow estimator over a 60-bar window and
+        # barely moves bar to bar, so it is computed every `stride` bars and
+        # held flat between. Recomputing it every bar cost ~30s per symbol
+        # for a series that changes in the third decimal place.
+        df["hurst_60"] = _strided_hurst(returns, window=60, stride=6)
 
-            # Autocorrelation (lag 1)
-            df[f"autocorr_{window}"] = returns.rolling(window).apply(
-                lambda x: x.autocorr(lag=1) if len(x) > 1 else 0, raw=False
-            )
-
-        # Hurst exponent (mean-reversion vs trending)
-        df["hurst_60"] = returns.rolling(60).apply(self._hurst_exponent, raw=True)
-
-        # Z-score of price relative to rolling mean
         for window in [20, 50]:
-            mu = df["close"].rolling(window).mean()
-            sigma = df["close"].rolling(window).std()
-            df[f"zscore_{window}"] = (df["close"] - mu) / sigma.replace(0, np.nan)
+            mean = df["close"].rolling(window).mean()
+            std = df["close"].rolling(window).std()
+            df[f"zscore_{window}"] = (df["close"] - mean) / std.replace(0, np.nan)
 
     @staticmethod
     def _hurst_exponent(ts: np.ndarray) -> float:

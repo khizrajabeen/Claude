@@ -31,11 +31,29 @@ def _ordinals(index: pd.Index) -> np.ndarray:
     """Comparable integer positions for an index.
 
     Timestamps go to nanoseconds since the epoch so tz-aware and tz-naive
-    values never get compared directly, which raises in pandas.
+    values are never compared directly, which raises in pandas.
+
+    Pooled datasets carry a (timestamp, symbol) MultiIndex — several
+    symbols share each timestamp. Purging is a statement about *time*, not
+    about rows, so the time level is what gets compared: a training row
+    must be dropped when its label window overlaps the test window, whether
+    or not it belongs to the same symbol. Purging per-symbol instead would
+    leave BTC rows leaking into an ETH test fold.
     """
+    if isinstance(index, pd.MultiIndex):
+        for level in range(index.nlevels):
+            values = index.get_level_values(level)
+            if isinstance(values, pd.DatetimeIndex):
+                return _ordinals(values)
+        # No time level: fall back to position, which still blocks the
+        # exact rows under test from appearing in training.
+        return np.arange(len(index), dtype=np.int64)
     if isinstance(index, pd.DatetimeIndex):
         return index.tz_convert("UTC").asi8 if index.tz is not None else index.asi8
-    return np.asarray(index, dtype=np.int64)
+    try:
+        return np.asarray(index, dtype=np.int64)
+    except (TypeError, ValueError):
+        return np.arange(len(index), dtype=np.int64)
 
 
 def _ordinals_with_mask(series: pd.Series) -> tuple[np.ndarray, np.ndarray]:

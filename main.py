@@ -12,6 +12,8 @@ writes the day to disk so the next one starts from a real record.
     python main.py briefing             # morning read, no orders
     python main.py plan                 # briefing + the plan it would trade
     python main.py replay --days 30     # replay the cycle over history
+    python main.py compare              # bake-off across ML models
+  python main.py bench --days 90      # compare strategy/portfolio variants
     python main.py report               # records so far
     python main.py news                 # current sentiment
     python main.py live                 # real money (asks first)
@@ -45,7 +47,7 @@ Examples:
     parser.add_argument(
         "mode",
         choices=["run", "day", "briefing", "plan", "replay", "report", "news",
-                 "live", "train", "backtest"],
+                 "live", "train", "compare", "bench", "backtest"],
         help="What to do",
     )
     parser.add_argument("--config", default="config.yaml", help="Config file")
@@ -56,6 +58,8 @@ Examples:
                         help="Run the day on a simulated clock (no waiting)")
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     parser.add_argument("--yes", action="store_true", help="Skip the live-trading prompt")
+    parser.add_argument("--models", help="Comma-separated models for 'compare'")
+    parser.add_argument("--variants", help="Comma-separated variants for 'bench'")
     parser.add_argument("--reset", action="store_true",
                         help="Start from a clean journal (archives the old one)")
     return parser.parse_args(argv)
@@ -269,6 +273,28 @@ def mode_train(config, logger, args):
     return pipeline.run(days=args.days)
 
 
+def mode_compare(config, logger, args):
+    """Bake-off: every model, identical features, labels and purged folds."""
+    from bot.ml.trainer import TrainingPipeline
+
+    models = args.models.split(",") if args.models else None
+    report = TrainingPipeline(config).compare(days=args.days, models=models)
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+    return report
+
+
+def mode_bench(config, logger, args):
+    """Replay several configurations over identical data and compare them."""
+    from bot.utils.bench import VariantBench
+
+    variants = args.variants.split(",") if args.variants else None
+    report = VariantBench(config).run(days=args.days or 90, variants=variants)
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+    return report
+
+
 def mode_backtest(config, logger, args):
     return mode_replay(config, logger, args)
 
@@ -357,6 +383,8 @@ def main(argv=None):
         "news": mode_news,
         "live": mode_live,
         "train": mode_train,
+        "compare": mode_compare,
+        "bench": mode_bench,
         "backtest": mode_backtest,
     }
     try:

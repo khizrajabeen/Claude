@@ -34,41 +34,61 @@ class TrainingPipeline:
         self.timeframe = config["data"].get("timeframe", "1h")
         self.symbols = list(config["data"].get("symbols", []))
 
+    def compare(self, days: int | None = None, models: list[str] | None = None) -> dict:
+        """Run the model bake-off on exactly the data training would use."""
+        from bot.ml.compare import ModelComparison
+
+        features, labels, weights, t1, returns = self._assemble(days)
+        feature_columns = self.feature_engine.get_feature_columns(features)
+
+        results = ModelComparison(self.config).run(
+            features=features, labels=labels, returns=returns,
+            feature_columns=feature_columns, sample_weight=weights, t1=t1,
+            models=models,
+        )
+
+        report = {
+            "rows": len(features),
+            "features": len(feature_columns),
+            "timeframe": self.timeframe,
+            "results": [r.to_dict() for r in results],
+        }
+        self._save_report(report, name="model_comparison.json")
+        return report
+
+    def _assemble(self, days: int | None = None):
+        """Download, label and pool every symbol into one aligned dataset."""
+        days = days or int(self.config["data"].get("train_days", 180))
+        frames = self._load(days)
+        if not frames:
+            raise RuntimeError("No data downloaded — cannot train")
+
+        blocks = []
+        for symbol, df in frames.items():
+            prepared = self._prepare(symbol, df)
+            if prepared is not None:
+                blocks.append(prepared)
+
+        if not blocks:
+            raise RuntimeError("No symbol produced enough resolved labels to train on")
+
+        features = pd.concat([b[0] for b in blocks]).sort_index()
+        labels = pd.concat([b[1] for b in blocks]).sort_index()
+        weights = pd.concat([b[2] for b in blocks]).sort_index()
+        t1 = pd.concat([b[3] for b in blocks]).sort_index()
+        returns = pd.concat([b[4] for b in blocks]).sort_index()
+        return features, labels, weights, t1, returns
+
     def run(self, days: int | None = None) -> dict:
         """Train on every configured symbol pooled together.
 
         Pooling is deliberate: crypto majors share most of their structure,
         and one symbol rarely supplies enough resolved labels to validate on.
         """
-        days = days or int(self.config["data"].get("train_days", 180))
-        frames = self._load(days)
-        if not frames:
-            raise RuntimeError("No data downloaded — cannot train")
-
-        feature_blocks, label_blocks, weight_blocks, t1_blocks = [], [], [], []
-        for symbol, df in frames.items():
-            block = self._prepare(symbol, df)
-            if block is None:
-                continue
-            features, labels, weights, t1 = block
-            feature_blocks.append(features)
-            label_blocks.append(labels)
-            weight_blocks.append(weights)
-            t1_blocks.append(t1)
-
-        if not feature_blocks:
-            raise RuntimeError("No symbol produced enough resolved labels to train on")
-
-        # Concatenate then sort by time, so folds cut the calendar rather
-        # than the symbol list.
-        features = pd.concat(feature_blocks).sort_index()
-        labels = pd.concat(label_blocks).sort_index()
-        weights = pd.concat(weight_blocks).sort_index()
-        t1 = pd.concat(t1_blocks).sort_index()
-
+        features, labels, weights, t1, _ = self._assemble(days)
         feature_columns = self.feature_engine.get_feature_columns(features)
-        logger.info("Training set: %d rows, %d features, %d symbols",
-                    len(features), len(feature_columns), len(feature_blocks))
+        logger.info("Training set: %d rows, %d features",
+                    len(features), len(feature_columns))
 
         report = self.model.fit(
             features=features,
@@ -80,7 +100,6 @@ class TrainingPipeline:
             embargo_pct=float(self.validation.get("embargo_pct", 1.0)),
         )
 
-        report["symbols"] = list(frames)
         report["rows"] = len(features)
         report["timeframe"] = self.timeframe
         self._save_report(report)
@@ -149,11 +168,12 @@ class TrainingPipeline:
         target = target.set_axis(keyed)
         weights = weights.set_axis(keyed)
         t1 = labels["t1"].set_axis(keyed)
-        return features, target, weights, t1
+        returns = labels["ret"].set_axis(keyed)
+        return features, target, weights, t1, returns
 
-    def _save_report(self, report: dict) -> None:
+    def _save_report(self, report: dict, name: str = "training_report.json") -> None:
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
-        path = MODEL_DIR / "training_report.json"
+        path = MODEL_DIR / name
         with open(path, "w") as f:
             json.dump(report, f, indent=2, default=str)
         logger.info("Training report written to %s", path)
@@ -163,8 +183,7 @@ class TrainingPipeline:
         logger.info("═" * 62)
         logger.info("  TRAINING RESULT")
         logger.info("═" * 62)
-        logger.info("  Rows         : %d across %d symbol(s)",
-                    report.get("rows", 0), len(report.get("symbols", [])))
+        logger.info("  Rows         : %d", report.get("rows", 0))
         logger.info("  Purged folds : %d", report.get("folds", 0))
         logger.info("  Accuracy     : %.4f ± %.4f",
                     report.get("accuracy_mean", 0), report.get("accuracy_std", 0))

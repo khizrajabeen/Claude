@@ -173,3 +173,58 @@ def test_anchored_walk_forward_keeps_all_history():
 def test_deflated_sharpe_penalty_grows_with_trials():
     assert deflated_sharpe_penalty(1) == 0.0
     assert deflated_sharpe_penalty(100) > deflated_sharpe_penalty(10) > 0
+
+
+# ── Pooled multi-symbol datasets ─────────────────────────────
+
+@pytest.fixture
+def pooled():
+    """What the trainer actually builds: several symbols sharing a calendar."""
+    timestamps = pd.date_range("2026-01-01", periods=300, freq="h", tz="UTC")
+    frames = []
+    for symbol in ("BTC", "ETH", "SOL"):
+        index = pd.MultiIndex.from_arrays(
+            [timestamps, [symbol] * len(timestamps)], names=["timestamp", "symbol"]
+        )
+        frames.append(pd.DataFrame(
+            {"f": np.random.default_rng(hash(symbol) % 1000).normal(size=len(timestamps))},
+            index=index,
+        ))
+    X = pd.concat(frames).sort_index()
+    t1 = pd.Series([t + pd.Timedelta(hours=24) for t in X.index.get_level_values(0)],
+                   index=X.index)
+    return X, t1
+
+
+def test_purging_works_on_a_pooled_multi_symbol_index(pooled):
+    X, t1 = pooled
+    folds = list(PurgedKFold(n_splits=5, t1=t1, embargo_pct=1.0).split(X))
+    assert len(folds) == 5
+    for train_idx, test_idx in folds:
+        assert_no_leakage(train_idx, test_idx, X.index, t1)
+
+
+def test_pooled_purging_drops_other_symbols_too(pooled):
+    """A BTC row whose label spans the test window leaks into an ETH test
+    fold just as surely as an ETH row would."""
+    X, t1 = pooled
+    train_idx, test_idx = list(PurgedKFold(n_splits=5, t1=t1, embargo_pct=0.0).split(X))[2]
+
+    times = X.index.get_level_values(0)
+    test_start, test_end = times[test_idx].min(), times[test_idx].max()
+    train_symbols = set(X.index[train_idx].get_level_values(1))
+
+    # Every symbol survives somewhere in training...
+    assert len(train_symbols) == 3
+    # ...but none of them survives *inside* the purged window.
+    overlapping = [i for i in train_idx if test_start <= times[i] <= test_end]
+    assert not overlapping
+
+
+def test_a_non_time_index_still_blocks_the_test_rows():
+    """Fallback path: without a time level, purging degrades to position
+    separation rather than raising."""
+    X = pd.DataFrame({"f": np.arange(200.0)},
+                     index=pd.MultiIndex.from_product([range(100), ["a", "b"]]))
+    for train_idx, test_idx in PurgedKFold(n_splits=4).split(X):
+        assert not set(train_idx) & set(test_idx)
