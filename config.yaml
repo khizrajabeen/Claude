@@ -1,121 +1,156 @@
 # ============================================================
-#  AI Crypto Trading Bot v2.1 — Configuration
+#  Daily Crypto Trading Bot — Configuration
 # ============================================================
-# Copy to config.local.yaml and fill in API keys.
-# NEVER commit config.local.yaml.
+# Copy to config.local.yaml and put API keys there, or in .env.
+# config.local.yaml is gitignored; never commit keys.
 
 exchange:
-  name: "binance"
+  name: "kraken"           # binance | kraken | coinbase | okx | kucoin | bybit
+  market_type: "spot"      # spot | swap  (swap enables funding accrual)
   api_key: ""
   api_secret: ""
-  sandbox: true
+  sandbox: false           # paper mode needs no keys and no sandbox
+  trust_env: true          # honour HTTPS_PROXY (ccxt disables this by default)
+  verify_ca: ""            # optional CA bundle path
+  timeout_ms: 30000
+  max_retries: 4
 
-# ── Data Collection ──────────────────────────────────────────
+# ── Universe and data ────────────────────────────────────────
 data:
   symbols:
     - "BTC/USDT"
     - "ETH/USDT"
     - "SOL/USDT"
-    - "BNB/USDT"
     - "XRP/USDT"
-  auto_discover_coins: false       # Auto-detect top coins by volume
-  auto_discover_count: 15          # How many to discover
-  timeframes:
-    - "5m"
-    - "15m"
-    - "1h"
-    - "4h"
-  lookback_days: 90
+    - "ADA/USDT"
+    - "LINK/USDT"
+  timeframe: "1h"          # the decision timeframe
+  higher_timeframe: "4h"   # trend filter
+  history_bars: 500
   orderbook_depth: 20
+  orderbook_levels: 10
+  train_days: 180
 
-# ── ML Model ─────────────────────────────────────────────────
-model:
-  ensemble_weights:
-    xgboost: 0.35
-    lightgbm: 0.35
-    lstm: 0.20
-    transformer: 0.10
-  retrain_interval_hours: 24
-  min_confidence: 0.65
-  sequence_length: 60
-  features_top_k: 80
-  multi_coin_training: true        # Train on all coins for better generalization
-  multi_strategy: true             # Train separate models per strategy type
+# ── The trading day ──────────────────────────────────────────
+# Crypto never closes, so the "day" is a convention anchored to the UTC
+# boundary exchanges use for daily candles and funding settlement.
+session:
+  day_open: "00:00"                # briefing runs here
+  entry_window_minutes: 120        # new positions only in this window
+  allow_late_start: true           # starting mid-day gets one fresh window
+  flatten_at: "23:30"              # close intraday book before the boundary
+  manage_interval_seconds: 900     # how often the book is walked
+  max_new_positions_per_day: 3
+  carry_overnight: false           # true = let winners run into tomorrow
+  max_holding_days: 3              # hard cap even when carrying
+  max_entry_drift_r: 0.5           # don't chase a plan that already ran
+  entry_stagger_seconds: 0
 
-# ── Multi-Strategy ───────────────────────────────────────────
-# 5 strategies, bot picks the best one automatically:
-#   momentum       — trending markets
-#   mean_reversion — ranging/sideways markets
-#   breakout       — quiet → volatile transitions
-#   scalp          — short timeframes, high volume
-#   news           — sentiment-driven trades
-strategies:
-  enabled:
-    - momentum
-    - mean_reversion
-    - breakout
-    - scalp
-    - news
+# ── Risk ─────────────────────────────────────────────────────
+# Fixed dollar risk per trade at an ATR stop, capped by portfolio heat.
+risk:
+  risk_per_trade_pct: 0.75         # of equity, lost if the stop is hit
+  min_risk_per_trade_pct: 0.10
+  max_portfolio_heat_pct: 4.0      # total open risk if every stop hits
+  max_open_positions: 5
+  max_correlated_positions: 3      # crypto majors trade as one factor
+  max_net_beta: 1.5                # beta-weighted exposure vs equity
+  max_daily_loss_pct: 2.0          # circuit breaker, measured on equity
+  daily_profit_lock_pct: 4.0       # stand down after a good day (0 = off)
+  max_total_drawdown_pct: 15.0     # hard halt
+  derisk_after_losses: 3
+  cooldown_after_losses: 2
+  cooldown_minutes: 120
 
-# ── News / Sentiment ────────────────────────────────────────
+# ── Stops, targets and trailing ──────────────────────────────
+stops:
+  atr_period: 14
+  atr_stop_mult: 2.0               # stop distance = 2 x ATR
+  target_r_multiple: 2.0           # first target at 2R
+  breakeven_at_r: 1.0              # move stop to entry once 1R is banked
+  breakeven_pad_bps: 8             # ... just past entry, to cover fees
+  trail_after_r: 1.0
+  trail_atr_mult: 2.5              # trail 2.5 ATR behind the extreme
+  time_stop_bars: 48               # cut a trade that goes nowhere
+  min_stop_bps: 30                 # floor, guards against a degenerate ATR
+  max_stop_bps: 1200               # ceiling
+
+# ── Position sizing ──────────────────────────────────────────
+sizing:
+  max_position_pct: 20.0           # notional cap as % of equity
+  vol_target_annual_pct: 40.0      # per-position volatility budget
+  min_position_usd: 25
+  kelly_fraction: 0.25             # quarter-Kelly, as a cap only
+  kelly_min_trades: 30             # ... once there is a real sample
+
+# ── Signal blend ─────────────────────────────────────────────
+signals:
+  min_edge_score: 0.18             # |edge| below this is noise
+  news_weight: 0.20                # news tilts, it never triggers alone
+  book_weight: 0.08                # order-book imbalance, confirmation only
+  news_can_veto: true
+  require_htf_agreement: true      # don't fight the higher timeframe
+
+# ── Tradability filters ──────────────────────────────────────
+filters:
+  min_quote_volume_24h: 5000000    # skip illiquid books
+  max_spread_bps: 25
+  min_atr_pct: 0.15                # too quiet to pay the fees
+  max_atr_pct: 12.0                # too wild to size sanely
+  min_bars: 120
+
+# ── News / sentiment ─────────────────────────────────────────
 news:
   enabled: true
-  fetch_interval_seconds: 300      # Check news every 5 min
-  signal_threshold: 0.6            # Min sentiment score to trigger trade
-  max_age_hours: 24                # Ignore news older than this
+  fetch_interval_seconds: 300
+  retention_hours: 48
+  half_life_hours: 6.0             # headline impact decays fast
+  tilt_window_hours: 8
+  tone_window_hours: 12
+  signal_threshold: 0.35
+  min_articles: 2
+  per_feed_limit: 30
+  # feeds:                         # override the defaults if you like
+  #   - {url: "https://cointelegraph.com/rss", weight: 1.0}
 
-# ── Reinforcement Learning (Position Sizing) ─────────────────
-rl_agent:
-  algorithm: "PPO"
-  learning_rate: 0.0003
-  gamma: 0.99
-  total_timesteps: 500000
-  reward_type: "sharpe"
-
-# ── Trading ──────────────────────────────────────────────────
-trading:
-  primary_symbol: "BTC/USDT"
-  mode: "paper"                    # "paper" or "live"
-  base_order_pct: 2.0
-  max_order_pct: 15.0
-  max_open_positions: 5
-  leverage: 1
-  max_leverage: 10
-
-# ── Dynamic Position Scaling ─────────────────────────────────
-scaling:
-  tiers:
-    - max_portfolio: 1000
-      max_leverage: 2
-      max_position_pct: 5.0
-      risk_per_trade_pct: 1.0
-    - max_portfolio: 10000
-      max_leverage: 5
-      max_position_pct: 10.0
-      risk_per_trade_pct: 2.0
-    - max_portfolio: 50000
-      max_leverage: 8
-      max_position_pct: 15.0
-      risk_per_trade_pct: 3.0
-    - max_portfolio: 1000000
-      max_leverage: 10
-      max_position_pct: 20.0
-      risk_per_trade_pct: 4.0
-
-# ── Risk Management ──────────────────────────────────────────
-risk:
-  max_daily_drawdown_pct: 5.0
-  max_total_drawdown_pct: 15.0
-  trailing_stop_pct: 1.5
-  min_risk_reward_ratio: 2.0
-  cooldown_after_loss_seconds: 300
-
-# ── Paper Trading ────────────────────────────────────────────
+# ── Paper trading / execution costs ──────────────────────────
 paper:
   initial_balance: 10000.0
-  slippage_pct: 0.05
-  maker_fee_pct: 0.02
-  taker_fee_pct: 0.04
+  fee_maker_bps: 2.0
+  fee_taker_bps: 5.5
+  slippage_bps: 3.0
+  impact_coefficient: 0.5          # square-root market impact (of daily vol)
+  reference_daily_vol_bps: 300.0   # fallback vol for the impact model
+  max_slippage_bps: 100.0          # sanity cap on modelled slippage
+  funding_enabled: true
+  default_funding_bps: 1.0         # per 8h settlement when unknown
+
+# ── Records ──────────────────────────────────────────────────
+journal:
+  dir: "state"
+  rolling_window: 50               # trades used for adaptive risk
+
+# ── Machine learning (optional) ──────────────────────────────
+# The daily session runs without any of this. When models are trained they
+# add a fifth view to the edge blend.
+model:
+  enabled: false
+  ensemble_weights:
+    xgboost: 0.4
+    lightgbm: 0.4
+    lstm: 0.2
+  min_confidence: 0.55
+  sequence_length: 60
+  features_top_k: 60
+labeling:
+  method: "triple_barrier"
+  atr_period: 14
+  upper_barrier_atr: 2.0
+  lower_barrier_atr: 2.0
+  max_holding_bars: 48
+validation:
+  n_splits: 5
+  embargo_pct: 1.0                 # embargo after each test fold
 
 # ── Logging ──────────────────────────────────────────────────
 logging:

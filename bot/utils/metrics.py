@@ -130,3 +130,78 @@ def compute_all_metrics(returns: pd.Series) -> dict:
         "skewness": float(returns.skew()),
         "kurtosis": float(returns.kurt()),
     }
+
+
+def summarize_trades(trades: list, starting_equity: float | None = None) -> dict:
+    """Roll a list of Trade records into the numbers worth reporting.
+
+    Results are expressed in R (profit per unit of risk taken) as well as
+    dollars. R is what makes trades comparable when position size varies
+    with volatility, which it does here by design.
+    """
+    if not trades:
+        return {"total_trades": 0}
+
+    pnls = [t.pnl for t in trades]
+    r_multiples = [t.r_multiple for t in trades]
+    wins = [t for t in trades if t.pnl > 0]
+    losses = [t for t in trades if t.pnl <= 0]
+
+    gross_profit = sum(t.pnl for t in wins)
+    gross_loss = abs(sum(t.pnl for t in losses))
+
+    avg_win_r = float(np.mean([t.r_multiple for t in wins])) if wins else 0.0
+    avg_loss_r = abs(float(np.mean([t.r_multiple for t in losses]))) if losses else 0.0
+    wr = len(wins) / len(trades)
+
+    # Drawdown must be measured against account equity. Measuring it
+    # against cumulative PnL divides by a number that starts near zero and
+    # produces nonsense like "431% drawdown".
+    base = float(starting_equity) if starting_equity else 0.0
+    if base <= 0:
+        base = max(abs(float(np.sum(pnls))), 1.0)
+    equity = base + np.cumsum(pnls)
+    peak = np.maximum.accumulate(np.concatenate([[base], equity]))[1:]
+    max_dd = float(np.max((peak - equity) / peak) * 100) if len(equity) else 0.0
+
+    # Group into calendar days before annualising, so the Sharpe reflects
+    # daily variability rather than pretending each trade is a day.
+    by_day: dict[str, float] = {}
+    for t in trades:
+        by_day[t.closed_on_day or t.closed_at.date().isoformat()] = \
+            by_day.get(t.closed_on_day or t.closed_at.date().isoformat(), 0.0) + t.pnl
+    daily = pd.Series(list(by_day.values()))
+    sharpe_daily = float(daily.mean() / daily.std() * np.sqrt(365)) \
+        if len(daily) > 1 and daily.std() > 0 else 0.0
+
+    reasons: dict[str, int] = {}
+    for t in trades:
+        reasons[t.exit_reason] = reasons.get(t.exit_reason, 0) + 1
+
+    return {
+        "total_trades": len(trades),
+        "wins": len(wins),
+        "losses": len(losses),
+        "win_rate": round(wr * 100, 2),
+        "total_pnl": round(float(sum(pnls)), 2),
+        "avg_r": round(float(np.mean(r_multiples)), 4),
+        "expectancy_r": round(wr * avg_win_r - (1 - wr) * avg_loss_r, 4),
+        "avg_win_r": round(avg_win_r, 4),
+        "avg_loss_r": round(avg_loss_r, 4),
+        "best_r": round(float(np.max(r_multiples)), 4),
+        "worst_r": round(float(np.min(r_multiples)), 4),
+        "profit_factor": round(gross_profit / gross_loss, 3) if gross_loss > 0 else 0.0,
+        "gross_profit": round(gross_profit, 2),
+        "gross_loss": round(gross_loss, 2),
+        "total_fees": round(float(sum(t.fees for t in trades)), 2),
+        "total_funding": round(float(sum(t.funding for t in trades)), 4),
+        "max_drawdown_pct": round(max_dd, 3),
+        "sharpe_daily": round(sharpe_daily, 3),
+        "avg_holding_minutes": round(
+            float(np.mean([t.holding_minutes for t in trades])), 1
+        ),
+        "avg_mae_r": round(float(np.mean([t.mae_r for t in trades])), 4),
+        "avg_mfe_r": round(float(np.mean([t.mfe_r for t in trades])), 4),
+        "exit_reasons": reasons,
+        "trading_days": len(by_day),
+    }

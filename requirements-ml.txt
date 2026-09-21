@@ -1,0 +1,8 @@
+# Optional: only needed for `python main.py train`.
+# The daily trading session runs without any of this.
+-r requirements.txt
+
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+lightgbm>=4.0.0
+joblib>=1.3.0

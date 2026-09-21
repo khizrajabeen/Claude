@@ -1,316 +1,414 @@
-"""News and sentiment analysis for crypto trading.
+"""Crypto news and sentiment.
 
-Aggregates news from multiple free sources:
-  - CoinTelegraph RSS
-  - CoinDesk RSS
-  - Bitcoin Magazine RSS
-  - CryptoPanic API (free tier)
-  - Reddit crypto subreddits (via RSS)
+Aggregates public RSS feeds, scores each headline, and rolls the result up
+into a per-coin view the morning briefing can act on.
 
-Scores sentiment using keyword/phrase analysis and feeds it
-into the ML model as features and direct trade signals.
+Three things the previous version got wrong, and why they mattered:
+
+  * The fetch cache was keyed on nothing but time, so asking for the last
+    hour of news returned the full 24h cache. The 1h/4h/24h "features" were
+    three copies of the same number. Windows are now applied at query time,
+    against a single rolling store.
+  * Feeds syndicate each other, so one story arriving through four sources
+    counted as four-way consensus. Near-duplicate headlines are now merged.
+  * Scoring was an unweighted bag of words with no negation handling, so
+    "exchange denies hack" scored as bearish as "exchange hacked". Terms are
+    weighted, and a negation window flips the sign of what follows.
+
+Sentiment is treated as a *tilt* on a price-driven decision, never as a
+standalone entry signal. Headline sentiment decays fast and is widely shown
+to be a weak standalone predictor.
 """
+
+from __future__ import annotations
 
 import logging
 import re
 import time
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-
-import feedparser
-import requests
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger("trading_bot")
 
-# ── Sentiment word lists (from financial NLP research) ────────
-
-BULLISH_WORDS = {
-    "surge", "soar", "rally", "breakout", "bullish", "pump", "moon",
-    "all-time high", "ath", "adoption", "partnership", "approval",
-    "etf approved", "institutional", "accumulation", "upgrade",
-    "buy signal", "golden cross", "recovery", "rebound", "breakthrough",
-    "milestone", "record", "growth", "profit", "gain", "support",
-    "halving", "supply shock", "shortage", "demand", "inflow",
-    "mainstream", "integration", "launch", "listing", "upgrade",
+# Weighted lexicon: magnitude reflects how much the term actually moves a
+# crypto tape, not just its dictionary polarity.
+BULLISH_TERMS: dict[str, float] = {
+    "etf approved": 1.0, "etf approval": 1.0, "spot etf": 0.6,
+    "all-time high": 0.8, "record high": 0.8, "breakout": 0.5,
+    "institutional inflow": 0.8, "inflows": 0.6, "accumulation": 0.5,
+    "partnership": 0.5, "integration": 0.4, "mainnet launch": 0.5,
+    "listing": 0.5, "listed": 0.3, "upgrade": 0.4, "halving": 0.6,
+    "supply shock": 0.7, "short squeeze": 0.7, "rally": 0.5, "surge": 0.5,
+    "soar": 0.5, "jumps": 0.4, "rebound": 0.4, "recovery": 0.4,
+    "bullish": 0.6, "adoption": 0.5, "buyback": 0.5, "treasury": 0.3,
+    "rate cut": 0.6, "dovish": 0.5, "golden cross": 0.4, "milestone": 0.3,
+    "outperform": 0.4, "breakthrough": 0.4, "green light": 0.6,
 }
 
-BEARISH_WORDS = {
-    "crash", "plunge", "dump", "bearish", "selloff", "sell-off",
-    "collapse", "liquidation", "hack", "exploit", "vulnerability",
-    "ban", "regulation", "crackdown", "lawsuit", "sec", "fraud",
-    "ponzi", "scam", "rug pull", "death cross", "breakdown",
-    "outflow", "capitulation", "panic", "fear", "risk",
-    "recession", "inflation", "rate hike", "delisting", "warning",
-    "investigation", "subpoena", "bankruptcy", "insolvency",
+BEARISH_TERMS: dict[str, float] = {
+    "hack": -1.0, "hacked": -1.0, "exploit": -0.9, "stolen": -0.8,
+    "rug pull": -1.0, "insolvency": -1.0, "bankruptcy": -1.0,
+    "delisting": -0.8, "delisted": -0.8, "ban": -0.7, "banned": -0.7,
+    "lawsuit": -0.6, "sues": -0.6, "subpoena": -0.6, "investigation": -0.5,
+    "crackdown": -0.7, "fraud": -0.8, "ponzi": -0.8, "scam": -0.6,
+    "liquidations": -0.7, "liquidated": -0.6, "capitulation": -0.8,
+    "selloff": -0.6, "sell-off": -0.6, "crash": -0.8, "plunge": -0.7,
+    "plummet": -0.7, "tumble": -0.5, "slump": -0.5, "bearish": -0.6,
+    "outflows": -0.6, "death cross": -0.4, "breakdown": -0.5,
+    "rate hike": -0.6, "hawkish": -0.5, "recession": -0.5,
+    "vulnerability": -0.6, "downgrade": -0.5, "halt withdrawals": -1.0,
+    "warns": -0.3, "warning": -0.3, "rejected": -0.6, "denied": -0.4,
 }
 
-# Coin-specific keywords for multi-coin support
-COIN_KEYWORDS = {
+# Words that invert the polarity of terms appearing shortly after them.
+NEGATIONS = {
+    "no", "not", "never", "denies", "denied", "deny", "rejects", "refutes",
+    "dismisses", "without", "fails", "failed", "unlikely", "halts", "avoids",
+}
+NEGATION_WINDOW = 4  # tokens
+NEGATION_DAMPING = 0.3  # a denial neutralises rather than inverts
+
+COIN_KEYWORDS: dict[str, list[str]] = {
     "BTC": ["bitcoin", "btc", "satoshi"],
-    "ETH": ["ethereum", "eth", "vitalik", "erc-20", "layer 2"],
+    "ETH": ["ethereum", "ether", "eth", "vitalik", "erc-20"],
     "SOL": ["solana", "sol"],
-    "BNB": ["binance coin", "bnb", "binance"],
+    "BNB": ["binance coin", "bnb"],
     "XRP": ["ripple", "xrp"],
     "ADA": ["cardano", "ada"],
-    "DOGE": ["dogecoin", "doge", "elon"],
+    "DOGE": ["dogecoin", "doge"],
     "AVAX": ["avalanche", "avax"],
-    "DOT": ["polkadot", "dot"],
+    "DOT": ["polkadot"],
     "MATIC": ["polygon", "matic"],
-    "LINK": ["chainlink", "link"],
-    "UNI": ["uniswap", "uni"],
+    "LINK": ["chainlink"],
+    "UNI": ["uniswap"],
     "ATOM": ["cosmos", "atom"],
     "LTC": ["litecoin", "ltc"],
-    "ARB": ["arbitrum", "arb"],
+    "ARB": ["arbitrum"],
+    "OP": ["optimism"],
+    "TON": ["toncoin"],
+    "NEAR": ["near protocol"],
 }
 
-# RSS feed sources
-RSS_FEEDS = [
-    "https://cointelegraph.com/rss",
-    "https://www.coindesk.com/arc/outboundfeeds/rss/",
-    "https://bitcoinmagazine.com/.rss/full/",
-    "https://cryptonews.com/news/feed/",
-    "https://www.reddit.com/r/CryptoCurrency/hot.rss",
-    "https://www.reddit.com/r/Bitcoin/hot.rss",
+MARKET_WIDE_TERMS = ("crypto", "cryptocurrency", "digital asset", "blockchain",
+                     "altcoin", "stablecoin", "defi")
+
+# Editorial feeds are weighted above social feeds, which are noisier and
+# more reflexive.
+DEFAULT_FEEDS: list[tuple[str, float]] = [
+    ("https://cointelegraph.com/rss", 1.0),
+    ("https://www.coindesk.com/arc/outboundfeeds/rss/", 1.0),
+    ("https://bitcoinmagazine.com/.rss/full/", 0.8),
+    ("https://cryptonews.com/news/feed/", 0.7),
+    ("https://decrypt.co/feed", 0.9),
+    ("https://www.theblock.co/rss.xml", 1.0),
+    ("https://www.reddit.com/r/CryptoCurrency/hot.rss", 0.4),
+    ("https://www.reddit.com/r/Bitcoin/hot.rss", 0.4),
 ]
+
+_TOKEN_RE = re.compile(r"[a-z0-9$%'\-]+")
+_HTML_RE = re.compile(r"<[^>]+>")
 
 
 @dataclass
 class NewsItem:
-    """A single news article/post."""
     title: str
     summary: str
     source: str
     url: str
     published: datetime
-    sentiment_score: float = 0.0  # -1 (bearish) to +1 (bullish)
-    relevance: dict = None  # Which coins this relates to
+    source_weight: float = 1.0
+    sentiment: float = 0.0
+    coins: dict = field(default_factory=dict)
 
-    def __post_init__(self):
-        if self.relevance is None:
-            self.relevance = {}
+    def age_hours(self, now: datetime) -> float:
+        return max(0.0, (now - self.published).total_seconds() / 3600.0)
 
 
 class NewsSentimentAnalyzer:
-    """Aggregate and analyze crypto news sentiment."""
+    """Rolling store of scored headlines, queryable by coin and window."""
 
     def __init__(self, config: dict):
         self.config = config
         self.news_config = config.get("news", {})
-        self.cache: list[NewsItem] = []
-        self.last_fetch_time = 0.0
-        self.fetch_interval = self.news_config.get("fetch_interval_seconds", 300)
+        self.fetch_interval = int(self.news_config.get("fetch_interval_seconds", 300))
+        self.retention_hours = int(self.news_config.get("retention_hours", 48))
+        self.half_life_hours = float(self.news_config.get("half_life_hours", 6.0))
+        self.feeds = self._load_feeds()
 
-    def fetch_news(self, max_age_hours: int = 24) -> list[NewsItem]:
-        """Fetch news from all RSS sources."""
-        now = time.time()
-        if now - self.last_fetch_time < self.fetch_interval and self.cache:
-            return self.cache
+        self._items: list[NewsItem] = []
+        self._seen: set[str] = set()
+        self._last_fetch = 0.0
 
-        cutoff = datetime.utcnow() - timedelta(hours=max_age_hours)
-        items = []
+    def _load_feeds(self) -> list[tuple[str, float]]:
+        configured = self.news_config.get("feeds")
+        if not configured:
+            return list(DEFAULT_FEEDS)
+        feeds = []
+        for entry in configured:
+            if isinstance(entry, dict):
+                feeds.append((entry["url"], float(entry.get("weight", 1.0))))
+            else:
+                feeds.append((str(entry), 1.0))
+        return feeds
 
-        for feed_url in RSS_FEEDS:
+    # ── Ingestion ─────────────────────────────────────────────
+
+    def refresh(self, force: bool = False) -> int:
+        """Pull new items into the rolling store. Returns items added."""
+        now_ts = time.time()
+        if not force and self._items and now_ts - self._last_fetch < self.fetch_interval:
+            return 0
+
+        try:
+            import feedparser
+        except ImportError:
+            logger.warning("feedparser not installed — news disabled")
+            return 0
+
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=self.retention_hours)
+        added = 0
+        failed = 0
+
+        for url, weight in self.feeds:
             try:
-                feed = feedparser.parse(feed_url)
-                for entry in feed.entries[:20]:  # Latest 20 per source
-                    pub_date = self._parse_date(entry)
-                    if pub_date and pub_date < cutoff:
+                feed = feedparser.parse(url)
+                if getattr(feed, "bozo", 0) and not feed.entries:
+                    failed += 1
+                    continue
+                source = (feed.feed.get("title") if hasattr(feed, "feed") else None) or url
+                for entry in feed.entries[: int(self.news_config.get("per_feed_limit", 30))]:
+                    published = _parse_entry_date(entry) or now
+                    if published < cutoff:
+                        continue
+                    title = (entry.get("title") or "").strip()
+                    if not title:
                         continue
 
-                    title = entry.get("title", "")
-                    summary = entry.get("summary", entry.get("description", ""))
-                    # Strip HTML tags from summary
-                    summary = re.sub(r"<[^>]+>", "", summary)[:500]
+                    key = _dedup_key(title)
+                    if key in self._seen:
+                        continue
 
+                    summary = _HTML_RE.sub(" ", entry.get("summary", entry.get("description", "")))[:600]
                     item = NewsItem(
                         title=title,
                         summary=summary,
-                        source=feed.feed.get("title", feed_url),
+                        source=source,
                         url=entry.get("link", ""),
-                        published=pub_date or datetime.utcnow(),
+                        published=published,
+                        source_weight=weight,
                     )
+                    item.sentiment = score_text(f"{title}. {title}. {summary}")
+                    item.coins = detect_coins(f"{title} {summary}")
+                    self._items.append(item)
+                    self._seen.add(key)
+                    added += 1
+            except Exception as e:  # feed problems must never stop trading
+                failed += 1
+                logger.debug("Feed %s failed: %s", url, e)
 
-                    # Score sentiment
-                    item.sentiment_score = self._score_sentiment(title, summary)
-                    item.relevance = self._detect_coins(title, summary)
+        self._items = [i for i in self._items if i.published >= cutoff]
+        self._seen = {_dedup_key(i.title) for i in self._items}
+        self._items.sort(key=lambda i: i.published, reverse=True)
+        self._last_fetch = now_ts
 
-                    items.append(item)
+        logger.info(
+            "News refreshed: +%d new, %d in store, %d/%d feeds failed",
+            added, len(self._items), failed, len(self.feeds),
+        )
+        return added
 
-            except Exception as e:
-                logger.debug(f"Failed to fetch {feed_url}: {e}")
-
-        # Sort by recency
-        items.sort(key=lambda x: x.published, reverse=True)
-        self.cache = items
-        self.last_fetch_time = now
-
-        logger.info(f"Fetched {len(items)} news items from {len(RSS_FEEDS)} sources")
+    def items_in_window(self, hours: float, coin: str | None = None,
+                        now: datetime | None = None) -> list[NewsItem]:
+        """Items published within the last `hours` — filtered here, not at
+        fetch time, so different windows genuinely differ."""
+        now = now or datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=hours)
+        items = [i for i in self._items if i.published >= cutoff]
+        if coin:
+            base = coin.split("/")[0].upper()
+            items = [i for i in items if base in i.coins]
         return items
 
-    def get_sentiment_for_coin(self, coin: str, hours: int = 24) -> dict:
-        """Get aggregated sentiment for a specific coin.
+    # ── Aggregation ───────────────────────────────────────────
 
-        Returns:
-            dict with:
-                score: weighted sentiment (-1 to +1)
-                article_count: number of relevant articles
-                bullish_count: number of bullish articles
-                bearish_count: number of bearish articles
-                neutral_count: number of neutral articles
-                top_headlines: list of most relevant headlines
-                signal_strength: confidence in the sentiment signal (0 to 1)
-        """
-        items = self.fetch_news(max_age_hours=hours)
+    def sentiment_for(self, symbol: str, hours: float = 24,
+                      now: datetime | None = None) -> dict:
+        """Recency- and source-weighted sentiment for one coin."""
+        now = now or datetime.now(timezone.utc)
+        items = self.items_in_window(hours, coin=symbol, now=now)
 
-        # Filter to coin-relevant articles
-        coin_base = coin.split("/")[0] if "/" in coin else coin
-        relevant = [item for item in items if coin_base in item.relevance]
-
-        if not relevant:
+        if not items:
             return {
-                "score": 0.0,
-                "article_count": 0,
-                "bullish_count": 0,
-                "bearish_count": 0,
-                "neutral_count": 0,
-                "top_headlines": [],
-                "signal_strength": 0.0,
+                "symbol": symbol, "window_hours": hours, "score": 0.0,
+                "articles": 0, "bullish": 0, "bearish": 0, "neutral": 0,
+                "consensus": 0.0, "signal_strength": 0.0, "headlines": [],
             }
 
-        # Time-weighted sentiment (recent news matters more)
-        now = datetime.utcnow()
-        weighted_scores = []
-        for item in relevant:
-            age_hours = max(0.1, (now - item.published).total_seconds() / 3600)
-            # Exponential decay: recent news weighted much higher
-            weight = 1.0 / (1 + age_hours * 0.2)
-            weighted_scores.append(item.sentiment_score * weight)
+        weighted_sum = 0.0
+        weight_sum = 0.0
+        for item in items:
+            # Exponential recency decay: a 6h half-life by default, because
+            # headline impact on crypto decays within hours.
+            decay = 0.5 ** (item.age_hours(now) / max(0.5, self.half_life_hours))
+            w = item.source_weight * decay
+            weighted_sum += item.sentiment * w
+            weight_sum += w
 
-        avg_score = sum(weighted_scores) / sum(
-            1.0 / (1 + max(0.1, (now - item.published).total_seconds() / 3600) * 0.2)
-            for item in relevant
-        )
+        score = weighted_sum / weight_sum if weight_sum > 0 else 0.0
 
-        bullish = [i for i in relevant if i.sentiment_score > 0.2]
-        bearish = [i for i in relevant if i.sentiment_score < -0.2]
-        neutral = [i for i in relevant if -0.2 <= i.sentiment_score <= 0.2]
+        bullish = [i for i in items if i.sentiment > 0.2]
+        bearish = [i for i in items if i.sentiment < -0.2]
+        neutral = [i for i in items if -0.2 <= i.sentiment <= 0.2]
 
-        # Signal strength: more articles + stronger consensus = stronger signal
-        consensus = abs(len(bullish) - len(bearish)) / max(1, len(relevant))
-        volume_factor = min(1.0, len(relevant) / 10)  # Saturates at 10 articles
-        signal_strength = consensus * volume_factor
+        consensus = abs(len(bullish) - len(bearish)) / len(items)
+        # Coverage saturates: 10 independent stories is a signal, 50 is not
+        # five times the signal.
+        coverage = min(1.0, len(items) / 10.0)
+        signal_strength = consensus * coverage * min(1.0, abs(score) * 2)
+
+        headlines = sorted(items, key=lambda i: abs(i.sentiment) * i.source_weight,
+                           reverse=True)[:5]
 
         return {
-            "score": round(avg_score, 3),
-            "article_count": len(relevant),
-            "bullish_count": len(bullish),
-            "bearish_count": len(bearish),
-            "neutral_count": len(neutral),
-            "top_headlines": [
-                {"title": i.title, "score": round(i.sentiment_score, 2), "source": i.source}
-                for i in sorted(relevant, key=lambda x: abs(x.sentiment_score), reverse=True)[:5]
+            "symbol": symbol,
+            "window_hours": hours,
+            "score": round(score, 4),
+            "articles": len(items),
+            "bullish": len(bullish),
+            "bearish": len(bearish),
+            "neutral": len(neutral),
+            "consensus": round(consensus, 4),
+            "signal_strength": round(signal_strength, 4),
+            "headlines": [
+                {
+                    "title": i.title,
+                    "score": round(i.sentiment, 3),
+                    "source": i.source,
+                    "age_hours": round(i.age_hours(now), 1),
+                    "url": i.url,
+                }
+                for i in headlines
             ],
-            "signal_strength": round(signal_strength, 3),
         }
 
-    def get_sentiment_features(self, coin: str) -> dict:
-        """Get sentiment as numerical features for the ML model."""
-        sent = self.get_sentiment_for_coin(coin, hours=24)
-        sent_4h = self.get_sentiment_for_coin(coin, hours=4)
-        sent_1h = self.get_sentiment_for_coin(coin, hours=1)
-
+    def features(self, symbol: str, now: datetime | None = None) -> dict:
+        """Sentiment as model features across genuinely distinct windows."""
+        now = now or datetime.now(timezone.utc)
+        s1 = self.sentiment_for(symbol, 1, now)
+        s4 = self.sentiment_for(symbol, 4, now)
+        s24 = self.sentiment_for(symbol, 24, now)
         return {
-            "news_sentiment_24h": sent["score"],
-            "news_sentiment_4h": sent_4h["score"],
-            "news_sentiment_1h": sent_1h["score"],
-            "news_volume_24h": sent["article_count"],
-            "news_signal_strength": sent["signal_strength"],
-            "news_bullish_ratio": (
-                sent["bullish_count"] / max(1, sent["article_count"])
-            ),
-            "news_bearish_ratio": (
-                sent["bearish_count"] / max(1, sent["article_count"])
-            ),
+            "news_sentiment_1h": s1["score"],
+            "news_sentiment_4h": s4["score"],
+            "news_sentiment_24h": s24["score"],
+            "news_volume_1h": s1["articles"],
+            "news_volume_24h": s24["articles"],
+            # Acceleration: a story breaking now against a quiet backdrop.
+            "news_momentum": round(s1["score"] - s24["score"], 4),
+            "news_signal_strength": s4["signal_strength"],
+            "news_consensus": s4["consensus"],
         }
 
-    def should_trade_on_news(self, coin: str) -> dict | None:
-        """Check if there's a strong enough news signal to trigger a trade.
+    def market_bias(self, hours: float = 12, now: datetime | None = None) -> dict:
+        """Whole-market tone, used to tilt the day's directional budget."""
+        now = now or datetime.now(timezone.utc)
+        items = self.items_in_window(hours, now=now)
+        if not items:
+            return {"score": 0.0, "articles": 0, "tone": "neutral"}
 
-        Returns None if no signal, or a dict with direction and confidence.
+        weighted, total_w = 0.0, 0.0
+        for item in items:
+            decay = 0.5 ** (item.age_hours(now) / max(0.5, self.half_life_hours))
+            w = item.source_weight * decay
+            weighted += item.sentiment * w
+            total_w += w
+        score = weighted / total_w if total_w else 0.0
+
+        tone = "bullish" if score > 0.15 else "bearish" if score < -0.15 else "neutral"
+        return {"score": round(score, 4), "articles": len(items), "tone": tone}
+
+    def tilt_for(self, symbol: str, now: datetime | None = None) -> float:
+        """Directional tilt in [-1, 1] to blend into an edge score.
+
+        Deliberately not a trade trigger on its own: it is scaled by
+        consensus so a single loud headline cannot move it far.
         """
-        threshold = self.news_config.get("signal_threshold", 0.6)
-        sent = self.get_sentiment_for_coin(coin, hours=4)
-
-        if sent["signal_strength"] < 0.3:
-            return None  # Not enough consensus
-
-        if sent["score"] > threshold:
-            return {
-                "direction": "long",
-                "confidence": min(1.0, sent["signal_strength"] + abs(sent["score"])),
-                "reason": f"Strong bullish news ({sent['bullish_count']} articles)",
-                "headlines": sent["top_headlines"][:3],
-            }
-        elif sent["score"] < -threshold:
-            return {
-                "direction": "short",
-                "confidence": min(1.0, sent["signal_strength"] + abs(sent["score"])),
-                "reason": f"Strong bearish news ({sent['bearish_count']} articles)",
-                "headlines": sent["top_headlines"][:3],
-            }
-
-        return None
-
-    # ── Scoring ───────────────────────────────────────────────
-
-    def _score_sentiment(self, title: str, summary: str) -> float:
-        """Score text sentiment from -1 (bearish) to +1 (bullish)."""
-        text = f"{title} {summary}".lower()
-
-        bull_hits = sum(1 for word in BULLISH_WORDS if word in text)
-        bear_hits = sum(1 for word in BEARISH_WORDS if word in text)
-
-        total = bull_hits + bear_hits
-        if total == 0:
+        threshold = float(self.news_config.get("signal_threshold", 0.35))
+        sent = self.sentiment_for(symbol, float(self.news_config.get("tilt_window_hours", 8)), now)
+        if sent["articles"] < int(self.news_config.get("min_articles", 2)):
             return 0.0
+        if abs(sent["score"]) < threshold:
+            return 0.0
+        return round(max(-1.0, min(1.0, sent["score"] * sent["consensus"])), 4)
 
-        # Title words count double
-        title_lower = title.lower()
-        for word in BULLISH_WORDS:
-            if word in title_lower:
-                bull_hits += 1
-        for word in BEARISH_WORDS:
-            if word in title_lower:
-                bear_hits += 1
 
-        total = bull_hits + bear_hits
-        score = (bull_hits - bear_hits) / total
-        return max(-1.0, min(1.0, score))
+# ── Scoring helpers ──────────────────────────────────────────
 
-    def _detect_coins(self, title: str, summary: str) -> dict:
-        """Detect which coins a news article is about."""
-        text = f"{title} {summary}".lower()
-        detected = {}
+def score_text(text: str) -> float:
+    """Score text in [-1, 1] using the weighted lexicon with negation."""
+    lowered = text.lower()
 
-        for coin, keywords in COIN_KEYWORDS.items():
-            for kw in keywords:
-                if kw in text:
-                    detected[coin] = detected.get(coin, 0) + 1
-                    break
+    total = 0.0
+    hits = 0
 
-        # If no specific coin detected, assume it's about BTC (market-wide news)
-        if not detected and any(w in text for w in ["crypto", "market", "blockchain"]):
-            detected["BTC"] = 1
+    # Multi-word phrases first; they carry the strongest signal and would
+    # otherwise be missed by token matching.
+    for table in (BULLISH_TERMS, BEARISH_TERMS):
+        for term, weight in table.items():
+            if " " in term and term in lowered:
+                total += weight
+                hits += 1
 
-        return detected
+    tokens = _TOKEN_RE.findall(lowered)
+    for idx, token in enumerate(tokens):
+        weight = BULLISH_TERMS.get(token) or BEARISH_TERMS.get(token)
+        if weight is None:
+            continue
+        window = tokens[max(0, idx - NEGATION_WINDOW):idx]
+        if any(w in NEGATIONS for w in window):
+            # A denial is closer to neutral than to the opposite claim:
+            # "exchange denies hack" is not bullish news, it is a non-event.
+            weight = -weight * NEGATION_DAMPING
+        total += weight
+        hits += 1
 
-    def _parse_date(self, entry) -> datetime | None:
-        """Parse publication date from feed entry."""
-        for field in ["published_parsed", "updated_parsed"]:
-            parsed = entry.get(field)
-            if parsed:
-                try:
-                    return datetime(*parsed[:6])
-                except Exception:
-                    pass
-        return None
+    if hits == 0:
+        return 0.0
+    # Average rather than sum, so a long article is not automatically
+    # more extreme than a short one, then squash into range.
+    avg = total / hits
+    return round(max(-1.0, min(1.0, avg)), 4)
+
+
+def detect_coins(text: str) -> dict[str, int]:
+    """Which coins a story is about. Market-wide stories map to BTC, which
+    is the market's beta proxy."""
+    lowered = text.lower()
+    found: dict[str, int] = {}
+    for coin, keywords in COIN_KEYWORDS.items():
+        for kw in keywords:
+            # Word-boundary match so "sol" does not fire on "solution".
+            if re.search(rf"\b{re.escape(kw)}\b", lowered):
+                found[coin] = found.get(coin, 0) + 1
+    if not found and any(term in lowered for term in MARKET_WIDE_TERMS):
+        found["BTC"] = 1
+    return found
+
+
+def _dedup_key(title: str) -> str:
+    """Normalised key that collapses syndicated copies of one story."""
+    tokens = _TOKEN_RE.findall(title.lower())
+    meaningful = [t for t in tokens if len(t) > 3][:8]
+    return " ".join(sorted(meaningful))
+
+
+def _parse_entry_date(entry) -> datetime | None:
+    for key in ("published_parsed", "updated_parsed"):
+        parsed = entry.get(key)
+        if parsed:
+            try:
+                return datetime(*parsed[:6], tzinfo=timezone.utc)
+            except (TypeError, ValueError):
+                continue
+    return None

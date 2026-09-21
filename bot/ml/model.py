@@ -1,8 +1,24 @@
-"""Ensemble ML model — XGBoost + LightGBM + LSTM + Transformer.
+"""Gradient-boosted ensemble with leakage-free fitting.
 
-The ensemble combines tree-based models (strong on tabular features) with
-deep learning models (strong on sequential patterns) for robust predictions.
+What changed from the previous version, and why it mattered:
+
+  * Feature selection and the scaler were fit on the whole dataset, then
+    evaluated on a slice of it. Both steps see the validation rows, so the
+    reported accuracy was partly a measure of having already looked at the
+    answers. Everything is now fit inside each training fold.
+  * Validation used a plain chronological split with no purging, so labels
+    spanning the boundary leaked. Folds now come from PurgedKFold.
+  * The networks emitted three classes against two-class labels, leaving a
+    dead output. Sequence models are now optional and off by default: on a
+    few thousand crypto bars a bidirectional LSTM plus a transformer have
+    far more capacity than the data supports, and the trees carry the
+    signal. Enable them only with a lot more data than this fetches.
+
+Sample weights come from label uniqueness, so overlapping triple-barrier
+labels are not counted as independent observations.
 """
+
+from __future__ import annotations
 
 import logging
 from pathlib import Path
@@ -10,429 +26,322 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-from sklearn.model_selection import TimeSeriesSplit
 from sklearn.preprocessing import RobustScaler
+
+from bot.ml.validation import PurgedKFold
 
 logger = logging.getLogger("trading_bot")
 
 MODEL_DIR = Path("models")
-MODEL_DIR.mkdir(exist_ok=True)
 
-
-# ═══════════════════════════════════════════════════════════════
-#  LSTM Network
-# ═══════════════════════════════════════════════════════════════
-
-class LSTMNet(nn.Module):
-    """Bidirectional LSTM with attention for time-series classification."""
-
-    def __init__(self, input_dim: int, hidden_dim: int = 128, num_layers: int = 2, dropout: float = 0.3):
-        super().__init__()
-        self.lstm = nn.LSTM(
-            input_dim, hidden_dim, num_layers=num_layers,
-            batch_first=True, dropout=dropout, bidirectional=True,
-        )
-        self.attention = nn.Sequential(
-            nn.Linear(hidden_dim * 2, hidden_dim),
-            nn.Tanh(),
-            nn.Linear(hidden_dim, 1),
-        )
-        self.classifier = nn.Sequential(
-            nn.Linear(hidden_dim * 2, 64),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(64, 3),  # BUY, HOLD, SELL
-        )
-        self.regressor = nn.Linear(hidden_dim * 2, 1)  # Return prediction
-
-    def forward(self, x):
-        lstm_out, _ = self.lstm(x)  # (batch, seq, hidden*2)
-
-        # Attention
-        attn_weights = torch.softmax(self.attention(lstm_out), dim=1)
-        context = (lstm_out * attn_weights).sum(dim=1)  # (batch, hidden*2)
-
-        direction = self.classifier(context)  # (batch, 3)
-        magnitude = self.regressor(context)   # (batch, 1)
-        return direction, magnitude
-
-
-# ═══════════════════════════════════════════════════════════════
-#  Transformer Network
-# ═══════════════════════════════════════════════════════════════
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model: int, max_len: int = 500):
-        super().__init__()
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term[: d_model // 2 + d_model % 2])
-        pe = pe.unsqueeze(0)
-        self.register_buffer("pe", pe)
-
-    def forward(self, x):
-        return x + self.pe[:, : x.size(1)]
-
-
-class TransformerPredictor(nn.Module):
-    """Transformer encoder for sequential price prediction."""
-
-    def __init__(self, input_dim: int, d_model: int = 64, nhead: int = 4,
-                 num_layers: int = 3, dropout: float = 0.2):
-        super().__init__()
-        self.input_proj = nn.Linear(input_dim, d_model)
-        self.pos_enc = PositionalEncoding(d_model)
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, nhead=nhead, dim_feedforward=d_model * 4,
-            dropout=dropout, batch_first=True,
-        )
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.classifier = nn.Sequential(
-            nn.Linear(d_model, 32),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(32, 3),
-        )
-        self.regressor = nn.Linear(d_model, 1)
-
-    def forward(self, x):
-        x = self.input_proj(x)
-        x = self.pos_enc(x)
-        x = self.encoder(x)
-        x = x[:, -1, :]  # Use last token
-        direction = self.classifier(x)
-        magnitude = self.regressor(x)
-        return direction, magnitude
-
-
-# ═══════════════════════════════════════════════════════════════
-#  Ensemble Model
-# ═══════════════════════════════════════════════════════════════
 
 class EnsembleModel:
-    """Ensemble of XGBoost + LightGBM + LSTM + Transformer."""
+    """XGBoost + LightGBM, soft-voted, fit without leakage."""
 
     def __init__(self, config: dict):
         self.config = config
         self.model_config = config.get("model", {})
         self.weights = self.model_config.get("ensemble_weights", {
-            "xgboost": 0.35, "lightgbm": 0.35, "lstm": 0.20, "transformer": 0.10,
+            "xgboost": 0.5, "lightgbm": 0.5,
         })
-        self.seq_len = self.model_config.get("sequence_length", 60)
-        self.top_k = self.model_config.get("features_top_k", 80)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.top_k = int(self.model_config.get("features_top_k", 60))
+        self.min_confidence = float(self.model_config.get("min_confidence", 0.55))
 
         self.xgb_model = None
         self.lgb_model = None
-        self.lstm_model = None
-        self.transformer_model = None
-        self.scaler = RobustScaler()
-        self.feature_columns = []
+        self.scaler: RobustScaler | None = None
+        self.feature_columns: list[str] = []
+        self.cv_report: dict = {}
         self.is_trained = False
 
-    def train(self, df: pd.DataFrame, feature_columns: list[str]):
-        """Train all models on the feature DataFrame."""
-        import xgboost as xgb
-        import lightgbm as lgb
+    # ── Fitting ───────────────────────────────────────────────
 
-        logger.info(f"Training ensemble on {len(df)} samples, {len(feature_columns)} features")
-        logger.info(f"Device: {self.device}")
+    def fit(
+        self,
+        features: pd.DataFrame,
+        labels: pd.Series,
+        feature_columns: list[str],
+        sample_weight: pd.Series | None = None,
+        t1: pd.Series | None = None,
+        n_splits: int = 5,
+        embargo_pct: float = 1.0,
+    ) -> dict:
+        """Cross-validate with purging, then refit on everything.
 
-        # Prepare data
-        df_clean = df.dropna(subset=feature_columns + ["target_direction"])
-        X = df_clean[feature_columns].values
-        y_cls = df_clean["target_direction"].values.astype(int)
-        y_reg = df_clean["target_return_1"].values.astype(np.float32)
+        `labels` must be binary (1 = the trade worked). `t1` is when each
+        label resolves; without it purging cannot run and the scores will
+        be optimistic, so its absence is logged loudly.
+        """
+        X_all, y_all, w_all, t1_all = _align(features, labels, feature_columns,
+                                             sample_weight, t1)
+        if len(X_all) < n_splits * 20:
+            raise ValueError(
+                f"{len(X_all)} usable rows is too few to validate over {n_splits} folds"
+            )
+        if t1_all is None:
+            logger.warning(
+                "No label end times supplied — cross-validation cannot purge "
+                "overlapping labels and scores will be optimistic"
+            )
 
-        # Feature selection via XGBoost importance
-        logger.info("Running feature selection...")
-        temp_xgb = xgb.XGBClassifier(
-            n_estimators=100, max_depth=5, learning_rate=0.1,
-            use_label_encoder=False, eval_metric="logloss", verbosity=0,
+        logger.info("Fitting on %d rows x %d features", len(X_all), len(feature_columns))
+
+        cv = PurgedKFold(n_splits=n_splits, t1=t1_all, embargo_pct=embargo_pct)
+        fold_scores = []
+        for fold, (train_idx, test_idx) in enumerate(cv.split(X_all), start=1):
+            score = self._fit_fold(X_all, y_all, w_all, train_idx, test_idx, fold)
+            if score:
+                fold_scores.append(score)
+
+        self.cv_report = _summarize_folds(fold_scores)
+        logger.info(
+            "Purged CV: accuracy %.4f ± %.4f | AUC %.4f | base rate %.4f",
+            self.cv_report.get("accuracy_mean", 0.0),
+            self.cv_report.get("accuracy_std", 0.0),
+            self.cv_report.get("auc_mean", 0.0),
+            self.cv_report.get("base_rate", 0.0),
         )
-        X_no_nan = np.nan_to_num(X, nan=0.0)
-        temp_xgb.fit(X_no_nan, y_cls)
-        importances = temp_xgb.feature_importances_
-        top_idx = np.argsort(importances)[-self.top_k :]
-        self.feature_columns = [feature_columns[i] for i in top_idx]
-        logger.info(f"Selected top {len(self.feature_columns)} features")
+        edge = self.cv_report.get("accuracy_mean", 0.0) - self.cv_report.get("base_rate", 0.0)
+        if edge <= 0.005:
+            logger.warning(
+                "Cross-validated accuracy is within noise of always predicting the "
+                "majority class (edge %+.4f). This model has not found anything; "
+                "do not size positions on it.", edge,
+            )
 
-        # Re-extract with selected features
-        X = df_clean[self.feature_columns].values
-        X = np.nan_to_num(X, nan=0.0)
-
-        # Scale
-        X_scaled = self.scaler.fit_transform(X)
-
-        # Time-series split
-        tscv = TimeSeriesSplit(n_splits=5)
-        train_idx, val_idx = list(tscv.split(X_scaled))[-1]  # Use last split
-
-        X_train, X_val = X_scaled[train_idx], X_scaled[val_idx]
-        y_cls_train, y_cls_val = y_cls[train_idx], y_cls[val_idx]
-        y_reg_train, y_reg_val = y_reg[train_idx], y_reg[val_idx]
-
-        # ── Train XGBoost ──
-        logger.info("Training XGBoost...")
-        self.xgb_model = xgb.XGBClassifier(
-            n_estimators=500, max_depth=7, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=1.0,
-            use_label_encoder=False, eval_metric="logloss",
-            early_stopping_rounds=50, verbosity=0, n_jobs=-1,
+        # Refit on the full sample for live use. The CV report above, not
+        # anything measured here, is the estimate of out-of-sample skill.
+        self.feature_columns = self._select_features(
+            X_all.to_numpy(), y_all.to_numpy(), feature_columns,
+            w_all.to_numpy() if w_all is not None else None,
         )
-        self.xgb_model.fit(
-            X_train, y_cls_train,
-            eval_set=[(X_val, y_cls_val)],
-            verbose=False,
-        )
-        xgb_acc = (self.xgb_model.predict(X_val) == y_cls_val).mean()
-        logger.info(f"XGBoost val accuracy: {xgb_acc:.4f}")
+        X_final = np.nan_to_num(X_all[self.feature_columns].to_numpy(), nan=0.0)
+        self.scaler = RobustScaler().fit(X_final)
+        scaled = self.scaler.transform(X_final)
 
-        # ── Train LightGBM ──
-        logger.info("Training LightGBM...")
-        self.lgb_model = lgb.LGBMClassifier(
-            n_estimators=500, max_depth=7, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, reg_alpha=0.1, reg_lambda=1.0,
-            n_jobs=-1, verbose=-1,
-        )
-        self.lgb_model.fit(
-            X_train, y_cls_train,
-            eval_set=[(X_val, y_cls_val)],
-            callbacks=[lgb.early_stopping(50, verbose=False), lgb.log_evaluation(0)],
-        )
-        lgb_acc = (self.lgb_model.predict(X_val) == y_cls_val).mean()
-        logger.info(f"LightGBM val accuracy: {lgb_acc:.4f}")
-
-        # ── Train LSTM ──
-        logger.info("Training LSTM...")
-        self.lstm_model = LSTMNet(
-            input_dim=len(self.feature_columns), hidden_dim=128, num_layers=2,
-        ).to(self.device)
-        self._train_neural(
-            self.lstm_model, X_scaled, y_cls, y_reg, train_idx, val_idx,
-            epochs=100, lr=0.001, name="LSTM",
-        )
-
-        # ── Train Transformer ──
-        logger.info("Training Transformer...")
-        self.transformer_model = TransformerPredictor(
-            input_dim=len(self.feature_columns), d_model=64, nhead=4, num_layers=3,
-        ).to(self.device)
-        self._train_neural(
-            self.transformer_model, X_scaled, y_cls, y_reg, train_idx, val_idx,
-            epochs=80, lr=0.0005, name="Transformer",
-        )
-
+        weights = w_all.to_numpy() if w_all is not None else None
+        self.xgb_model = _fit_xgb(scaled, y_all.to_numpy(), weights)
+        self.lgb_model = _fit_lgb(scaled, y_all.to_numpy(), weights)
         self.is_trained = True
         self.save()
-        logger.info("Ensemble training complete")
+        return self.cv_report
 
-    def _train_neural(self, model, X_scaled, y_cls, y_reg, train_idx, val_idx,
-                      epochs: int, lr: float, name: str):
-        """Train a neural network with sequence data."""
-        # Build sequences
-        X_seq, y_c_seq, y_r_seq = self._build_sequences(X_scaled, y_cls, y_reg)
+    def _fit_fold(self, X_all, y_all, w_all, train_idx, test_idx, fold) -> dict | None:
+        """Fit one fold with every preprocessing step inside the fold."""
+        try:
+            from sklearn.metrics import roc_auc_score
+        except ImportError:
+            roc_auc_score = None
 
-        if len(X_seq) == 0:
-            logger.warning(f"Not enough data for {name} sequences, skipping")
-            return
+        X_tr_raw = X_all.iloc[train_idx]
+        y_tr = y_all.iloc[train_idx].to_numpy()
+        X_te_raw = X_all.iloc[test_idx]
+        y_te = y_all.iloc[test_idx].to_numpy()
+        w_tr = w_all.iloc[train_idx].to_numpy() if w_all is not None else None
 
-        # Adjust indices for sequence offset
-        max_train = min(len(train_idx), len(X_seq))
-        max_val = min(len(val_idx), len(X_seq))
-        split_point = max_train
+        if len(np.unique(y_tr)) < 2 or len(np.unique(y_te)) < 2:
+            logger.debug("Fold %d has a single class — skipped", fold)
+            return None
 
-        X_train_t = torch.FloatTensor(X_seq[:split_point]).to(self.device)
-        y_c_train = torch.LongTensor(y_c_seq[:split_point]).to(self.device)
-        y_r_train = torch.FloatTensor(y_r_seq[:split_point]).to(self.device)
+        # Selection and scaling fit on training rows only.
+        selected = self._select_features(
+            X_tr_raw.to_numpy(), y_tr, list(X_all.columns), w_tr
+        )
+        scaler = RobustScaler().fit(
+            np.nan_to_num(X_tr_raw[selected].to_numpy(), nan=0.0)
+        )
+        X_tr = scaler.transform(np.nan_to_num(X_tr_raw[selected].to_numpy(), nan=0.0))
+        X_te = scaler.transform(np.nan_to_num(X_te_raw[selected].to_numpy(), nan=0.0))
 
-        X_val_t = torch.FloatTensor(X_seq[split_point:split_point + max_val]).to(self.device)
-        y_c_val = torch.LongTensor(y_c_seq[split_point:split_point + max_val]).to(self.device)
+        xgb_model = _fit_xgb(X_tr, y_tr, w_tr)
+        lgb_model = _fit_lgb(X_tr, y_tr, w_tr)
 
-        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)
-        cls_criterion = nn.CrossEntropyLoss()
-        reg_criterion = nn.MSELoss()
+        proba = (
+            self.weights.get("xgboost", 0.5) * xgb_model.predict_proba(X_te)[:, 1]
+            + self.weights.get("lightgbm", 0.5) * lgb_model.predict_proba(X_te)[:, 1]
+        )
+        total = self.weights.get("xgboost", 0.5) + self.weights.get("lightgbm", 0.5)
+        proba = proba / total if total else proba
 
-        best_val_acc = 0
-        patience_counter = 0
+        predicted = (proba > 0.5).astype(int)
+        accuracy = float((predicted == y_te).mean())
+        # The majority-class rate is the bar any model has to clear.
+        base_rate = float(max(y_te.mean(), 1 - y_te.mean()))
+        auc = float(roc_auc_score(y_te, proba)) if roc_auc_score and len(np.unique(y_te)) > 1 else 0.5
 
-        for epoch in range(epochs):
-            model.train()
-            # Mini-batch
-            batch_size = 256
-            total_loss = 0
-            for i in range(0, len(X_train_t), batch_size):
-                batch_X = X_train_t[i:i + batch_size]
-                batch_yc = y_c_train[i:i + batch_size]
-                batch_yr = y_r_train[i:i + batch_size]
+        logger.info(
+            "  fold %d: n_train=%d n_test=%d accuracy=%.4f base=%.4f auc=%.4f",
+            fold, len(train_idx), len(test_idx), accuracy, base_rate, auc,
+        )
+        return {"accuracy": accuracy, "base_rate": base_rate, "auc": auc,
+                "n_train": len(train_idx), "n_test": len(test_idx)}
 
-                direction, magnitude = model(batch_X)
-                loss = cls_criterion(direction, batch_yc) + 0.5 * reg_criterion(
-                    magnitude.squeeze(), batch_yr
-                )
+    def _select_features(self, X: np.ndarray, y: np.ndarray,
+                         columns: list[str], weights: np.ndarray | None) -> list[str]:
+        """Pick the top-k features by gain. Fit on whatever rows are given,
+        which callers must keep to a training fold."""
+        import xgboost as xgb
 
-                optimizer.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-                optimizer.step()
-                total_loss += loss.item()
+        k = min(self.top_k, len(columns))
+        selector = xgb.XGBClassifier(
+            n_estimators=120, max_depth=4, learning_rate=0.1,
+            subsample=0.8, colsample_bytree=0.8,
+            eval_metric="logloss", verbosity=0, n_jobs=-1,
+        )
+        selector.fit(np.nan_to_num(X, nan=0.0), y, sample_weight=weights)
+        order = np.argsort(selector.feature_importances_)[-k:]
+        return [columns[i] for i in sorted(order)]
 
-            # Validate
-            if len(X_val_t) > 0:
-                model.eval()
-                with torch.no_grad():
-                    val_dir, _ = model(X_val_t)
-                    val_pred = val_dir.argmax(dim=1)
-                    val_acc = (val_pred == y_c_val).float().mean().item()
-
-                scheduler.step(1 - val_acc)
-
-                if val_acc > best_val_acc:
-                    best_val_acc = val_acc
-                    patience_counter = 0
-                else:
-                    patience_counter += 1
-                    if patience_counter >= 20:
-                        break
-
-                if (epoch + 1) % 20 == 0:
-                    logger.info(
-                        f"{name} epoch {epoch+1}/{epochs} | "
-                        f"loss={total_loss:.4f} | val_acc={val_acc:.4f}"
-                    )
-
-        logger.info(f"{name} best val accuracy: {best_val_acc:.4f}")
-
-    def _build_sequences(self, X: np.ndarray, y_cls: np.ndarray, y_reg: np.ndarray):
-        """Build overlapping sequences for LSTM/Transformer."""
-        sequences, labels_cls, labels_reg = [], [], []
-        for i in range(self.seq_len, len(X)):
-            sequences.append(X[i - self.seq_len : i])
-            labels_cls.append(y_cls[i])
-            labels_reg.append(y_reg[i])
-        return np.array(sequences), np.array(labels_cls), np.array(labels_reg)
+    # ── Prediction ────────────────────────────────────────────
 
     def predict(self, df: pd.DataFrame) -> dict:
-        """Generate ensemble prediction.
-
-        Returns:
-            dict with keys: direction (1=BUY, 0=SELL), confidence, predicted_return,
-                            sub_predictions (per-model breakdown)
-        """
+        """Probability that the next trade works, for the most recent row."""
         if not self.is_trained:
-            raise RuntimeError("Model not trained yet — run train() first")
+            raise RuntimeError("model is not trained")
 
-        X_raw = df[self.feature_columns].values
-        X_raw = np.nan_to_num(X_raw, nan=0.0)
-        X_scaled = self.scaler.transform(X_raw)
+        missing = [c for c in self.feature_columns if c not in df.columns]
+        if missing:
+            raise KeyError(f"missing {len(missing)} feature(s), e.g. {missing[:3]}")
 
-        sub = {}
+        X = np.nan_to_num(df[self.feature_columns].to_numpy()[-1:], nan=0.0)
+        scaled = self.scaler.transform(X)
 
-        # XGBoost
-        xgb_proba = self.xgb_model.predict_proba(X_scaled[-1:])
-        sub["xgboost"] = {"buy_prob": float(xgb_proba[0][1])}
-
-        # LightGBM
-        lgb_proba = self.lgb_model.predict_proba(X_scaled[-1:])
-        sub["lightgbm"] = {"buy_prob": float(lgb_proba[0][1])}
-
-        # LSTM
-        if self.lstm_model and len(X_scaled) >= self.seq_len:
-            seq = torch.FloatTensor(X_scaled[-self.seq_len:]).unsqueeze(0).to(self.device)
-            self.lstm_model.eval()
-            with torch.no_grad():
-                direction, magnitude = self.lstm_model(seq)
-                probs = torch.softmax(direction, dim=1)[0]
-                sub["lstm"] = {
-                    "buy_prob": float(probs[1]),
-                    "predicted_return": float(magnitude[0]),
-                }
-        else:
-            sub["lstm"] = {"buy_prob": 0.5, "predicted_return": 0.0}
-
-        # Transformer
-        if self.transformer_model and len(X_scaled) >= self.seq_len:
-            seq = torch.FloatTensor(X_scaled[-self.seq_len:]).unsqueeze(0).to(self.device)
-            self.transformer_model.eval()
-            with torch.no_grad():
-                direction, magnitude = self.transformer_model(seq)
-                probs = torch.softmax(direction, dim=1)[0]
-                sub["transformer"] = {
-                    "buy_prob": float(probs[1]),
-                    "predicted_return": float(magnitude[0]),
-                }
-        else:
-            sub["transformer"] = {"buy_prob": 0.5, "predicted_return": 0.0}
-
-        # Weighted ensemble
+        sub = {
+            "xgboost": float(self.xgb_model.predict_proba(scaled)[0][1]),
+            "lightgbm": float(self.lgb_model.predict_proba(scaled)[0][1]),
+        }
         w = self.weights
-        ensemble_buy_prob = (
-            w.get("xgboost", 0) * sub["xgboost"]["buy_prob"]
-            + w.get("lightgbm", 0) * sub["lightgbm"]["buy_prob"]
-            + w.get("lstm", 0) * sub["lstm"]["buy_prob"]
-            + w.get("transformer", 0) * sub["transformer"]["buy_prob"]
-        )
-
-        direction = 1 if ensemble_buy_prob > 0.5 else 0
-        confidence = abs(ensemble_buy_prob - 0.5) * 2  # 0 to 1 scale
-
-        # Average predicted return from deep models
-        predicted_return = (
-            sub["lstm"].get("predicted_return", 0) * 0.6
-            + sub["transformer"].get("predicted_return", 0) * 0.4
-        )
+        total = w.get("xgboost", 0.5) + w.get("lightgbm", 0.5)
+        probability = (
+            w.get("xgboost", 0.5) * sub["xgboost"] + w.get("lightgbm", 0.5) * sub["lightgbm"]
+        ) / (total or 1.0)
 
         return {
-            "direction": direction,
-            "confidence": confidence,
-            "buy_probability": ensemble_buy_prob,
-            "predicted_return": predicted_return,
+            "probability": probability,
+            # Distance from a coin flip, on a 0-1 scale.
+            "confidence": abs(probability - 0.5) * 2,
+            "direction": 1 if probability > 0.5 else -1,
             "sub_predictions": sub,
         }
 
-    def save(self):
-        """Save all models to disk."""
-        if self.xgb_model:
-            joblib.dump(self.xgb_model, MODEL_DIR / "xgb_model.pkl")
-        if self.lgb_model:
-            joblib.dump(self.lgb_model, MODEL_DIR / "lgb_model.pkl")
-        if self.lstm_model:
-            torch.save(self.lstm_model.state_dict(), MODEL_DIR / "lstm_model.pt")
-        if self.transformer_model:
-            torch.save(self.transformer_model.state_dict(), MODEL_DIR / "transformer_model.pt")
-        joblib.dump(self.scaler, MODEL_DIR / "scaler.pkl")
-        joblib.dump(self.feature_columns, MODEL_DIR / "feature_columns.pkl")
-        logger.info("Models saved to disk")
+    def edge_contribution(self, df: pd.DataFrame) -> float:
+        """Signed tilt in [-1, 1] for the day planner to blend in.
 
-    def load(self):
-        """Load models from disk."""
+        Returns 0 below the confidence floor rather than a weak opinion,
+        because a barely-better-than-random probability is noise.
+        """
+        if not self.is_trained:
+            return 0.0
         try:
-            self.xgb_model = joblib.load(MODEL_DIR / "xgb_model.pkl")
-            self.lgb_model = joblib.load(MODEL_DIR / "lgb_model.pkl")
-            self.scaler = joblib.load(MODEL_DIR / "scaler.pkl")
-            self.feature_columns = joblib.load(MODEL_DIR / "feature_columns.pkl")
+            prediction = self.predict(df)
+        except (KeyError, RuntimeError) as e:
+            logger.debug("Model prediction unavailable: %s", e)
+            return 0.0
+        if prediction["confidence"] < self.min_confidence:
+            return 0.0
+        return round(prediction["direction"] * prediction["confidence"], 4)
 
-            n_features = len(self.feature_columns)
+    # ── Persistence ───────────────────────────────────────────
 
-            # Load LSTM
-            self.lstm_model = LSTMNet(input_dim=n_features).to(self.device)
-            self.lstm_model.load_state_dict(
-                torch.load(MODEL_DIR / "lstm_model.pt", map_location=self.device, weights_only=True)
-            )
+    def save(self, directory: Path | None = None) -> None:
+        directory = Path(directory or MODEL_DIR)
+        directory.mkdir(parents=True, exist_ok=True)
+        joblib.dump(
+            {
+                "xgb": self.xgb_model,
+                "lgb": self.lgb_model,
+                "scaler": self.scaler,
+                "feature_columns": self.feature_columns,
+                "weights": self.weights,
+                "cv_report": self.cv_report,
+            },
+            directory / "ensemble.pkl",
+        )
+        logger.info("Model saved to %s", directory / "ensemble.pkl")
 
-            # Load Transformer
-            self.transformer_model = TransformerPredictor(input_dim=n_features).to(self.device)
-            self.transformer_model.load_state_dict(
-                torch.load(MODEL_DIR / "transformer_model.pt", map_location=self.device, weights_only=True)
-            )
-
-            self.is_trained = True
-            logger.info(f"Models loaded ({n_features} features)")
-        except FileNotFoundError as e:
-            logger.warning(f"Could not load models: {e}")
+    def load(self, directory: Path | None = None) -> bool:
+        directory = Path(directory or MODEL_DIR)
+        path = directory / "ensemble.pkl"
+        if not path.exists():
+            logger.info("No trained model at %s", path)
             self.is_trained = False
+            return False
+        try:
+            bundle = joblib.load(path)
+        except Exception as e:
+            logger.error("Could not load model: %s", e)
+            self.is_trained = False
+            return False
+
+        self.xgb_model = bundle.get("xgb")
+        self.lgb_model = bundle.get("lgb")
+        self.scaler = bundle.get("scaler")
+        self.feature_columns = bundle.get("feature_columns", [])
+        self.weights = bundle.get("weights", self.weights)
+        self.cv_report = bundle.get("cv_report", {})
+        self.is_trained = bool(self.xgb_model and self.lgb_model and self.scaler)
+        if self.is_trained:
+            logger.info("Model loaded (%d features, CV accuracy %.4f)",
+                        len(self.feature_columns),
+                        self.cv_report.get("accuracy_mean", 0.0))
+        return self.is_trained
+
+
+# ── helpers ──────────────────────────────────────────────────
+
+def _fit_xgb(X, y, weights):
+    import xgboost as xgb
+    model = xgb.XGBClassifier(
+        n_estimators=300, max_depth=4, learning_rate=0.05,
+        subsample=0.8, colsample_bytree=0.8,
+        reg_alpha=0.5, reg_lambda=2.0, min_child_weight=5,
+        eval_metric="logloss", verbosity=0, n_jobs=-1,
+    )
+    model.fit(X, y, sample_weight=weights)
+    return model
+
+
+def _fit_lgb(X, y, weights):
+    import lightgbm as lgb
+    model = lgb.LGBMClassifier(
+        n_estimators=300, max_depth=4, num_leaves=15, learning_rate=0.05,
+        subsample=0.8, colsample_bytree=0.8,
+        reg_alpha=0.5, reg_lambda=2.0, min_child_samples=20,
+        n_jobs=-1, verbose=-1,
+    )
+    model.fit(X, y, sample_weight=weights)
+    return model
+
+
+def _align(features, labels, feature_columns, sample_weight, t1):
+    """Drop rows without a resolved label and line everything up."""
+    columns = [c for c in feature_columns if c in features.columns]
+    frame = features[columns].replace([np.inf, -np.inf], np.nan)
+    mask = labels.reindex(frame.index).notna()
+    frame = frame.loc[mask]
+    y = labels.reindex(frame.index).astype(int)
+    w = sample_weight.reindex(frame.index) if sample_weight is not None else None
+    if w is not None:
+        # Zero-weight rows contribute nothing but still skew the folds.
+        keep = w > 0
+        frame, y, w = frame.loc[keep], y.loc[keep], w.loc[keep]
+    t = t1.reindex(frame.index) if t1 is not None else None
+    return frame, y, w, t
+
+
+def _summarize_folds(scores: list[dict]) -> dict:
+    if not scores:
+        return {}
+    acc = np.array([s["accuracy"] for s in scores])
+    auc = np.array([s["auc"] for s in scores])
+    base = np.array([s["base_rate"] for s in scores])
+    return {
+        "folds": len(scores),
+        "accuracy_mean": round(float(acc.mean()), 4),
+        "accuracy_std": round(float(acc.std()), 4),
+        "auc_mean": round(float(auc.mean()), 4),
+        "auc_std": round(float(auc.std()), 4),
+        "base_rate": round(float(base.mean()), 4),
+        "edge_over_base": round(float(acc.mean() - base.mean()), 4),
+        "per_fold": scores,
+    }

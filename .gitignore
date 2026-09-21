@@ -3,22 +3,20 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-.env
-config.local.yaml
-trading_bot.log
-*.log
 .venv/
 venv/
-
-# Model artifacts
-models/*.pkl
-models/*.pt
-models/*.zip
-
-# Data (can be large)
-data/*.parquet
-data/*.json
-data/*.csv
-
-# Jupyter
+.pytest_cache/
 .ipynb_checkpoints/
+
+# Secrets
+.env
+config.local.yaml
+
+# Logs
+*.log
+
+# Trading records and models — these are yours, not the repo's
+state/
+state.*/
+models/
+data/

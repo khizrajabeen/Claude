@@ -1,33 +1,19 @@
-# Exchange & Data
-ccxt>=4.0.0
-websocket-client>=1.6.0
-aiohttp>=3.9.0
-
-# Data Processing
-pandas>=2.0.0,<3.0.0
-numpy>=1.24.0,<2.0.0
-scipy>=1.11.0
-
-# ML / Deep Learning
-xgboost>=2.0.0
-lightgbm>=4.0.0
-scikit-learn>=1.3.0
-torch>=2.1.0
-
-# Reinforcement Learning
-gymnasium>=0.29.0
-stable-baselines3>=2.1.0
-
-# Configuration & Utilities
-python-dotenv>=1.0.0
-pyyaml>=6.0
-colorama>=0.4.6
-joblib>=1.3.0
-tqdm>=4.66.0
-
-# News / Sentiment
-feedparser>=6.0.0
+# ── Exchange & data ──────────────────────────────────────────
+ccxt>=4.4.0
 requests>=2.31.0
 
-# Visualization
-matplotlib>=3.8.0
+# ── Data processing ──────────────────────────────────────────
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+pyarrow>=14.0.0          # parquet for cached market data
+
+# ── Configuration ────────────────────────────────────────────
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# ── News / sentiment ─────────────────────────────────────────
+feedparser>=6.0.0
+
+# ── Tests ────────────────────────────────────────────────────
+pytest>=7.4.0
