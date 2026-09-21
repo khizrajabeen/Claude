@@ -210,20 +210,32 @@ class StrategyAllocator:
             # same way, near 0 when they cancel out.
             agreement = net / gross
 
-            # Conviction is the weighted *mean* of the strategies that
-            # actually have a view, not the sum. Summing made conviction
-            # depend on how many strategies happen to be enabled — with
-            # five, one firing alone scored a fifth of its own strength, so
-            # a fixed entry threshold silently meant something different in
-            # every configuration. The mean is invariant to the roster.
+            # Conviction has to satisfy three things at once, and the two
+            # obvious formulas each fail one of them:
+            #
+            #   summing weighted contributions makes conviction depend on
+            #   how many strategies happen to be enabled — with five, one
+            #   firing alone scores a fifth of its own strength, so a fixed
+            #   entry threshold means something different in every roster;
+            #
+            #   dividing by the weight actually present fixes that but
+            #   makes weight irrelevant — worse, a strategy benched to a 5%
+            #   probe then produces *more* conviction than a trusted one,
+            #   because the small denominator inflates the mean. That
+            #   defeats both risk parity and the autopilot.
+            #
+            # So: take the mean opinion, then scale it by how much weight
+            # stands behind it relative to an equal share. A trusted
+            # strategy firing alone keeps its conviction; a probe does not.
             mean_opinion = abs(net) / present_weight
+            equal_share = total_weight / max(1, len(weights))
+            standing = min(1.0, present_weight / equal_share) if equal_share > 0 else 0.0
 
-            # Breadth still counts, but as a modifier rather than the scale:
-            # five strategies agreeing is a better signal than one, without
-            # one strategy alone being arbitrarily discounted to nothing.
+            # Breadth is a bounded bonus on top, so unanimity beats a lone
+            # voice without a lone voice being discounted to nothing.
             coverage = present_weight / total_weight
-            conviction = min(1.0, mean_opinion * (self.breadth_floor
-                                                  + (1 - self.breadth_floor) * coverage))
+            breadth = self.breadth_floor + (1 - self.breadth_floor) * coverage
+            conviction = min(1.0, mean_opinion * standing * breadth)
 
             if abs(agreement) < self.require_agreement:
                 continue

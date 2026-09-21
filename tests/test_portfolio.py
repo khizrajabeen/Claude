@@ -262,3 +262,48 @@ def test_targeting_can_be_switched_off(config):
     config["vol_target"]["enabled"] = False
     decision = VolatilityTargeter(config).decide([0.05] * 40)
     assert decision.scale == 1.0
+
+
+def test_a_benched_strategy_cannot_shout_louder_than_a_trusted_one(config):
+    """Regression: dividing conviction by the weight actually present made
+    a 5% probe produce *more* conviction than a full allocation, because
+    the small denominator inflated the mean — defeating both risk parity
+    and the autopilot."""
+    allocator = StrategyAllocator(config)
+    names = [f"s{i}" for i in range(9)]
+
+    equal = {name: 1 / 9 for name in names}
+    probe = dict(equal)
+    probe["s0"] = 0.005
+    total = sum(probe.values())
+    probe = {k: v / total for k, v in probe.items()}
+
+    trusted = allocator.combine({"s0": [signal("s0", "BTC/USDT", 1)]}, equal)
+    benched = allocator.combine({"s0": [signal("s0", "BTC/USDT", 1)]}, probe)
+
+    assert benched["BTC/USDT"].conviction < trusted["BTC/USDT"].conviction / 5
+
+
+def test_conviction_barely_moves_with_roster_size(config):
+    """A fixed entry threshold must mean the same thing whatever is enabled."""
+    allocator = StrategyAllocator(config)
+    convictions = []
+    for size in (3, 5, 9):
+        names = [f"s{i}" for i in range(size)]
+        weights = {name: 1 / size for name in names}
+        view = allocator.combine({"s0": [signal("s0", "BTC/USDT", 1)]}, weights)
+        convictions.append(view["BTC/USDT"].conviction)
+
+    assert max(convictions) - min(convictions) < 0.15
+
+
+def test_unanimity_still_beats_a_lone_voice(config):
+    allocator = StrategyAllocator(config)
+    names = [f"s{i}" for i in range(9)]
+    weights = {name: 1 / 9 for name in names}
+
+    alone = allocator.combine({"s0": [signal("s0", "BTC/USDT", 1)]}, weights)
+    everyone = allocator.combine(
+        {name: [signal(name, "BTC/USDT", 1)] for name in names}, weights
+    )
+    assert everyone["BTC/USDT"].conviction > alone["BTC/USDT"].conviction
