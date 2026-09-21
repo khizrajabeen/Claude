@@ -11,21 +11,35 @@ import logging
 from bot.strategies.base import BaseStrategy, MarketContext, Strategy, StrategySignal
 from bot.strategies.breakout import BreakoutStrategy
 from bot.strategies.carry import CarryStrategy
+from bot.strategies.clenow import ClenowTrend
+from bot.strategies.dualmom import DualMomentum
+from bot.strategies.holygrail import HolyGrailPullback
 from bot.strategies.reversion import ReversionStrategy
 from bot.strategies.trend import TrendStrategy
+from bot.strategies.turtle import TurtleStrategy
 from bot.strategies.xsmom import CrossSectionalMomentum
 
 logger = logging.getLogger("trading_bot")
 
 REGISTRY: dict[str, type[BaseStrategy]] = {
+    # Built here
     TrendStrategy.name: TrendStrategy,
     CrossSectionalMomentum.name: CrossSectionalMomentum,
     BreakoutStrategy.name: BreakoutStrategy,
     ReversionStrategy.name: ReversionStrategy,
     CarryStrategy.name: CarryStrategy,
+    # Published systems, implemented to their stated rules so the
+    # comparison is against the real thing rather than a paraphrase.
+    TurtleStrategy.name: TurtleStrategy,          # Dennis & Eckhardt, 1983
+    ClenowTrend.name: ClenowTrend,                # Clenow, Following the Trend
+    HolyGrailPullback.name: HolyGrailPullback,    # Raschke & Connors, Street Smarts
+    DualMomentum.name: DualMomentum,              # Antonacci, Dual Momentum Investing
 }
 
-DEFAULT_ENABLED = ["trend", "xsmom", "breakout", "reversion", "carry"]
+DEFAULT_ENABLED = [
+    "trend", "xsmom", "breakout", "reversion", "carry",
+    "turtle", "clenow", "holygrail", "dualmom",
+]
 
 
 def build_strategies(config: dict) -> list[BaseStrategy]:
@@ -52,5 +66,6 @@ __all__ = [
     "BaseStrategy", "MarketContext", "Strategy", "StrategySignal",
     "BreakoutStrategy", "CarryStrategy", "ReversionStrategy",
     "TrendStrategy", "CrossSectionalMomentum",
+    "TurtleStrategy", "ClenowTrend", "HolyGrailPullback", "DualMomentum",
     "REGISTRY", "DEFAULT_ENABLED", "build_strategies",
 ]

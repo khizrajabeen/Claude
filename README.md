@@ -68,58 +68,99 @@ down; a good one lets it back to the configured base, never above it.
 
 ---
 
+## Strategies
+
+Five independent return drivers, not one formula with five terms. The
+distinction is the point: the evidence on managed futures is that combining
+weakly correlated drivers is what shrinks drawdown, far more than improving
+any single signal. A trend model and a carry model lose money at different
+times; two trend models lose money together.
+
+| Strategy | What it trades | Why it is here |
+|---|---|---|
+| `trend` | Volatility-scaled time-series momentum, blended over 1d / 3d / 2w | The CTA workhorse. Convex payoff — it is positioned for the persistent moves that make a crash a crash |
+| `xsmom` | Cross-sectional momentum, 12-1 style | Roughly market-neutral by construction. It can **short a rising asset** that is rising less than its peers, which is exactly what makes it a diversifier rather than a trend clone |
+| `breakout` | Donchian channel break, filtered on volatility compression | Flat during a grind that never makes a new high; already positioned when a quiet range snaps |
+| `reversion` | Short-term reversal on statistically stretched moves | Makes money in the chop that whipsaws trend. Suppressed entirely when ADX says a real trend is running |
+| `carry` | Perpetual funding, taking the paid side | Uncorrelated with price direction — but see the caveat below |
+
+Adding a strategy is a file in `bot/strategies/` and a line in config. Each
+one sees the same market context and knows nothing about the others; sizing
+and capital allocation are not its business.
+
+**On carry, honestly:** published work puts the crypto carry Sharpe above 6
+over 2020–2023, falling through 2024 and turning negative in 2025 as
+delta-neutral yield products crowded the trade. Recent samples show average
+funding below the threshold at which it covers costs, so a disciplined rule
+simply does not fire. This implementation stands aside rather than chasing
+a yield that no longer clears fees — and on a spot venue there are no
+funding rates at all, so it reports itself inactive and contributes
+nothing.
+
+## Portfolio construction
+
+Strategies produce opinions; the portfolio layer decides how much each one
+is worth and how hard to press overall.
+
+**Risk parity across strategies.** Weights are inverse to each strategy's
+own return volatility, so a noisy driver does not dominate the book's
+variance just by being noisy. Equal *capital* is not equal *risk*, and it
+is risk that produces drawdown.
+
+**A correlation haircut.** Equal-risk weighting still over-allocates to a
+cluster of strategies all saying the same thing. Each weight is reduced by
+how correlated that strategy is with the rest, pushing capital toward the
+genuinely independent drivers.
+
+**Per-strategy caps.** Inverse volatility over-funds drivers whose risk
+lives in the tail rather than in daily variance. Carry is the textbook
+case — it looks almost riskless right up until it isn't — so it is capped
+at 15% regardless of how calm its returns look.
+
+Until there is enough realised history to measure either, everything is
+weighted equally. Estimating a covariance matrix from a fortnight of data
+produces confident nonsense.
+
+**Volatility targeting** sits on top, scaling every position together. This
+is the best-evidenced single lever on drawdown: left-tail events cluster in
+high-volatility periods, so a vol-targeted book is already de-levered when
+they arrive. Published effects take equity Sharpe from ~0.40 to ~0.50 with
+materially smaller maximum drawdowns, and crypto shows the same pattern
+with more positive skew. Two refinements: exposure is cut immediately on a
+volatility spike but restored slowly, and a separate drawdown throttle
+scales exposure down as the account falls from its peak.
+
 ## How a trade gets taken
 
-**1. The edge score.** A regime-weighted blend of four views, each
-normalised to roughly [-1, 1]:
+1. **Strategies speak.** Each returns signed signals with a conviction in
+   [0, 1], comparable across strategies.
+2. **The allocator resolves them.** Weighted contributions are summed per
+   symbol, so two strategies disagreeing cancel rather than opening two
+   opposed positions in the same name. Agreement is reported alongside
+   conviction.
+3. **Tilts and vetoes.** News sentiment and order-book imbalance nudge the
+   result; neither can open a trade, and a tilt that would flip the
+   strategies' direction causes the bot to stand aside instead. A setup
+   fighting the higher timeframe is vetoed — except for market-neutral
+   strategies, since shorting a laggard in a rising market is the
+   construction, not a mistake.
+4. **Risk sizes what survives.** Fixed dollar risk at an ATR stop, scaled
+   by the portfolio's volatility multiplier:
 
-| View | Inputs |
-|---|---|
-| Trend | EMA structure gated by ADX/DI, confirmed on the higher timeframe |
-| Momentum | MACD histogram in ATR units, overnight move |
-| Mean reversion | z-score, RSI stretch, position in the Donchian range |
-| News | sentiment tilt, scaled by consensus |
-| Order book | top-of-book imbalance (small weight — confirmation only) |
+   ```
+   stop distance = atr_stop_mult × ATR
+   quantity      = (equity × risk_per_trade_pct × exposure_scale) / stop distance
+   ```
 
-Weights shift with the regime. A z-score of −2 is a buy in a range and a
-falling knife in a downtrend, so the same reading gets different treatment
-depending on which regime the detector reports.
+   Then capped by notional limits, a per-position volatility budget, and
+   the exchange's lot rules.
+5. **Portfolio gates.** Each candidate is checked against a running book so
+   limits see the cumulative effect of the plan: portfolio heat (total open
+   risk if every stop hit at once), a correlation cap, net beta, the daily
+   loss breaker, the drawdown halt and the loss cooldown.
 
-**2. Filters and vetoes.** Thin books, wide spreads and volatility outside a
-sane band are dropped before scoring matters. A setup that fights the
-higher timeframe is vetoed, as is one that strong news opposes.
-
-**3. Sizing.** Risk is fixed in dollars and the stop is placed at a multiple
-of ATR:
-
-```
-stop distance = atr_stop_mult × ATR
-quantity      = (equity × risk_per_trade_pct) / stop distance
-```
-
-When volatility expands the stop widens and the position shrinks, so dollar
-risk stays constant across assets and regimes. That is what stops losses
-from clustering in exactly the periods that hurt most. Size is then capped
-by a notional limit, a per-position volatility budget, and whatever the
-exchange's lot rules allow.
-
-**4. Portfolio gates.** Each candidate is checked against a running book, so
-limits see the cumulative effect of the plan:
-
-- **portfolio heat** — total open risk if every stop hit at once (4%)
-- **correlation cap** — crypto majors trade as one factor, so same-side
-  crowding is capped (3)
-- **net beta** — beta-weighted exposure against equity (1.5×)
-- **daily loss breaker** — measured on equity, unrealised included (2%)
-- **drawdown halt** — hard stop against peak equity (15%)
-- **loss cooldown** — no new entries for a while after consecutive losses
-
-**5. Management.** Stops only ever ratchet forward: to just past entry once
-1R is banked (with a pad so fees cannot turn a winner into a loser), then
-trailing 2.5 ATR behind the extreme. There is a time stop for trades that
-go nowhere and a maximum holding period.
-
----
+Every trade records which strategy drove it, so returns are attributed back
+and tomorrow's weights are computed from what actually happened.
 
 ## Execution costs
 

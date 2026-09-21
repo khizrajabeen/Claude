@@ -324,6 +324,30 @@ class Journal:
             s["avg_r"] = round(s["r_sum"] / n, 4) if n else 0.0
         return out
 
+    def strategy_stats(self, window: int = 500) -> dict:
+        """Per-strategy record: trade count, expectancy in R, hit rate.
+
+        This is what the autopilot judges a strategy on, so it deliberately
+        reports the sample size alongside the number — an expectancy over
+        six trades is not evidence of anything.
+        """
+        out: dict[str, dict] = {}
+        for trade in self.load_trades(limit=window):
+            name = (trade.strategy or "unattributed").split("+")[0]
+            record = out.setdefault(name, {"trades": 0, "wins": 0, "r_sum": 0.0,
+                                           "pnl": 0.0})
+            record["trades"] += 1
+            record["wins"] += 1 if trade.pnl > 0 else 0
+            record["r_sum"] += trade.r_multiple
+            record["pnl"] += trade.pnl
+
+        for record in out.values():
+            count = record["trades"]
+            record["avg_r"] = round(record["r_sum"] / count, 4) if count else 0.0
+            record["win_rate"] = round(record["wins"] / count * 100, 2) if count else 0.0
+            record["pnl"] = round(record["pnl"], 2)
+        return out
+
     def last_day(self) -> dict | None:
         days = self.load_days(limit=1)
         return days[-1] if days else None

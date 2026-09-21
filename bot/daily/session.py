@@ -25,6 +25,7 @@ from bot.daily.journal import BotState, DaySummary, Journal
 from bot.daily.plan import DayPlan, DayPlanner
 from bot.daily.schedule import DaySchedule, Phase, build_schedule, next_schedule
 from bot.portfolio.allocator import StrategyAllocator
+from bot.portfolio.autopilot import AutoPilot
 from bot.portfolio.tracker import StrategyTracker
 from bot.portfolio.voltarget import VolatilityTargeter
 from bot.risk.budget import RiskBudget, SizedOrder
@@ -102,6 +103,7 @@ class DailySession:
         self.briefing_builder = BriefingBuilder(config, exchange)
         self.strategies = build_strategies(config)
         self.allocator = StrategyAllocator(config)
+        self.autopilot = AutoPilot(config)
         self.tracker = StrategyTracker(config, journal)
         self.vol_targeter = VolatilityTargeter(config)
         self.planner = DayPlanner(config, self.risk, self.strategies, self.allocator)
@@ -284,7 +286,16 @@ class DailySession:
         volatilities = self.tracker.volatilities(returns)
         correlations = self.tracker.correlations(returns)
         weights = self.allocator.weights(names, volatilities, correlations)
-        self.allocator.log_weights(weights, volatilities)
+
+        # The autopilot benches strategies that have earned their way out
+        # and tilts the rest toward the prevailing tape, so the roster
+        # manages itself rather than needing to be configured.
+        roster = self.autopilot.decide(
+            names, self.journal.strategy_stats(), regime=self._dominant_regime()
+        )
+        weights = self.autopilot.apply(weights, roster)
+        self._roster = roster
+        logger.info("  Strategy budget: %s", self.autopilot.explain(weights, roster))
 
         days = self.journal.load_days()
         daily_returns = [d.get("return_pct", 0.0) / 100 for d in days]
@@ -661,6 +672,15 @@ class DailySession:
                     )
                     self.state.halted_reason = "max_drawdown_halt"
                     self.flatten(schedule, force=True)
+
+    def _dominant_regime(self) -> str:
+        """The regime most of the universe is in, for the autopilot tilt."""
+        reads = getattr(self, "_briefing_reads", {}) or {}
+        counts: dict[str, int] = {}
+        for read in reads.values():
+            if read.tradable:
+                counts[read.regime] = counts.get(read.regime, 0) + 1
+        return max(counts, key=counts.get) if counts else ""
 
     def _cooldown_until(self) -> datetime | None:
         if not self.state.cooldown_until:

@@ -41,11 +41,29 @@ def dataset():
     return features, labels, returns, weights, t1
 
 
+def _fast(config):
+    """Shrink the estimators for tests.
+
+    These check the harness is fair, not how well sklearn's defaults fit.
+    Full-size forests turn a 6-second suite into a 90-second one.
+    """
+    config["validation"] = {"n_splits": 3, "embargo_pct": 1.0}
+    config["compare"] = {
+        "model_params": {
+            "random_forest": {"n_estimators": 30},
+            "extra_trees": {"n_estimators": 30},
+            "hist_gbm": {"max_iter": 40},
+            "xgboost": {"n_estimators": 40},
+            "lightgbm": {"n_estimators": 40},
+            "mlp": {"max_iter": 80, "hidden_layer_sizes": (8,)},
+        }
+    }
+    return config
+
+
 def run(config, dataset, models):
     features, labels, returns, weights, t1 = dataset
-    # Three folds is enough to check fairness and keeps the suite quick;
-    # the real comparison uses five.
-    config["validation"] = {"n_splits": 3, "embargo_pct": 1.0}
+    _fast(config)
     return ModelComparison(config).run(
         features=features, labels=labels, returns=returns,
         feature_columns=list(features.columns),
@@ -119,7 +137,7 @@ def test_pure_noise_produces_no_edge(config):
     returns = pd.Series(np.where(labels == 1, 0.01, -0.01), index=index)
     t1 = pd.Series(index, index=index).shift(-12).bfill()
 
-    config["validation"] = {"n_splits": 3, "embargo_pct": 1.0}
+    _fast(config)
     results = ModelComparison(config).run(
         features=features, labels=labels, returns=returns,
         feature_columns=list(features.columns), t1=t1,
@@ -148,6 +166,15 @@ def test_calibration_is_reported_not_just_accuracy(config, dataset):
     for result in run(config, dataset, ["logistic", "hist_gbm"]):
         assert result.log_loss > 0
         assert 0 <= result.brier <= 1
+
+
+def test_per_trade_return_is_reported_not_a_meaningless_sum(config, dataset):
+    """Summing thousands of overlapping per-bar outcomes yields a headline
+    like -4000% that only measures costs times trade count."""
+    for result in run(config, dataset, ["logistic", "hist_gbm"]):
+        assert -500 < result.avg_trade_bps < 500
+        assert 0 <= result.trade_rate <= 1.0
+        assert result.trades_taken >= 0
 
 
 def test_paper_pnl_charges_costs(config, dataset):
@@ -179,7 +206,7 @@ def test_a_failing_model_does_not_abort_the_comparison(config, dataset):
     original = spec.builder
     try:
         spec.builder = lambda **k: Exploding()
-        config["validation"] = {"n_splits": 3, "embargo_pct": 1.0}
+        _fast(config)
         results = ModelComparison(config).run(
             features=features, labels=labels, returns=returns,
             feature_columns=list(features.columns), sample_weight=weights, t1=t1,

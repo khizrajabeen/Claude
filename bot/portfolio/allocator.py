@@ -39,6 +39,7 @@ class CombinedView:
     conviction: float                    # 0..1, after weighting
     contributors: dict = field(default_factory=dict)   # strategy -> signed score
     agreement: float = 0.0               # -1 fully opposed, +1 unanimous
+    coverage: float = 0.0                # share of strategy weight with a view
     reasons: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -47,6 +48,7 @@ class CombinedView:
             "direction": self.direction,
             "conviction": round(self.conviction, 4),
             "agreement": round(self.agreement, 4),
+            "coverage": round(self.coverage, 4),
             "contributors": {k: round(v, 4) for k, v in self.contributors.items()},
             "reasons": self.reasons,
         }
@@ -69,6 +71,9 @@ class StrategyAllocator:
         self.manual = self.portfolio.get("weights", {}) or {}
         self.require_agreement = float(self.portfolio.get("min_agreement", 0.0))
         self._warned_infeasible = False
+        # How much a lone strategy keeps of its own conviction. At 1.0
+        # breadth is ignored entirely; at 0 only unanimity counts.
+        self.breadth_floor = float(self.portfolio.get("breadth_floor", 0.6))
 
     # ── Strategy weights ──────────────────────────────────────
 
@@ -179,11 +184,14 @@ class StrategyAllocator:
             for signal in signals:
                 by_symbol.setdefault(signal.symbol, {})[name] = signal
 
+        total_weight = sum(w for w in weights.values() if w > 0) or 1.0
+
         views: dict[str, CombinedView] = {}
         for symbol, per_strategy in by_symbol.items():
             contributors, reasons = {}, []
             net = 0.0
             gross = 0.0
+            present_weight = 0.0
             for name, signal in per_strategy.items():
                 weight = weights.get(name, 0.0)
                 if weight <= 0:
@@ -192,23 +200,41 @@ class StrategyAllocator:
                 contributors[name] = contribution
                 net += contribution
                 gross += weight * signal.strength
+                present_weight += weight
                 reasons.append(f"{name}: {signal.reason}")
 
-            if gross <= 0:
+            if gross <= 0 or present_weight <= 0:
                 continue
 
             # Agreement is net over gross: +1 when every strategy points the
             # same way, near 0 when they cancel out.
             agreement = net / gross
+
+            # Conviction is the weighted *mean* of the strategies that
+            # actually have a view, not the sum. Summing made conviction
+            # depend on how many strategies happen to be enabled — with
+            # five, one firing alone scored a fifth of its own strength, so
+            # a fixed entry threshold silently meant something different in
+            # every configuration. The mean is invariant to the roster.
+            mean_opinion = abs(net) / present_weight
+
+            # Breadth still counts, but as a modifier rather than the scale:
+            # five strategies agreeing is a better signal than one, without
+            # one strategy alone being arbitrarily discounted to nothing.
+            coverage = present_weight / total_weight
+            conviction = min(1.0, mean_opinion * (self.breadth_floor
+                                                  + (1 - self.breadth_floor) * coverage))
+
             if abs(agreement) < self.require_agreement:
                 continue
 
             views[symbol] = CombinedView(
                 symbol=symbol,
                 direction=1 if net > 0 else -1,
-                conviction=min(1.0, abs(net)),
+                conviction=conviction,
                 contributors=contributors,
                 agreement=agreement,
+                coverage=round(coverage, 4),
                 reasons=reasons,
             )
 

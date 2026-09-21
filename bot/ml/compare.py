@@ -50,9 +50,10 @@ class ModelResult:
     auc_std: float = 0.0
     log_loss: float = 0.0
     brier: float = 0.0
-    strategy_return_pct: float = 0.0
+    avg_trade_bps: float = 0.0
     strategy_sharpe: float = 0.0
     trades_taken: int = 0
+    trade_rate: float = 0.0
     fit_seconds: float = 0.0
     error: str = ""
     per_fold: list = field(default_factory=list)
@@ -72,6 +73,9 @@ class ModelComparison:
         compare = config.get("compare", {})
         self.confidence_floor = float(compare.get("confidence_floor", 0.55))
         self.cost_bps = float(compare.get("round_trip_cost_bps", 12.0))
+        # Per-model hyperparameter overrides, so a quick pass can shrink
+        # the expensive estimators without editing the zoo.
+        self.model_params = dict(compare.get("model_params", {}) or {})
 
     def run(
         self,
@@ -108,7 +112,21 @@ class ModelComparison:
             len(specs), len(X), len(feature_columns), len(folds),
         )
 
-        results = [self._evaluate(spec, X, y, w, r, folds) for spec in specs]
+        results = []
+        for position, spec in enumerate(specs, start=1):
+            # Progress matters here: a forest on twenty thousand rows takes
+            # minutes, and a silent run looks indistinguishable from a hung
+            # one.
+            logger.info("  [%d/%d] fitting %s (%s)...",
+                        position, len(specs), spec.name, spec.family)
+            result = self._evaluate(spec, X, y, w, r, folds)
+            logger.info(
+                "  [%d/%d] %s: accuracy %.4f | AUC %.4f | %+.1f bps/trade | %.1fs%s",
+                position, len(specs), spec.name, result.accuracy, result.auc,
+                result.avg_trade_bps, result.fit_seconds,
+                f" | {result.error}" if result.error else "",
+            )
+            results.append(result)
         results.sort(key=lambda res: (-res.auc, -res.edge))
         self._log_table(results)
         return results
@@ -142,7 +160,7 @@ class ModelComparison:
                 X_test = scaler.transform(X_test)
 
             try:
-                model = spec.build()
+                model = spec.build(**self.model_params.get(spec.name, {}))
                 weights = w.iloc[train_idx].to_numpy() if w is not None else None
                 _fit(model, X_train, y_train, weights)
                 proba = _predict_proba(model, X_test)
@@ -182,12 +200,18 @@ class ModelComparison:
         result.brier = round(float(np.mean(briers)), 4)
 
         trades = [t for fold in pnl_by_fold for t in fold]
+        tested = sum(len(fold_idx) for _, fold_idx in folds)
         if trades:
             series = pd.Series(trades)
             result.trades_taken = len(series)
-            result.strategy_return_pct = round(float(series.sum()) * 100, 3)
+            result.trade_rate = round(len(series) / tested, 4) if tested else 0.0
+            # Mean per trade, in basis points. Summing thousands of
+            # overlapping per-bar outcomes produces a headline like -4000%
+            # that says nothing except "costs times trade count" — the
+            # average is the number that actually compares models.
+            result.avg_trade_bps = round(float(series.mean()) * 10_000, 2)
             result.strategy_sharpe = (
-                round(float(series.mean() / series.std() * np.sqrt(252)), 3)
+                round(float(series.mean() / series.std()), 3)
                 if series.std() > 0 else 0.0
             )
         return result
@@ -215,8 +239,9 @@ class ModelComparison:
         logger.info("  MODEL COMPARISON — identical features, labels and purged folds")
         logger.info("═" * 92)
         logger.info(
-            "  %-14s %-9s %8s %8s %7s %9s %8s %9s %7s",
-            "model", "family", "acc", "vs base", "AUC", "logloss", "ret %", "sharpe", "secs",
+            "  %-14s %-9s %8s %8s %7s %9s %9s %8s %7s",
+            "model", "family", "acc", "vs base", "AUC", "logloss",
+            "bps/trade", "traded%", "secs",
         )
         logger.info("  " + "-" * 88)
         for res in results:
@@ -224,9 +249,9 @@ class ModelComparison:
                 logger.info("  %-14s %-9s  failed: %s", res.name, res.family, res.error)
                 continue
             logger.info(
-                "  %-14s %-9s %8.4f %+8.4f %7.4f %9.4f %8.2f %9.2f %7.1f",
+                "  %-14s %-9s %8.4f %+8.4f %7.4f %9.4f %9.2f %7.1f%% %7.1f",
                 res.name, res.family, res.accuracy, res.edge, res.auc,
-                res.log_loss, res.strategy_return_pct, res.strategy_sharpe,
+                res.log_loss, res.avg_trade_bps, res.trade_rate * 100,
                 res.fit_seconds,
             )
         logger.info("═" * 92)
@@ -239,7 +264,14 @@ class ModelComparison:
         if best.auc <= 0.52 or best.edge <= 0.005:
             logger.info(
                 "  Verdict: nothing here beats the baseline by enough to trade. "
-                "AUC %.4f is within noise of 0.5.", best.auc,
+                "Best AUC %.4f is within noise of 0.5, and the best accuracy is "
+                "%+.4f against always guessing the majority class.",
+                best.auc, best.edge,
+            )
+            logger.info(
+                "  This is the expected result for generic technical features on "
+                "short-horizon crypto bars, and it is what leakage-free validation "
+                "is for: an unpurged split would have shown an edge that is not there."
             )
         else:
             logger.info(

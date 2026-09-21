@@ -26,7 +26,7 @@ data:
     - "LINK/USDT"
   timeframe: "1h"          # the decision timeframe
   higher_timeframe: "4h"   # trend filter
-  history_bars: 600        # must cover the longest strategy lookback
+  history_bars: 800        # must cover the longest strategy lookback
   orderbook_depth: 20
   orderbook_levels: 10
   train_days: 180
@@ -88,11 +88,47 @@ sizing:
 # what shrinks drawdown — far more than improving any single signal.
 strategies:
   enabled:
+    # Built here
     - trend        # time-series momentum, the CTA workhorse
     - xsmom        # cross-sectional momentum, ~market neutral
     - breakout     # Donchian channel break out of compression
     - reversion    # short-term reversal, the hedge against trend whipsaw
     - carry        # perpetual funding, only where funding exists
+    # Published systems, implemented to their stated rules
+    - turtle       # Dennis & Eckhardt 1983: 20/55 Donchian, N sizing, 2N stop
+    - clenow       # Clenow: EMA50/100 filter + 100-bar extreme, 3 ATR stop
+    - holygrail    # Raschke & Connors: ADX>30, pullback to the 20 EMA
+    - dualmom      # Antonacci: relative strength gated by absolute momentum
+
+  turtle:
+    entry_s1: 20
+    entry_s2: 55
+    exit_s1: 10
+    n_period: 20                   # N is the 20-period ATR
+    stop_n: 2.0
+    pyramid_step_n: 0.5
+    max_units: 4
+    last_winner_filter: true       # skip S1 if the last breakout would have won
+
+  clenow:
+    fast_ema: 50
+    slow_ema: 100
+    breakout_bars: 100
+    atr_period: 20
+    stop_atr: 3.0                  # wider than the house 2 ATR, by design
+
+  holygrail:
+    adx_period: 14
+    adx_floor: 30.0
+    ema_period: 20
+    touch_atr: 0.5                 # how close to the EMA counts as a touch
+    swing_lookback: 20
+
+  dualmom:
+    lookback_bars: 336             # ~2 weeks on 1h
+    top_n: 2
+    hurdle_annual_pct: 4.0         # the crypto stand-in for the T-bill leg
+    allow_shorts: false
 
   trend:
     horizons: [24, 72, 336]        # bars: ~1d / 3d / 2w on 1h
@@ -125,6 +161,19 @@ strategies:
     # Funding has compressed since 2024 and a disciplined rule now rarely
     # fires. That is correct behaviour, not a broken strategy.
 
+# ── Autopilot ────────────────────────────────────────────────
+# The roster manages itself: strategies that earn a materially negative
+# record over a real sample are benched to a probe allocation, and the
+# survivors are tilted toward whatever suits the current tape. Nothing here
+# needs adjusting by hand.
+autopilot:
+  enabled: true
+  min_trades_to_judge: 25          # never judge a strategy on a small sample
+  bench_below_expectancy_r: -0.15  # well below zero, not at it
+  probe_weight: 0.05               # a benched strategy keeps a foot in the door
+  regime_tilt: true
+  max_benched_fraction: 0.5        # if most are losing, the setting is wrong
+
 # ── Portfolio construction ───────────────────────────────────
 portfolio:
   weighting: "inverse_vol"         # inverse_vol | equal | manual
@@ -136,6 +185,7 @@ portfolio:
   lookback_days: 60
   min_history_days: 10
   min_agreement: 0.0               # raise to require strategy consensus
+  breadth_floor: 0.6               # conviction a lone strategy keeps
   # weights: {trend: 0.4, xsmom: 0.3, breakout: 0.2, reversion: 0.1}
 
 # ── Portfolio volatility targeting ───────────────────────────

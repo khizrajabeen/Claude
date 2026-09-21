@@ -30,6 +30,14 @@ from bot.utils.backtester import DailyReplay
 logger = logging.getLogger("trading_bot")
 
 
+HOUSE = ["trend", "xsmom", "breakout", "reversion", "carry"]
+PUBLISHED = ["turtle", "clenow", "holygrail", "dualmom"]
+EVERYTHING = HOUSE + PUBLISHED
+
+_NO_VOL_TARGET = {"enabled": False}
+_PARITY = {"weighting": "inverse_vol", "correlation_haircut": True}
+_OFF = {"enabled": False}
+
 VARIANTS: dict[str, dict] = {
     "single": {
         "label": "trend only, flat exposure",
@@ -41,28 +49,75 @@ VARIANTS: dict[str, dict] = {
     "multi-equal": {
         "label": "5 strategies, equal weights",
         "overrides": {
-            "strategies": {"enabled": ["trend", "xsmom", "breakout", "reversion", "carry"]},
+            "strategies": {"enabled": HOUSE},
             "portfolio": {"weighting": "equal", "correlation_haircut": False},
-            "vol_target": {"enabled": False},
+            "vol_target": _NO_VOL_TARGET,
+            "autopilot": _OFF,
         },
     },
     "multi-parity": {
         "label": "5 strategies, inverse-vol + correlation haircut",
         "overrides": {
-            "strategies": {"enabled": ["trend", "xsmom", "breakout", "reversion", "carry"]},
-            "portfolio": {"weighting": "inverse_vol", "correlation_haircut": True},
-            "vol_target": {"enabled": False},
+            "strategies": {"enabled": HOUSE},
+            "portfolio": _PARITY,
+            "vol_target": _NO_VOL_TARGET,
+            "autopilot": _OFF,
         },
     },
     "full": {
         "label": "risk parity + volatility targeting",
         "overrides": {
-            "strategies": {"enabled": ["trend", "xsmom", "breakout", "reversion", "carry"]},
-            "portfolio": {"weighting": "inverse_vol", "correlation_haircut": True},
+            "strategies": {"enabled": HOUSE},
+            "portfolio": _PARITY,
             "vol_target": {"enabled": True},
+            "autopilot": _OFF,
         },
     },
+    # Each published system alone, to its own stated rules.
+    "turtle": {
+        "label": "Turtle only (Dennis & Eckhardt)",
+        "overrides": {"strategies": {"enabled": ["turtle"]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    },
+    "clenow": {
+        "label": "Clenow trend only",
+        "overrides": {"strategies": {"enabled": ["clenow"]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    },
+    "holygrail": {
+        "label": "Holy Grail pullback only (Raschke)",
+        "overrides": {"strategies": {"enabled": ["holygrail"]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    },
+    "dualmom": {
+        "label": "Dual momentum only (Antonacci)",
+        "overrides": {"strategies": {"enabled": ["dualmom"]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    },
+    "published": {
+        "label": "all four published systems, risk parity",
+        "overrides": {"strategies": {"enabled": PUBLISHED},
+                      "portfolio": _PARITY, "vol_target": {"enabled": True},
+                      "autopilot": _OFF},
+    },
+    "everything": {
+        "label": "all nine strategies, risk parity + vol target",
+        "overrides": {"strategies": {"enabled": EVERYTHING},
+                      "portfolio": _PARITY, "vol_target": {"enabled": True},
+                      "autopilot": _OFF},
+    },
+    "autopilot": {
+        "label": "all nine, autopilot manages the roster",
+        "overrides": {"strategies": {"enabled": EVERYTHING},
+                      "portfolio": _PARITY, "vol_target": {"enabled": True},
+                      "autopilot": {"enabled": True}},
+    },
 }
+
+# The cumulative ladder, for attributing each layer.
+LADDER = ["single", "multi-equal", "multi-parity", "full"]
+# The head-to-head: house strategies against the published ones.
+HEAD_TO_HEAD = ["full", "published", "everything", "autopilot"]
 
 
 class VariantBench:
@@ -72,7 +127,12 @@ class VariantBench:
         self.config = config
 
     def run(self, days: int = 90, variants: list[str] | None = None) -> dict:
-        names = variants or list(VARIANTS)
+        if variants == ["ladder"]:
+            names = list(LADDER)
+        elif variants == ["head-to-head"]:
+            names = list(HEAD_TO_HEAD)
+        else:
+            names = variants or list(VARIANTS)
         unknown = [n for n in names if n not in VARIANTS]
         if unknown:
             raise ValueError(f"Unknown variant(s): {unknown}. Known: {list(VARIANTS)}")

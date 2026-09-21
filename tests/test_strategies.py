@@ -237,3 +237,121 @@ def test_a_strategy_never_sees_an_untradable_symbol(config):
     for strategy in build_strategies(config):
         symbols = {s.symbol for s in strategy.generate(ctx)}
         assert "B/USDT" not in symbols
+
+
+# ── Published systems ────────────────────────────────────────
+
+def test_turtle_breaks_out_on_a_new_channel_extreme(config):
+    from bot.strategies.turtle import TurtleStrategy
+
+    ctx = build_context(symbols=["A/USDT"], bars=700, drifts=[0.004],
+                        vol=0.008, seed=50)
+    for signal in TurtleStrategy(config).generate(ctx):
+        assert signal.meta["system"] in ("S1", "S2")
+        assert 1 <= signal.meta["units"] <= 4
+        assert signal.meta["stop_distance_n"] == 2.0
+        assert "Turtle" in signal.reason
+
+
+def test_turtle_refuses_to_chase_past_the_pyramid(config):
+    """Beyond four units the entry is worse for the same 2N stop."""
+    from bot.strategies.turtle import TurtleStrategy
+
+    config["strategies"]["turtle"] = {"max_units": 1, "pyramid_step_n": 0.01,
+                                      "last_winner_filter": False}
+    ctx = build_context(symbols=["A/USDT"], bars=700, drifts=[0.02],
+                        vol=0.004, seed=51)
+    assert TurtleStrategy(config).generate(ctx) == []
+
+
+def test_turtle_last_winner_filter_changes_what_is_taken(config):
+    """The filter is the part of the original rules most often dropped."""
+    from bot.strategies.turtle import TurtleStrategy
+
+    ctx = build_context(symbols=["A/USDT", "B/USDT", "C/USDT", "D/USDT"],
+                        bars=700, drifts=[0.004, -0.004, 0.002, -0.002],
+                        vol=0.010, seed=52)
+
+    config["strategies"]["turtle"] = {"last_winner_filter": True}
+    filtered = {s.symbol for s in TurtleStrategy(config).generate(ctx)}
+    config["strategies"]["turtle"] = {"last_winner_filter": False}
+    unfiltered = {s.symbol for s in TurtleStrategy(config).generate(ctx)}
+
+    assert filtered <= unfiltered, "the filter can only remove signals"
+
+
+def test_clenow_requires_the_ema_filter_and_the_breakout_to_agree(config):
+    """A new high inside a downtrend is a bounce, not an entry."""
+    from bot.strategies.clenow import ClenowTrend
+
+    ctx = build_context(symbols=["A/USDT"], bars=700, drifts=[0.004],
+                        vol=0.008, seed=53)
+    for signal in ClenowTrend(config).generate(ctx):
+        # EMA separation and breakout direction must share a sign.
+        assert signal.meta["separation_atr"] > 0
+        assert signal.meta["stop_atr"] == 3.0
+
+
+def test_clenow_uses_a_wider_stop_than_the_house_trend(config):
+    from bot.strategies.clenow import ClenowTrend
+
+    assert ClenowTrend(config).stop_atr > float(config["stops"]["atr_stop_mult"])
+
+
+def test_holy_grail_needs_a_strong_trend(config):
+    """Below ADX 30 the setup does not exist."""
+    from bot.strategies.holygrail import HolyGrailPullback
+
+    config["strategies"]["holygrail"] = {"adx_floor": 99.0}
+    ctx = build_context(symbols=["A/USDT"], bars=700, drifts=[0.004], seed=54)
+    assert HolyGrailPullback(config).generate(ctx) == []
+
+
+def test_holy_grail_enters_near_the_moving_average_not_at_extremes(config):
+    """It is a pullback system — that is what makes it diversify the
+    breakout systems rather than duplicate them."""
+    from bot.strategies.holygrail import HolyGrailPullback
+
+    config["strategies"]["holygrail"] = {"adx_floor": 15.0, "touch_atr": 0.5}
+    ctx = build_context(symbols=["A/USDT", "B/USDT", "C/USDT", "D/USDT"],
+                        bars=700, drifts=[0.005, 0.003, -0.003, -0.005],
+                        vol=0.010, seed=55)
+    for signal in HolyGrailPullback(config).generate(ctx):
+        assert signal.meta["distance_atr"] <= 0.5 + 1e-9
+        assert signal.meta["room_atr"] > 0
+
+
+def test_dual_momentum_holds_cash_when_nothing_is_rising(config):
+    """The absolute gate is the whole point: relative strength alone would
+    hold whatever is falling least."""
+    from bot.strategies.dualmom import DualMomentum
+
+    ctx = build_context(symbols=["A/USDT", "B/USDT", "C/USDT", "D/USDT"],
+                        bars=700, drifts=[-0.004, -0.005, -0.006, -0.007],
+                        vol=0.008, seed=56)
+    assert DualMomentum(config).generate(ctx) == [], "a falling universe means cash"
+
+
+def test_dual_momentum_buys_only_the_leaders(config):
+    from bot.strategies.dualmom import DualMomentum
+
+    config["strategies"]["dualmom"] = {"top_n": 2}
+    ctx = build_context(symbols=["A/USDT", "B/USDT", "C/USDT", "D/USDT"],
+                        bars=700, drifts=[0.008, 0.006, 0.001, -0.002],
+                        vol=0.006, seed=57)
+    signals = DualMomentum(config).generate(ctx)
+    assert len(signals) <= 2
+    for signal in signals:
+        assert signal.direction == 1
+        assert signal.meta["rank"] <= 2
+        assert signal.meta["momentum_pct"] > signal.meta["hurdle_pct"]
+
+
+def test_published_systems_are_registered_and_buildable(config):
+    from bot.strategies import REGISTRY
+
+    for name in ("turtle", "clenow", "holygrail", "dualmom"):
+        assert name in REGISTRY
+        strategy = REGISTRY[name](config)
+        assert strategy.required_bars() > 0
+        assert strategy.name == name
