@@ -55,6 +55,11 @@ and 16:00 UTC. All of it is configurable under `session:`.
 | `trades.csv` | every closed round trip, with R-multiple, MAE/MFE, costs |
 | `days.csv` | one row per trading day: equity, return, W/L, fees, drawdown |
 | `briefings/<date>.json` | that morning's read and the plan it produced |
+| `session.lock` | held while a bot is trading, so two cannot share a directory |
+
+One date gets one row: re-running a day after a crash corrects that day's
+record rather than adding a second one, and a second bot pointed at the
+same directory is refused rather than allowed to interleave its writes.
 
 Tomorrow's briefing reads yesterday's closing equity, the positions it
 inherited, and the rolling win rate and expectancy from `trades.csv` —
@@ -153,27 +158,33 @@ Two limitations, stated in every report rather than hidden:
 
 Replays write to `state/replay/` and never touch live records.
 
+`--fast` on the live modes compresses the session clock so a whole day runs
+in minutes. It is for exercising the lifecycle, not for measuring anything:
+the clock moves but live market data does not move with it, so bar-driven
+exits will not fire. Use `replay` to measure.
+
 ### A measured result
 
 45 days of hourly bars, six majors on OKX, default settings:
 
 ```
-Equity        : $10,000.00 → $10,052.57 (+0.53%)
-Trades        : 46 (18W / 28L, 39.1%)
-Expectancy    : +0.036R per trade
-Avg win/loss  : +1.42R / 0.86R
-Profit factor : 1.11
+Equity        : $10,000.00 → $10,069.30 (+0.69%)
+Trades        : 47 (19W / 28L, 40.4%)
+Expectancy    : +0.043R per trade
+Avg win/loss  : +1.37R / 0.86R
+Profit factor : 1.13
+Sharpe (daily): 0.97
 Max drawdown  : 4.79%
-Costs         : fees $86.72 | funding $7.16
-Exits         : stop_loss 22, take_profit 10, end_of_day 14
+Costs         : fees $89.07 | funding $7.38
+Exits         : stop_loss 22, take_profit 10, end_of_day 15
 ```
 
 Read that honestly: **roughly break-even after costs.** An expectancy of
-+0.036R over 46 trades is well inside noise — it is not evidence of an
-edge. What the numbers do show is that the mechanics are sound: stop-outs
-cost about −1R, targets pay about +1.9R, and drawdown stayed inside the
-budget. The risk plumbing works. Finding an actual edge to run through it
-is separate work, and 45 days is nowhere near enough sample to claim one.
++0.043R over 47 trades is well inside noise — it is not evidence of an
+edge, and 45 days is nowhere near the sample needed to claim one. What the
+numbers do show is that the mechanics are sound: stop-outs cost about −1R,
+targets pay about +1.9R, and drawdown stayed inside its budget. The risk
+plumbing works. Finding an actual edge to run through it is separate work.
 
 ---
 
@@ -231,7 +242,7 @@ deeper books and longer history.
 ## Tests
 
 ```bash
-python -m pytest tests/ -q      # 109 tests, no network
+python -m pytest tests/ -q      # 118 tests, no network
 ```
 
 The suite pins the claims this README makes: that margin cannot be
@@ -266,5 +277,5 @@ bot/
   analysis/    indicators, regime detection, news sentiment
   ml/          labeling, purged validation, model, trainer
   utils/       historical replay, performance metrics
-tests/         109 tests
+tests/         118 tests
 ```

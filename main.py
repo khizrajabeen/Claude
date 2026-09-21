@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import signal as signal_module
 import sys
 from datetime import datetime, timedelta, timezone
@@ -60,8 +61,9 @@ Examples:
     return parser.parse_args(argv)
 
 
-def build_context(config, args):
+def build_context(config, args, read_only: bool = False):
     """Wire up the pieces every trading mode needs."""
+    args.read_only = read_only
     from bot.daily.journal import Journal
     from bot.daily.session import Clock, DailySession, SimulatedClock
     from bot.exchange import ExchangeClient
@@ -69,12 +71,22 @@ def build_context(config, args):
 
     exchange = ExchangeClient(config)
     journal = Journal(config)
+    if not args.read_only:
+        journal.acquire()
     state = journal.load_state()
     broker = PaperBroker(
         config, cash=state.cash, positions=state.positions,
         trade_counter=state.trade_counter,
     )
-    clock = SimulatedClock(datetime.now(timezone.utc)) if args.fast else Clock()
+    if args.fast:
+        clock = SimulatedClock(datetime.now(timezone.utc))
+        logging.getLogger("trading_bot").warning(
+            "--fast compresses the session clock but live market data does not "
+            "move with it, so bar-driven exits will not fire. Use it to exercise "
+            "the lifecycle; use 'replay' to measure anything."
+        )
+    else:
+        clock = Clock()
     session = DailySession(config, exchange, broker, journal, state, clock=clock)
     return exchange, journal, state, broker, session
 
@@ -83,7 +95,7 @@ def build_context(config, args):
 
 def mode_briefing(config, logger, args):
     from bot.daily.schedule import build_schedule
-    exchange, journal, state, broker, session = build_context(config, args)
+    exchange, journal, state, broker, session = build_context(config, args, read_only=True)
     schedule = build_schedule(config, session.clock.now())
     briefing, _ = session.briefing_builder.build(
         symbols=session.symbols,
@@ -102,7 +114,7 @@ def mode_briefing(config, logger, args):
 
 def mode_plan(config, logger, args):
     from bot.daily.schedule import build_schedule
-    exchange, journal, state, broker, session = build_context(config, args)
+    exchange, journal, state, broker, session = build_context(config, args, read_only=True)
     schedule = build_schedule(config, session.clock.now())
     session._begin_day(str(schedule.day))
     briefing, plan = session.open_day(schedule)
@@ -116,7 +128,10 @@ def mode_plan(config, logger, args):
 def mode_day(config, logger, args):
     exchange, journal, state, broker, session = build_context(config, args)
     _install_shutdown(session, logger)
-    result = session.run_day()
+    try:
+        result = session.run_day()
+    finally:
+        journal.release()
     if args.json:
         print(json.dumps(result.summary.to_row(), indent=2, default=str))
     return result
@@ -125,7 +140,10 @@ def mode_day(config, logger, args):
 def mode_run(config, logger, args):
     exchange, journal, state, broker, session = build_context(config, args)
     _install_shutdown(session, logger)
-    results = session.run_forever(max_days=args.days)
+    try:
+        results = session.run_forever(max_days=args.days)
+    finally:
+        journal.release()
     logger.info("Ran %d session(s)", len(results))
     return results
 
@@ -327,6 +345,8 @@ def main(argv=None):
         _archive_journal(config, logger)
     print_banner(logger, config, args.mode)
 
+    from bot.daily.journal import JournalLocked
+
     modes = {
         "run": mode_run,
         "day": mode_day,
@@ -339,7 +359,11 @@ def main(argv=None):
         "train": mode_train,
         "backtest": mode_backtest,
     }
-    return modes[args.mode](config, logger, args)
+    try:
+        return modes[args.mode](config, logger, args)
+    except JournalLocked as e:
+        logger.error("%s", e)
+        sys.exit(3)
 
 
 if __name__ == "__main__":

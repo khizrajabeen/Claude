@@ -114,6 +114,10 @@ class DaySummary:
         return {c: d.get(c, "") for c in DAY_COLUMNS}
 
 
+class JournalLocked(Exception):
+    """Another process already holds this journal."""
+
+
 class Journal:
     """Reads and writes the bot's persistent records."""
 
@@ -125,8 +129,46 @@ class Journal:
         self.state_path = self.dir / "state.json"
         self.trades_path = self.dir / "trades.csv"
         self.days_path = self.dir / "days.csv"
+        self.lock_path = self.dir / "session.lock"
         self.dir.mkdir(parents=True, exist_ok=True)
         self.briefing_dir.mkdir(parents=True, exist_ok=True)
+        self._locked = False
+
+    # ── Single-writer lock ────────────────────────────────────
+
+    def acquire(self) -> "Journal":
+        """Claim this journal for the current process.
+
+        Two bots sharing one directory interleave their writes and each
+        records the same day, which is how one trading day ends up as three
+        rows. Taking the lock makes the second one fail loudly instead.
+        """
+        if self.lock_path.exists():
+            try:
+                pid = int(self.lock_path.read_text().split()[0])
+            except (ValueError, IndexError, OSError):
+                pid = None
+            if pid is not None and _process_alive(pid):
+                raise JournalLocked(
+                    f"{self.dir} is in use by process {pid}. Stop it first, or "
+                    f"point journal.dir somewhere else."
+                )
+            logger.warning("Clearing a stale lock from process %s", pid)
+
+        self.lock_path.write_text(f"{os.getpid()} {datetime.now(timezone.utc).isoformat()}\n")
+        self._locked = True
+        return self
+
+    def release(self) -> None:
+        if self._locked:
+            self.lock_path.unlink(missing_ok=True)
+            self._locked = False
+
+    def __enter__(self) -> "Journal":
+        return self.acquire()
+
+    def __exit__(self, *exc) -> None:
+        self.release()
 
     # ── State ─────────────────────────────────────────────────
 
@@ -165,7 +207,13 @@ class Journal:
         _append_csv(self.trades_path, TRADE_COLUMNS, trade.to_dict())
 
     def append_day(self, summary: DaySummary) -> None:
-        _append_csv(self.days_path, DAY_COLUMNS, summary.to_row())
+        """Record a day, replacing any existing row for the same date.
+
+        Re-running a day — after a crash, or because the bot was restarted —
+        must correct that day's record, not add a second one. Two rows for
+        one date make every downstream number wrong.
+        """
+        _upsert_csv(self.days_path, DAY_COLUMNS, summary.to_row(), key="day")
         logger.info(
             "Day %s recorded: %+.2f (%.2f%%) | %dW/%dL | equity $%.2f",
             summary.day, summary.realized_pnl, summary.return_pct,
@@ -283,12 +331,50 @@ class Journal:
 
 # ── file helpers ─────────────────────────────────────────────
 
+def _process_alive(pid: int) -> bool:
+    """Whether a pid is still running, without signalling it."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists, owned by someone else
+    return True
+
 def _atomic_write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as f:
             json.dump(payload, f, indent=2, default=str)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def _upsert_csv(path: Path, columns: list[str], row: dict, key: str) -> None:
+    """Append a row, or replace the existing row with the same key."""
+    existing = _read_csv(path)
+    replaced = False
+    for i, current in enumerate(existing):
+        if current.get(key) == str(row.get(key)):
+            existing[i] = {c: row.get(c, "") for c in columns}
+            replaced = True
+            break
+    if not replaced:
+        _append_csv(path, columns, row)
+        return
+
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
+            writer.writeheader()
+            for current in existing:
+                writer.writerow({c: current.get(c, "") for c in columns})
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)

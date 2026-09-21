@@ -149,3 +149,57 @@ def test_state_write_is_atomic(config):
 
     leftovers = list(journal.dir.glob("*.tmp"))
     assert not leftovers, f"temp files left behind: {leftovers}"
+
+
+def test_rerunning_a_day_replaces_its_row(config):
+    """One date, one row — otherwise every downstream number is wrong."""
+    journal = Journal(config)
+    journal.append_day(DaySummary(day="2026-04-01", starting_equity=10_000,
+                                  ending_equity=9_900, realized_pnl=-100,
+                                  return_pct=-1.0, trades_closed=2, losses=2))
+    # The same day recorded again, with corrected numbers.
+    journal.append_day(DaySummary(day="2026-04-01", starting_equity=10_000,
+                                  ending_equity=10_200, realized_pnl=200,
+                                  return_pct=2.0, trades_closed=3, wins=3))
+    journal.append_day(DaySummary(day="2026-04-02", starting_equity=10_200,
+                                  ending_equity=10_250, realized_pnl=50,
+                                  return_pct=0.49, trades_closed=1, wins=1))
+
+    days = Journal(config).load_days()
+    assert [d["day"] for d in days] == ["2026-04-01", "2026-04-02"]
+    assert days[0]["ending_equity"] == pytest.approx(10_200)
+    assert days[0]["wins"] == 3
+
+
+def test_two_processes_cannot_share_a_journal(config):
+    from bot.daily.journal import JournalLocked
+
+    first = Journal(config).acquire()
+    try:
+        with pytest.raises(JournalLocked, match="in use"):
+            Journal(config).acquire()
+    finally:
+        first.release()
+
+    # Once released, the next one gets it.
+    Journal(config).acquire().release()
+
+
+def test_a_stale_lock_is_cleared(config):
+    journal = Journal(config)
+    # A pid that cannot be running.
+    journal.lock_path.write_text("999999 2026-04-01T00:00:00+00:00\n")
+
+    journal.acquire()  # must not raise
+    journal.release()
+    assert not journal.lock_path.exists()
+
+
+def test_journal_lock_works_as_a_context_manager(config):
+    from bot.daily.journal import JournalLocked
+
+    with Journal(config) as held:
+        assert held.lock_path.exists()
+        with pytest.raises(JournalLocked):
+            Journal(config).acquire()
+    assert not Journal(config).lock_path.exists()
