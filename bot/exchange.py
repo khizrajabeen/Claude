@@ -180,6 +180,46 @@ class ExchangeClient:
                           since=since, limit=limit)
         return ohlcv_to_frame(raw)
 
+    def fetch_ohlcv_paged(self, symbol: str, timeframe: str, bars: int) -> pd.DataFrame:
+        """Collect `bars` candles ending now, paging as far back as needed.
+
+        Venues cap a single call differently — OKX and Coinbase at 300,
+        Kraken at 721, KuCoin at 1000 — and silently return the cap rather
+        than erroring. A strategy asking for 600 bars would quietly receive
+        300 and produce no signal at all, so anything that needs real depth
+        must come through here.
+
+        Pages backwards from the newest bar. Anchoring on the oldest page
+        instead returns a window that ends weeks ago.
+        """
+        from bot.analysis.indicators import TIMEFRAME_SECONDS
+
+        bar_ms = TIMEFRAME_SECONDS.get(timeframe, 3600) * 1000
+        newest = self.fetch_ohlcv(symbol, timeframe, limit=min(bars, 1000))
+        if newest.empty or len(newest) >= bars:
+            return newest.tail(bars)
+
+        chunks = [newest]
+        collected = len(newest)
+        oldest_ms = int(newest.index[0].timestamp() * 1000)
+        page = max(len(newest), 100)
+
+        while collected < bars:
+            since = oldest_ms - page * bar_ms
+            df = self.fetch_ohlcv(symbol, timeframe, limit=page, since=since)
+            if df.empty:
+                break
+            new_oldest = int(df.index[0].timestamp() * 1000)
+            if new_oldest >= oldest_ms:
+                break  # the venue ignored `since`; another call would loop
+            chunks.append(df)
+            collected += len(df)
+            oldest_ms = new_oldest
+
+        combined = pd.concat(chunks)
+        combined = combined[~combined.index.duplicated(keep="last")].sort_index()
+        return combined.tail(bars)
+
     def fetch_ticker(self, symbol: str) -> dict:
         return self._retry(self.exchange.fetch_ticker, symbol)
 

@@ -18,7 +18,7 @@ def config(tmp_path):
             "symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
             "timeframe": "1h",
             "higher_timeframe": "4h",
-            "history_bars": 400,
+            "history_bars": 600,
         },
         "session": {
             "day_open": "00:00",
@@ -55,12 +55,33 @@ def config(tmp_path):
             "min_position_usd": 25, "kelly_fraction": 0.25, "kelly_min_trades": 30,
         },
         "signals": {
-            "min_edge_score": 0.18, "news_weight": 0.20, "book_weight": 0.08,
+            "min_edge_score": 0.15, "news_weight": 0.15, "book_weight": 0.06,
             "news_can_veto": True, "require_htf_agreement": True,
         },
         "filters": {
             "min_quote_volume_24h": 1_000_000, "max_spread_bps": 25,
             "min_atr_pct": 0.15, "max_atr_pct": 12.0, "min_bars": 120,
+        },
+        "strategies": {
+            "enabled": ["trend", "xsmom", "breakout", "reversion", "carry"],
+            "trend": {"horizons": [24, 72, 336], "vol_window": 72},
+            "xsmom": {"lookback_bars": 168, "skip_bars": 12, "min_universe": 3},
+            "breakout": {"channel_bars": 55, "compression_window": 120},
+            "reversion": {"zscore_window": 24, "entry_z": 1.6},
+            "carry": {"entry_bps": 1.0},
+        },
+        "portfolio": {
+            "weighting": "inverse_vol", "correlation_haircut": True,
+            "max_strategy_weight": 0.40, "min_strategy_weight": 0.05,
+            "max_weights": {"carry": 0.15},
+            "lookback_days": 60, "min_history_days": 10,
+        },
+        "vol_target": {
+            "enabled": True, "target_annual_pct": 15.0, "min_scale": 0.25,
+            "max_scale": 1.5, "window_days": 20, "min_days": 8,
+            "cut_speed": 1.0, "restore_speed": 0.25,
+            "drawdown_throttle": True, "throttle_start_pct": 4.0,
+            "throttle_floor": 0.35,
         },
         "news": {"enabled": False},
         "paper": {
@@ -130,6 +151,9 @@ class FakeExchange:
         self.calls.append(f"ohlcv:{symbol}:{timeframe}")
         return self._clip(source).tail(limit)
 
+    def fetch_ohlcv_paged(self, symbol, timeframe, bars):
+        return self.fetch_ohlcv(symbol, timeframe, limit=bars)
+
     def get_current_price(self, symbol):
         df = self._clip(self.frames[symbol])
         if df.empty:
@@ -154,3 +178,51 @@ class FakeExchange:
 
     def fetch_funding_rate(self, symbol):
         return None
+
+
+def build_context(symbols=("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"),
+                  bars=600, drifts=None, vol=0.012, seed=0, funding=None,
+                  htf_trends=None, day="2026-05-04", **read_overrides):
+    """A MarketContext over synthetic markets, with reads derived from them.
+
+    Reads are computed from the same bars the strategies see, so a test
+    cannot accidentally describe a market the price series contradicts.
+    """
+    from bot.analysis import indicators as ind
+    from bot.daily.briefing import SymbolRead
+    from bot.strategies.base import MarketContext
+
+    symbols = list(symbols)
+    drifts = drifts if drifts is not None else [0.004] * len(symbols)
+    htf_trends = htf_trends if htf_trends is not None else [0] * len(symbols)
+
+    frames, reads = {}, {}
+    for i, symbol in enumerate(symbols):
+        df = make_ohlcv(bars=bars, start_price=100 * (i + 1),
+                        drift=drifts[i % len(drifts)], vol=vol, seed=seed + i)
+        frames[symbol] = df
+        price = float(df["close"].iloc[-1])
+        atr = ind.last_value(ind.atr(df, 14))
+        adx_s, plus_di, minus_di = ind.adx(df, 14)
+        defaults = dict(
+            symbol=symbol, price=price, atr=atr,
+            atr_pct=atr / price * 100 if price else 0.0,
+            annualized_vol=ind.last_value(ind.realized_vol(df["close"], 24, "1h"), 0.6),
+            adx=ind.last_value(adx_s, 20.0),
+            plus_di=ind.last_value(plus_di), minus_di=ind.last_value(minus_di),
+            rsi=ind.last_value(ind.rsi(df["close"]), 50.0),
+            zscore=ind.last_value(ind.zscore(df["close"], 20)),
+            donchian=ind.last_value(ind.donchian_position(df, 20), 0.5),
+            macd_hist=ind.last_value(ind.macd_histogram(df["close"])),
+            ema_fast=ind.last_value(ind.ema(df["close"], 21), price),
+            ema_slow=ind.last_value(ind.ema(df["close"], 55), price),
+            htf_trend=htf_trends[i % len(htf_trends)],
+            regime="trending_up" if drifts[i % len(drifts)] > 0 else "trending_down",
+            regime_confidence=0.8, quote_volume_24h=5e7, spread_bps=2.0,
+            tradable=True, bars=len(df),
+        )
+        defaults.update(read_overrides)
+        reads[symbol] = SymbolRead(**defaults)
+
+    return MarketContext(day=day, reads=reads, frames=frames,
+                         funding=funding or {}, equity=10_000.0, timeframe="1h")

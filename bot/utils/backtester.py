@@ -60,6 +60,10 @@ class ReplayExchange:
                     since: int | None = None) -> pd.DataFrame:
         return self._visible(symbol, timeframe).tail(limit)
 
+    def fetch_ohlcv_paged(self, symbol: str, timeframe: str, bars: int) -> pd.DataFrame:
+        """History is already local in a replay; paging is just a tail."""
+        return self._visible(symbol, timeframe).tail(bars)
+
     def get_current_price(self, symbol: str) -> float:
         for timeframe in sorted(self.frames.get(symbol, {}),
                                 key=lambda tf: TIMEFRAME_SECONDS.get(tf, 3600)):
@@ -281,40 +285,9 @@ def _replay_config(config: dict) -> dict:
 
 def _paged_ohlcv(exchange: ExchangeClient, symbol: str, timeframe: str,
                  needed: int) -> pd.DataFrame:
-    """Collect `needed` bars ending at the present.
-
-    Venues differ: most return bars going *forward* from `since`, and each
-    caps the page size differently (OKX 300, Kraken 721, KuCoin 1000). So
-    anchor on the newest page first — fetched with no `since` at all — and
-    then walk backwards from its oldest bar. Anchoring the other way round
-    silently yields a window that ends weeks ago.
-    """
-    bar_ms = TIMEFRAME_SECONDS.get(timeframe, 3600) * 1000
-
-    newest = exchange.fetch_ohlcv(symbol, timeframe, limit=1000)
-    if newest.empty:
-        return pd.DataFrame()
-
-    chunks = [newest]
-    collected = len(newest)
-    oldest_ms = int(newest.index[0].timestamp() * 1000)
-    page = max(len(newest), 100)
-
-    while collected < needed:
-        since = oldest_ms - page * bar_ms
-        df = exchange.fetch_ohlcv(symbol, timeframe, limit=page, since=since)
-        if df.empty:
-            break
-        new_oldest = int(df.index[0].timestamp() * 1000)
-        if new_oldest >= oldest_ms:
-            break  # the venue ignored `since`; another call would loop forever
-        chunks.append(df)
-        collected += len(df)
-        oldest_ms = new_oldest
-
-    combined = pd.concat(chunks)
-    combined = combined[~combined.index.duplicated(keep="last")].sort_index()
-    return combined.tail(needed)
+    """Kept as a thin alias: paging now lives on the exchange client, where
+    the live briefing needs it too."""
+    return exchange.fetch_ohlcv_paged(symbol, timeframe, needed)
 
 
 def _clear_directory(path) -> None:

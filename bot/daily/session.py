@@ -24,7 +24,12 @@ from bot.daily.briefing import Briefing, BriefingBuilder
 from bot.daily.journal import BotState, DaySummary, Journal
 from bot.daily.plan import DayPlan, DayPlanner
 from bot.daily.schedule import DaySchedule, Phase, build_schedule, next_schedule
+from bot.portfolio.allocator import StrategyAllocator
+from bot.portfolio.tracker import StrategyTracker
+from bot.portfolio.voltarget import VolatilityTargeter
 from bot.risk.budget import RiskBudget, SizedOrder
+from bot.strategies import build_strategies
+from bot.strategies.base import MarketContext
 from bot.trading.broker import InsufficientFunds, PaperBroker
 from bot.trading.models import Position, Trade
 
@@ -95,7 +100,11 @@ class DailySession:
 
         self.risk = RiskBudget(config)
         self.briefing_builder = BriefingBuilder(config, exchange)
-        self.planner = DayPlanner(config, self.risk)
+        self.strategies = build_strategies(config)
+        self.allocator = StrategyAllocator(config)
+        self.tracker = StrategyTracker(config, journal)
+        self.vol_targeter = VolatilityTargeter(config)
+        self.planner = DayPlanner(config, self.risk, self.strategies, self.allocator)
 
         session = config.get("session", {})
         self.manage_interval = int(session.get("manage_interval_seconds", 300))
@@ -227,12 +236,27 @@ class DailySession:
         self._refresh_market_limits(briefing)
         self._refresh_funding(briefing)
 
+        context = MarketContext(
+            day=str(schedule.day),
+            reads=briefing.symbols,
+            frames=frames,
+            funding=self._funding_rates,
+            market_tone=float(briefing.market_tone.get("score", 0.0)),
+            equity=equity,
+            timeframe=self.timeframe,
+        )
+
+        weights, exposure = self._portfolio_state(equity)
+
         plan = self.planner.build(
             briefing=briefing,
             equity=equity,
             open_positions=self.broker.positions,
             peak_equity=max(self.state.peak_equity, equity),
             day_start_equity=self.state.day_start_equity or equity,
+            context=context,
+            strategy_weights=weights,
+            exposure=exposure,
             market_limits=self._market_limits,
             consecutive_losses=self.state.consecutive_losses,
             cooldown_until=self._cooldown_until(),
@@ -243,6 +267,33 @@ class DailySession:
         payload["plan"] = plan.to_dict()
         self.journal.save_briefing(schedule.day, payload)
         return briefing, plan
+
+    def _portfolio_state(self, equity: float):
+        """Strategy risk budget and the portfolio exposure multiplier.
+
+        Both are derived from realised history: strategy weights from each
+        driver's own return volatility and its correlation with the rest,
+        the exposure multiplier from the account's daily return series.
+        With too little history, both fall back to neutral rather than
+        estimating a covariance matrix from a fortnight of noise.
+        """
+        names = [s.name for s in self.strategies]
+        trades = self.journal.load_trades(limit=500)
+        returns = self.tracker.daily_returns(trades, equity)
+
+        volatilities = self.tracker.volatilities(returns)
+        correlations = self.tracker.correlations(returns)
+        weights = self.allocator.weights(names, volatilities, correlations)
+        self.allocator.log_weights(weights, volatilities)
+
+        days = self.journal.load_days()
+        daily_returns = [d.get("return_pct", 0.0) / 100 for d in days]
+        drawdown = ((self.state.peak_equity - equity) / self.state.peak_equity * 100
+                    if self.state.peak_equity > 0 else 0.0)
+        exposure = self.vol_targeter.decide(daily_returns, drawdown_pct=drawdown)
+        logger.info("  Exposure: %.2fx (%s)", exposure.scale, "; ".join(exposure.reasons))
+
+        return weights, exposure
 
     # ── Phase 2: entries ──────────────────────────────────────
 
@@ -308,7 +359,7 @@ class DailySession:
                     adv_notional=self._adv_notional(planned.symbol),
                     spread_bps=self._spread(planned.symbol),
                     daily_vol_bps=self._daily_vol_bps(planned.symbol),
-                    strategy=planned.components.get("driver", "blend"),
+                    strategy=planned.strategy or "blend",
                     entry_reason=planned.reason,
                     tags={"edge": planned.edge, "planned_entry": planned.entry_price},
                 )

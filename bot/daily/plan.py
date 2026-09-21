@@ -1,23 +1,25 @@
 """Turning the morning briefing into a concrete plan for the day.
 
-The edge score is a regime-weighted blend of four views:
+The plan is built in four steps, each a separate concern:
 
-    trend        EMA structure and ADX/DI agreement, confirmed on the
-                 higher timeframe
-    momentum     rate of change and MACD histogram
-    mean-revert  z-score and RSI stretch against the recent range
-    news         sentiment tilt, scaled by consensus
+  1. **Strategies speak.** Every enabled strategy — trend, cross-sectional
+     momentum, breakout, reversion, carry — sees the same market context
+     and returns its own signals. None of them knows about the others.
+  2. **The allocator resolves them.** Strategies are weighted by inverse
+     volatility with a correlation haircut, then their signals are merged
+     per symbol, so two strategies disagreeing cancel instead of opening
+     two opposed positions in the same name.
+  3. **News and the higher timeframe can veto.** Sentiment is a tilt and a
+     veto, never a trigger: headline sentiment decays in hours and is a
+     weak standalone predictor.
+  4. **Risk sizes what survives.** Fixed dollar risk at an ATR stop, scaled
+     by the portfolio's volatility-target multiplier, then run through the
+     heat, correlation and breaker gates.
 
-Weights shift with the regime: a trending tape leans on trend and momentum,
-a ranging tape on mean reversion. That matters because the same z-score of
--2 is a buy in a range and a falling knife in a downtrend.
-
-News is only ever a tilt. Headline sentiment is a weak standalone predictor
-and decays within hours, so it can tip a marginal setup or veto one that
-fights the tape, but it cannot open a trade by itself.
-
-Every candidate is then sized by the risk budget (fixed dollar risk at an
-ATR stop) and run through the portfolio gates before it reaches the plan.
+The reason this is structured as separate strategies rather than one
+weighted formula is the evidence on managed futures: combining weakly
+correlated return drivers is what shrinks drawdown. One formula with five
+terms is still one return driver.
 """
 
 from __future__ import annotations
@@ -27,30 +29,23 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 
 from bot.daily.briefing import Briefing, SymbolRead
+from bot.portfolio.allocator import CombinedView, StrategyAllocator
+from bot.portfolio.voltarget import ExposureDecision
 from bot.risk.budget import RiskBudget, SizedOrder
+from bot.strategies.base import MarketContext, StrategySignal
 
 logger = logging.getLogger("trading_bot")
 
-# Regime -> (trend, momentum, mean_reversion) weights. News is added on top
-# at its configured weight, then the whole thing is renormalised.
-REGIME_WEIGHTS = {
-    "trending_up":   (0.50, 0.30, -0.20),
-    "trending_down": (0.50, 0.30, -0.20),
-    "ranging":       (0.15, 0.10, 0.75),
-    "volatile":      (0.30, 0.20, 0.50),
-    "quiet":         (0.40, 0.35, 0.25),
-}
-
-# Position-size multiplier by regime — smaller when the tape is hostile.
+# Position-size multiplier by regime — press less when the tape is hostile.
 REGIME_SIZE = {
-    "trending_up": 1.0, "trending_down": 1.0, "ranging": 0.8,
-    "volatile": 0.5, "quiet": 0.7,
+    "trending_up": 1.0, "trending_down": 1.0, "ranging": 0.85,
+    "volatile": 0.55, "quiet": 0.75,
 }
 
 
 @dataclass
 class Candidate:
-    """A scored trade idea, before sizing."""
+    """A resolved trade idea, before sizing."""
 
     symbol: str
     side: str
@@ -80,6 +75,7 @@ class PlannedTrade:
     components: dict = field(default_factory=dict)
     reason: str = ""
     caps: list = field(default_factory=list)
+    strategy: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -92,9 +88,12 @@ class DayPlan:
     day: str
     created_at: str
     trades: list = field(default_factory=list)          # PlannedTrade
-    rejected: list = field(default_factory=list)        # (symbol, reason)
+    rejected: list = field(default_factory=list)        # [symbol, reason]
     considered: list = field(default_factory=list)      # Candidate
     risk_pct_per_trade: float = 0.0
+    strategy_weights: dict = field(default_factory=dict)
+    exposure: dict = field(default_factory=dict)
+    signals: dict = field(default_factory=dict)         # strategy -> [signal dicts]
     notes: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -102,132 +101,73 @@ class DayPlan:
             "day": self.day,
             "created_at": self.created_at,
             "risk_pct_per_trade": round(self.risk_pct_per_trade, 4),
+            "strategy_weights": {k: round(v, 4) for k, v in self.strategy_weights.items()},
+            "exposure": self.exposure,
             "trades": [t.to_dict() for t in self.trades],
             "considered": [c.to_dict() for c in self.considered],
+            "signals": self.signals,
             "rejected": self.rejected,
             "notes": self.notes,
         }
 
 
 class DayPlanner:
-    """Scores, ranks and sizes the day's trades."""
+    """Runs the strategies, allocates between them, and sizes the result."""
 
-    def __init__(self, config: dict, risk: RiskBudget):
+    def __init__(self, config: dict, risk: RiskBudget,
+                 strategies: list | None = None,
+                 allocator: StrategyAllocator | None = None):
         self.config = config
         self.risk = risk
+
+        from bot.strategies import build_strategies
+        self.strategies = strategies if strategies is not None else build_strategies(config)
+        self.allocator = allocator or StrategyAllocator(config)
+
         signals = config.get("signals", {})
-        self.min_edge = float(signals.get("min_edge_score", 0.18))
-        self.news_weight = float(signals.get("news_weight", 0.20))
-        self.book_weight = float(signals.get("book_weight", 0.08))
+        self.min_edge = float(signals.get("min_edge_score", 0.15))
+        self.news_weight = float(signals.get("news_weight", 0.15))
+        self.book_weight = float(signals.get("book_weight", 0.06))
         self.require_htf = bool(signals.get("require_htf_agreement", True))
         self.veto_on_news = bool(signals.get("news_can_veto", True))
         self.max_new = int(config.get("session", {}).get("max_new_positions_per_day", 3))
 
-    # ── Scoring ───────────────────────────────────────────────
+    # ── Step 1-2: strategies and allocation ───────────────────
 
-    def score(self, read: SymbolRead, market_tone: float = 0.0) -> Candidate:
-        """Blend the four views into a signed edge in roughly [-1, 1]."""
-        trend = self._trend_score(read)
-        momentum = self._momentum_score(read)
-        mean_rev = self._mean_reversion_score(read)
-        news = read.news_tilt
+    def collect_signals(self, ctx: MarketContext) -> dict[str, list[StrategySignal]]:
+        """Ask every strategy for its view. One failing must not stop the day."""
+        out: dict[str, list[StrategySignal]] = {}
+        for strategy in self.strategies:
+            try:
+                signals = strategy.generate(ctx)
+            except Exception as e:
+                logger.warning("Strategy '%s' failed: %s", strategy.name, e, exc_info=True)
+                continue
+            if signals:
+                out[strategy.name] = signals
+        return out
 
-        w_trend, w_mom, w_mr = REGIME_WEIGHTS.get(read.regime, REGIME_WEIGHTS["ranging"])
+    def resolve(self, ctx: MarketContext, weights: dict[str, float]
+                ) -> tuple[dict[str, CombinedView], dict[str, list[StrategySignal]]]:
+        """Strategy signals in, one view per symbol out."""
+        by_strategy = self.collect_signals(ctx)
+        views = self.allocator.combine(by_strategy, weights)
+        return views, by_strategy
 
-        # A regime call we do not believe pulls the weights toward neutral.
-        confidence = max(0.3, min(1.0, read.regime_confidence))
-        w_trend *= confidence
-        w_mom *= confidence
+    def apply_tilts(self, view: CombinedView, read: SymbolRead,
+                    market_tone: float) -> float:
+        """Nudge conviction with news, order book and the broad tape.
 
-        # Resting-liquidity imbalance: a fast-decaying confirmation, given
-        # a deliberately small weight because top-of-book depth is easy to
-        # spoof and turns over in seconds.
-        book = max(-1.0, min(1.0, read.book_imbalance * 2))
+        These are modifiers on a decision the strategies already made. None
+        of them can open a position on its own.
+        """
+        edge = view.direction * view.conviction
+        edge += self.news_weight * read.news_tilt
+        edge += self.book_weight * max(-1.0, min(1.0, read.book_imbalance * 2))
+        edge += 0.04 * market_tone
+        return max(-1.0, min(1.0, edge))
 
-        raw = w_trend * trend + w_mom * momentum + w_mr * mean_rev
-        raw += self.news_weight * news
-        raw += self.book_weight * book
-        raw += 0.05 * market_tone  # a light whole-market thumb on the scale
-
-        total_weight = (abs(w_trend) + abs(w_mom) + abs(w_mr)
-                        + self.news_weight + self.book_weight + 0.05)
-        edge = raw / total_weight if total_weight else 0.0
-        edge = max(-1.0, min(1.0, edge))
-
-        components = {
-            "trend": round(trend, 4),
-            "momentum": round(momentum, 4),
-            "mean_reversion": round(mean_rev, 4),
-            "news": round(news, 4),
-            "book": round(book, 4),
-            "market_tone": round(market_tone, 4),
-            "weights": {"trend": round(w_trend, 3), "momentum": round(w_mom, 3),
-                        "mean_reversion": round(w_mr, 3), "news": self.news_weight},
-        }
-
-        side = "long" if edge > 0 else "short"
-        reason = self._describe(read, components, edge)
-        return Candidate(symbol=read.symbol, side=side, edge=round(edge, 4),
-                         components=components, reason=reason)
-
-    def _trend_score(self, read: SymbolRead) -> float:
-        """EMA structure gated by ADX, in [-1, 1]."""
-        if not read.ema_slow:
-            return 0.0
-        separation = (read.ema_fast - read.ema_slow) / read.ema_slow
-        # Normalise separation by the asset's own volatility so a 1% gap
-        # means something different in BTC than in a 200%-vol altcoin.
-        vol_unit = max(1e-6, read.atr_pct / 100)
-        direction = max(-1.0, min(1.0, separation / (vol_unit * 3)))
-
-        # ADX below 20 means no trend worth trading; above 40 it is mature.
-        strength = max(0.0, min(1.0, (read.adx - 18) / 22))
-
-        di_agree = 0.0
-        if read.plus_di or read.minus_di:
-            total = read.plus_di + read.minus_di
-            if total > 0:
-                di_agree = (read.plus_di - read.minus_di) / total
-
-        score = 0.6 * direction * strength + 0.4 * di_agree * strength
-        return max(-1.0, min(1.0, score))
-
-    def _momentum_score(self, read: SymbolRead) -> float:
-        macd = 0.0
-        if read.price and read.atr:
-            # MACD histogram in ATR units — comparable across assets.
-            macd = max(-1.0, min(1.0, read.macd_hist / (read.atr * 0.8)))
-        overnight = max(-1.0, min(1.0, read.overnight_return_pct / max(0.5, read.atr_pct * 2)))
-        return max(-1.0, min(1.0, 0.6 * macd + 0.4 * overnight))
-
-    def _mean_reversion_score(self, read: SymbolRead) -> float:
-        """Positive when price is stretched *down* — a fade-the-move buy."""
-        z = max(-3.0, min(3.0, read.zscore))
-        z_score = -z / 2.0
-
-        rsi_score = 0.0
-        if read.rsi >= 70:
-            rsi_score = -(read.rsi - 70) / 30
-        elif read.rsi <= 30:
-            rsi_score = (30 - read.rsi) / 30
-
-        # Donchian position: 1 at the range high (fade), 0 at the low (buy).
-        range_score = (0.5 - read.donchian) * 2 if read.donchian is not None else 0.0
-
-        return max(-1.0, min(1.0, 0.45 * z_score + 0.35 * rsi_score + 0.20 * range_score))
-
-    def _describe(self, read: SymbolRead, components: dict, edge: float) -> str:
-        parts = [f"{read.regime}", f"ADX {read.adx:.0f}", f"RSI {read.rsi:.0f}"]
-        dominant = max(
-            ("trend", "momentum", "mean_reversion"),
-            key=lambda k: abs(components[k] * components["weights"][k]),
-        )
-        parts.append(f"driver={dominant}")
-        if abs(components["news"]) > 0.05:
-            parts.append(f"news {components['news']:+.2f}")
-        return f"edge {edge:+.3f} | " + " | ".join(parts)
-
-    # ── Plan construction ─────────────────────────────────────
+    # ── Step 3-4: filters and sizing ──────────────────────────
 
     def build(
         self,
@@ -236,12 +176,15 @@ class DayPlanner:
         open_positions: list,
         peak_equity: float,
         day_start_equity: float,
+        context: MarketContext | None = None,
+        strategy_weights: dict[str, float] | None = None,
+        exposure: ExposureDecision | None = None,
         market_limits: dict | None = None,
         consecutive_losses: int = 0,
         cooldown_until: datetime | None = None,
         now: datetime | None = None,
     ) -> DayPlan:
-        """Score every symbol, rank them, size the best and gate them."""
+        """Score, rank, size and gate the day's trades."""
         now = now or datetime.now(timezone.utc)
         market_limits = market_limits or {}
 
@@ -252,52 +195,83 @@ class DayPlanner:
             consecutive_losses=consecutive_losses,
         )
 
+        # The portfolio's volatility target scales every position together,
+        # which is where most of the drawdown control comes from.
+        exposure_scale = exposure.scale if exposure else 1.0
+        risk_pct *= exposure_scale
+
         plan = DayPlan(day=briefing.day, created_at=now.isoformat(),
-                       risk_pct_per_trade=risk_pct)
+                       risk_pct_per_trade=risk_pct,
+                       strategy_weights=dict(strategy_weights or {}),
+                       exposure=exposure.to_dict() if exposure else {})
+
+        ctx = context or MarketContext(
+            day=briefing.day, reads=briefing.symbols, frames={},
+            market_tone=float(briefing.market_tone.get("score", 0.0)), equity=equity,
+        )
+        weights = strategy_weights or self.allocator.weights([s.name for s in self.strategies])
+        views, by_strategy = self.resolve(ctx, weights)
+        plan.signals = {name: [s.to_dict() for s in signals]
+                        for name, signals in by_strategy.items()}
 
         tone = float(briefing.market_tone.get("score", 0.0))
-        candidates: list[tuple[Candidate, SymbolRead]] = []
+        candidates: list[tuple[Candidate, SymbolRead, CombinedView]] = []
 
         for symbol, read in briefing.symbols.items():
             if not read.tradable:
                 plan.rejected.append([symbol, read.skip_reason or "not tradable"])
                 continue
 
-            candidate = self.score(read, tone)
-            plan.considered.append(candidate)
-
-            if abs(candidate.edge) < self.min_edge:
-                plan.rejected.append([symbol, f"edge {candidate.edge:+.3f} below {self.min_edge}"])
+            view = views.get(symbol)
+            if view is None:
+                plan.rejected.append([symbol, "no strategy has a view"])
                 continue
 
-            # Higher-timeframe veto: do not fight the bigger trend.
-            if self.require_htf and read.htf_trend:
-                wants_long = candidate.side == "long"
+            edge = self.apply_tilts(view, read, tone)
+            side = "long" if edge > 0 else "short"
+            candidate = Candidate(
+                symbol=symbol, side=side, edge=round(edge, 4),
+                components={
+                    "strategies": {k: round(v, 4) for k, v in view.contributors.items()},
+                    "agreement": round(view.agreement, 4),
+                    "news": round(read.news_tilt, 4),
+                    "book": round(read.book_imbalance, 4),
+                    "market_tone": round(tone, 4),
+                },
+                reason=self._describe(view, read, edge),
+            )
+            plan.considered.append(candidate)
+
+            if abs(edge) < self.min_edge:
+                plan.rejected.append([symbol, f"edge {edge:+.3f} below {self.min_edge}"])
+                continue
+
+            # A tilt must not be able to flip the strategies' direction.
+            if view.direction != (1 if edge > 0 else -1):
+                plan.rejected.append([symbol, "tilts flipped the signal — standing aside"])
+                continue
+
+            if self.require_htf and read.htf_trend and not self._neutral_view(view):
+                wants_long = side == "long"
                 if (wants_long and read.htf_trend < 0) or (not wants_long and read.htf_trend > 0):
-                    plan.rejected.append([symbol, f"{candidate.side} against {self.htf_label(read)}"])
+                    plan.rejected.append([symbol, f"{side} against {self.htf_label(read)}"])
                     continue
 
-            # News veto: a strong tilt against the setup kills it.
             if self.veto_on_news and read.news_tilt:
-                against = (candidate.side == "long" and read.news_tilt < -0.3) or \
-                          (candidate.side == "short" and read.news_tilt > 0.3)
+                against = (side == "long" and read.news_tilt < -0.3) or \
+                          (side == "short" and read.news_tilt > 0.3)
                 if against:
-                    plan.rejected.append([symbol, f"news {read.news_tilt:+.2f} opposes {candidate.side}"])
+                    plan.rejected.append([symbol, f"news {read.news_tilt:+.2f} opposes {side}"])
                     continue
 
-            candidates.append((candidate, read))
+            candidates.append((candidate, read, view))
 
-        # Rank by conviction, then by liquidity as the tie-break: the same
-        # edge is worth more where it can be executed cheaply.
-        candidates.sort(
-            key=lambda pair: (abs(pair[0].edge), pair[1].quote_volume_24h),
-            reverse=True,
-        )
+        # Rank by conviction, then liquidity: the same edge is worth more
+        # where it can be executed cheaply.
+        candidates.sort(key=lambda t: (abs(t[0].edge), t[1].quote_volume_24h), reverse=True)
 
-        # Positions are added one at a time against a running book so heat
-        # and correlation limits see each prior fill.
         book = list(open_positions)
-        for candidate, read in candidates:
+        for candidate, read, view in candidates:
             if len(plan.trades) >= self.max_new:
                 plan.rejected.append([candidate.symbol, "daily new-position cap reached"])
                 continue
@@ -318,14 +292,10 @@ class DayPlanner:
             )
 
             decision = self.risk.check_new_trade(
-                order=order,
-                positions=book,
-                equity=equity,
-                day_start_equity=day_start_equity,
-                peak_equity=peak_equity,
+                order=order, positions=book, equity=equity,
+                day_start_equity=day_start_equity, peak_equity=peak_equity,
                 consecutive_losses=consecutive_losses,
-                cooldown_until=cooldown_until,
-                now=now,
+                cooldown_until=cooldown_until, now=now,
             )
             if not decision:
                 plan.rejected.append([candidate.symbol, decision.reason])
@@ -335,51 +305,79 @@ class DayPlanner:
                     break
                 continue
 
-            planned = PlannedTrade(
-                symbol=candidate.symbol,
-                side=candidate.side,
-                edge=candidate.edge,
-                quantity=order.quantity,
-                entry_price=order.entry_price,
-                stop_price=order.stop_price,
-                take_profit=order.take_profit,
-                risk_usd=order.risk_usd,
-                notional=order.notional,
-                atr=order.atr,
-                r_distance=order.r_distance,
-                components=candidate.components,
-                reason=candidate.reason,
-                caps=order.caps_applied,
-            )
-            plan.trades.append(planned)
-            book.append(_ProvisionalPosition(planned))
+            plan.trades.append(PlannedTrade(
+                symbol=candidate.symbol, side=candidate.side, edge=candidate.edge,
+                quantity=order.quantity, entry_price=order.entry_price,
+                stop_price=order.stop_price, take_profit=order.take_profit,
+                risk_usd=order.risk_usd, notional=order.notional,
+                atr=order.atr, r_distance=order.r_distance,
+                components=candidate.components, reason=candidate.reason,
+                caps=order.caps_applied, strategy=self._dominant(view),
+            ))
+            book.append(_ProvisionalPosition(plan.trades[-1]))
 
         self._log(plan)
         return plan
+
+    # ── Helpers ───────────────────────────────────────────────
+
+    @staticmethod
+    def _dominant(view: CombinedView) -> str:
+        """Which strategy drove this position, for attribution."""
+        if not view.contributors:
+            return "blend"
+        return max(view.contributors, key=lambda k: abs(view.contributors[k]))
+
+    def _neutral_view(self, view: CombinedView) -> bool:
+        """Market-neutral strategies are exempt from the trend veto.
+
+        Cross-sectional momentum is supposed to short the weakest name in a
+        rising market — that is the whole construction, not a mistake.
+        """
+        neutral = {s.name for s in self.strategies if getattr(s, "market_neutral", False)}
+        if not neutral or not view.contributors:
+            return False
+        dominant = self._dominant(view)
+        return dominant in neutral
 
     @staticmethod
     def htf_label(read: SymbolRead) -> str:
         return "higher-TF uptrend" if read.htf_trend > 0 else "higher-TF downtrend"
 
+    def _describe(self, view: CombinedView, read: SymbolRead, edge: float) -> str:
+        drivers = sorted(view.contributors.items(), key=lambda kv: -abs(kv[1]))[:2]
+        driver_text = ", ".join(f"{name} {value:+.2f}" for name, value in drivers)
+        parts = [f"edge {edge:+.3f}", driver_text,
+                 f"agree {view.agreement:+.2f}", read.regime]
+        if abs(read.news_tilt) > 0.05:
+            parts.append(f"news {read.news_tilt:+.2f}")
+        return " | ".join(p for p in parts if p)
+
     def _log(self, plan: DayPlan) -> None:
         logger.info("─" * 62)
-        logger.info("  DAY PLAN — %s | risk/trade %.2f%%", plan.day, plan.risk_pct_per_trade)
+        logger.info("  DAY PLAN — %s | risk/trade %.2f%%%s", plan.day,
+                    plan.risk_pct_per_trade,
+                    f" | exposure {plan.exposure.get('scale', 1):.2f}x"
+                    if plan.exposure else "")
         logger.info("─" * 62)
+        if plan.signals:
+            counts = ", ".join(f"{k}:{len(v)}" for k, v in sorted(plan.signals.items()))
+            logger.info("  Signals: %s", counts)
         if not plan.trades:
-            logger.info("  No trades planned. Rejections:")
-        for t in plan.trades:
+            logger.info("  No trades planned.")
+        for trade in plan.trades:
             logger.info(
                 "  %-5s %-10s qty %.6f @ %.4f | stop %.4f | tp %.4f | risk $%.2f | %s",
-                t.side.upper(), t.symbol, t.quantity, t.entry_price,
-                t.stop_price, t.take_profit, t.risk_usd, t.reason,
+                trade.side.upper(), trade.symbol, trade.quantity, trade.entry_price,
+                trade.stop_price, trade.take_profit, trade.risk_usd, trade.reason,
             )
-        for symbol, reason in plan.rejected[:12]:
+        for symbol, reason in plan.rejected[:10]:
             logger.info("    skip %-10s %s", symbol, reason)
 
 
 class _ProvisionalPosition:
-    """Stands in for a not-yet-opened position so the risk gates can see
-    the cumulative effect of the plan while it is being built."""
+    """Stands in for a not-yet-opened position so the risk gates see the
+    cumulative effect of the plan while it is being built."""
 
     __slots__ = ("symbol", "side", "entry_price", "quantity", "stop_price", "direction")
 

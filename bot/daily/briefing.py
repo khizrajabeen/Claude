@@ -207,7 +207,7 @@ class BriefingBuilder:
             return SymbolRead(symbol=symbol, tradable=False,
                               skip_reason="not listed on exchange"), None
 
-        df = self.exchange.fetch_ohlcv(resolved, self.timeframe, limit=self.history_bars)
+        df = self._history(resolved, self.timeframe, self.history_bars)
         read = SymbolRead(symbol=symbol, bars=len(df))
 
         if len(df) < self.min_bars:
@@ -245,7 +245,7 @@ class BriefingBuilder:
 
         # Higher timeframe context.
         try:
-            htf_df = self.exchange.fetch_ohlcv(resolved, self.htf, limit=200)
+            htf_df = self._history(resolved, self.htf, 200)
             if len(htf_df) >= 60:
                 fast = ind.last_value(ind.ema(htf_df["close"], 21))
                 slow = ind.last_value(ind.ema(htf_df["close"], 55))
@@ -293,6 +293,13 @@ class BriefingBuilder:
             "ok" if read.tradable else read.skip_reason,
         )
         return read, df
+
+    def _history(self, symbol: str, timeframe: str, bars: int):
+        """Fetch `bars` candles, paging when the venue caps a single call."""
+        pager = getattr(self.exchange, "fetch_ohlcv_paged", None)
+        if pager is not None:
+            return pager(symbol, timeframe, bars)
+        return self.exchange.fetch_ohlcv(symbol, timeframe, limit=bars)
 
     def _apply_filters(self, read: SymbolRead) -> None:
         """Liquidity and volatility gates — a signal in an untradeable market

@@ -26,7 +26,7 @@ data:
     - "LINK/USDT"
   timeframe: "1h"          # the decision timeframe
   higher_timeframe: "4h"   # trend filter
-  history_bars: 500
+  history_bars: 600        # must cover the longest strategy lookback
   orderbook_depth: 20
   orderbook_levels: 10
   train_days: 180
@@ -83,13 +83,85 @@ sizing:
   kelly_fraction: 0.25             # quarter-Kelly, as a cap only
   kelly_min_trades: 30             # ... once there is a real sample
 
-# ── Signal blend ─────────────────────────────────────────────
+# ── Strategies ───────────────────────────────────────────────
+# Each is a separate return driver. Combining weakly correlated drivers is
+# what shrinks drawdown — far more than improving any single signal.
+strategies:
+  enabled:
+    - trend        # time-series momentum, the CTA workhorse
+    - xsmom        # cross-sectional momentum, ~market neutral
+    - breakout     # Donchian channel break out of compression
+    - reversion    # short-term reversal, the hedge against trend whipsaw
+    - carry        # perpetual funding, only where funding exists
+
+  trend:
+    horizons: [24, 72, 336]        # bars: ~1d / 3d / 2w on 1h
+    horizon_weights: [0.25, 0.40, 0.35]
+    vol_window: 72
+    adx_floor: 18.0
+
+  xsmom:
+    lookback_bars: 168
+    skip_bars: 12                  # 12-1 style: skip the reversal window
+    quantile: 0.34                 # top/bottom third
+    min_universe: 4
+    vol_adjust: true
+
+  breakout:
+    channel_bars: 55
+    compression_window: 120
+    require_compression: true
+    max_extension_atr: 1.5
+
+  reversion:
+    zscore_window: 24
+    entry_z: 1.6
+    max_adx: 32.0                  # never fade a strong trend
+
+  carry:
+    entry_bps: 1.0                 # per 8h settlement, ~11%/yr
+    extreme_bps: 5.0
+    max_bps: 15.0
+    # Funding has compressed since 2024 and a disciplined rule now rarely
+    # fires. That is correct behaviour, not a broken strategy.
+
+# ── Portfolio construction ───────────────────────────────────
+portfolio:
+  weighting: "inverse_vol"         # inverse_vol | equal | manual
+  correlation_haircut: true        # shrink strategies that duplicate others
+  max_strategy_weight: 0.40
+  min_strategy_weight: 0.05
+  max_weights:
+    carry: 0.15                    # low daily vol, fat tail — cap it
+  lookback_days: 60
+  min_history_days: 10
+  min_agreement: 0.0               # raise to require strategy consensus
+  # weights: {trend: 0.4, xsmom: 0.3, breakout: 0.2, reversion: 0.1}
+
+# ── Portfolio volatility targeting ───────────────────────────
+# The best-evidenced lever on drawdown: exposure scales down when realised
+# volatility rises, and left-tail events cluster in high-volatility periods.
+vol_target:
+  enabled: true
+  target_annual_pct: 15.0
+  min_scale: 0.25
+  max_scale: 1.5
+  window_days: 20
+  min_days: 8
+  cut_speed: 1.0                   # de-risk immediately
+  restore_speed: 0.25              # re-risk slowly
+  drawdown_throttle: true
+  throttle_start_pct: 4.0
+  throttle_floor: 0.35
+
+# ── Signal tilts ─────────────────────────────────────────────
+# Modifiers on what the strategies decided. None can open a trade alone.
 signals:
-  min_edge_score: 0.18             # |edge| below this is noise
-  news_weight: 0.20                # news tilts, it never triggers alone
-  book_weight: 0.08                # order-book imbalance, confirmation only
+  min_edge_score: 0.15             # |edge| below this is noise
+  news_weight: 0.15                # news tilts, it never triggers alone
+  book_weight: 0.06                # order-book imbalance, confirmation only
   news_can_veto: true
-  require_htf_agreement: true      # don't fight the higher timeframe
+  require_htf_agreement: true      # except for market-neutral strategies
 
 # ── Tradability filters ──────────────────────────────────────
 filters:

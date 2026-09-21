@@ -94,3 +94,26 @@ def validate_config(config: dict) -> None:
     mode = config["exchange"].get("market_type", "spot")
     if mode not in ("spot", "swap", "future"):
         raise ValueError("exchange.market_type must be spot, swap or future")
+
+    _validate_history_depth(config)
+
+
+def _validate_history_depth(config: dict) -> None:
+    """Fetch enough bars for every enabled strategy's lookback.
+
+    A strategy given less history than its longest lookback returns no
+    signals at all, which looks identical to "no opportunity today". That
+    is the worst kind of bug, so it is caught at startup instead.
+    """
+    from bot.strategies import build_strategies
+
+    history = int(config.get("data", {}).get("history_bars", 500))
+    for strategy in build_strategies(config):
+        needed = strategy.required_bars()
+        if needed > history:
+            raise ValueError(
+                f"data.history_bars ({history}) is below what strategy "
+                f"'{strategy.name}' needs ({needed} bars). Raise history_bars, "
+                f"shorten that strategy's lookback, or disable it — as configured "
+                f"it would silently never produce a signal."
+            )
