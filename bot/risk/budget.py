@@ -32,10 +32,29 @@ logger = logging.getLogger("trading_bot")
 # Symbols that move as one factor with the market. Anything not listed is
 # still crypto, so it gets the default beta rather than a free pass.
 DEFAULT_BETA = 0.8
+# Beta is measured against each group's own factor — crypto against BTC,
+# equities against SPY — because a single market beta across both would
+# claim a long in NVDA hedges a short in ETH, which it does not.
 SYMBOL_BETA = {
+    # Crypto, vs BTC
     "BTC": 1.0, "ETH": 1.05, "SOL": 1.3, "BNB": 0.9, "XRP": 1.0,
     "ADA": 1.1, "DOGE": 1.4, "AVAX": 1.25, "LINK": 1.15, "MATIC": 1.2,
     "USDT": 0.0, "USDC": 0.0, "DAI": 0.0,
+    # US equities and ETFs, vs SPY
+    "SPY": 1.0, "QQQ": 1.15, "IWM": 1.15, "DIA": 0.95,
+    "GLD": 0.15, "TLT": -0.2, "SLV": 0.3,
+    "NVDA": 1.75, "AMD": 1.9, "TSLA": 1.85, "COIN": 2.4, "MSTR": 3.0,
+    "AAPL": 1.15, "MSFT": 1.0, "GOOGL": 1.05, "AMZN": 1.2, "META": 1.25,
+}
+
+# Which positions share a risk factor. Spot BTC and the BTC perp are the
+# same bet; a stock and an index ETF move together through the index. Two
+# instruments in different groups are treated as independent, so the
+# crowding caps apply within a group rather than across the whole book.
+CORRELATION_GROUPS = {
+    "crypto_spot": "crypto", "crypto_perp": "crypto",
+    "equity": "us_equity", "etf": "us_equity",
+    "futures": "futures",
 }
 
 
@@ -67,10 +86,15 @@ class SizedOrder:
     atr: float
     r_distance: float
     caps_applied: list[str] = field(default_factory=list)
+    asset_class: str = ""
 
     @property
     def valid(self) -> bool:
         return self.quantity > 0 and self.r_distance > 0
+
+    @property
+    def group(self) -> str:
+        return correlation_group(self.asset_class, self.symbol)
 
 
 def base_symbol(symbol: str) -> str:
@@ -79,6 +103,22 @@ def base_symbol(symbol: str) -> str:
 
 def symbol_beta(symbol: str) -> float:
     return SYMBOL_BETA.get(base_symbol(symbol), DEFAULT_BETA)
+
+
+def _position_group(position) -> str:
+    return correlation_group(getattr(position, "asset_class", ""), position.symbol)
+
+
+def correlation_group(asset_class, symbol: str = "") -> str:
+    """The risk factor a position loads on.
+
+    Falling back on the symbol keeps records written before asset classes
+    existed grouped with the crypto they were.
+    """
+    name = getattr(asset_class, "value", asset_class)
+    if name:
+        return CORRELATION_GROUPS.get(str(name), str(name))
+    return "crypto" if "/" in symbol else "us_equity"
 
 
 class RiskBudget:
@@ -165,6 +205,7 @@ class RiskBudget:
         min_qty: float = 0.0,
         qty_step: float = 0.0,
         min_notional: float = 0.0,
+        asset_class: str = "",
     ) -> SizedOrder:
         """Size a position so a stop-out costs exactly `risk_pct` of equity."""
         caps: list[str] = []
@@ -246,6 +287,7 @@ class RiskBudget:
             atr=atr,
             r_distance=stop_distance,
             caps_applied=caps,
+            asset_class=asset_class,
         )
 
     # ── Portfolio gates ───────────────────────────────────────
@@ -260,12 +302,21 @@ class RiskBudget:
             at_risk += risk_per_unit * p.quantity
         return at_risk / equity * 100.0
 
-    def net_beta_exposure(self, positions: list, equity: float) -> float:
-        """Signed market exposure in beta-weighted units of equity."""
+    def net_beta_exposure(self, positions: list, equity: float,
+                          group: str | None = None) -> float:
+        """Signed market exposure in beta-weighted units of equity.
+
+        With `group`, only positions loading on that risk factor count.
+        Each group's beta is measured against its own factor (crypto vs
+        BTC, equities vs SPY), so summing across groups would add numbers
+        that are not in the same units.
+        """
         if equity <= 0:
             return 0.0
         total = 0.0
         for p in positions:
+            if group is not None and _position_group(p) != group:
+                continue
             total += p.direction * symbol_beta(p.symbol) * p.entry_price * p.quantity
         return total / equity
 
@@ -331,15 +382,22 @@ class RiskBudget:
         if new_heat > max_heat:
             return RiskDecision(False, "max_portfolio_heat", details)
 
-        # Correlation: cap same-direction crowding.
-        same_side = sum(1 for p in positions if p.side == order.side)
-        details["same_side"] = same_side
+        # Crowding, within the risk factor the order loads on. Counting
+        # every same-side position in the book instead would call three
+        # long stocks and a long perp four correlated bets; they are two
+        # factors of two, and blocking the fourth denies the book the
+        # diversification that motivated holding both classes.
+        group = order.group
+        same_side = sum(1 for p in positions
+                        if p.side == order.side and _position_group(p) == group)
+        details["group"] = group
+        details["same_side_in_group"] = same_side
         max_corr = int(self.risk.get("max_correlated_positions", 3))
         if same_side >= max_corr:
             return RiskDecision(False, "max_correlated_positions", details)
 
-        # Net beta exposure cap.
-        beta_now = self.net_beta_exposure(positions, equity)
+        # Net beta exposure cap, also per factor.
+        beta_now = self.net_beta_exposure(positions, equity, group=group)
         order_beta = (1 if order.side == "long" else -1) * symbol_beta(order.symbol) \
             * order.notional / equity if equity > 0 else 0.0
         beta_after = beta_now + order_beta

@@ -270,41 +270,51 @@ def test_run_forever_respects_the_day_limit(config):
     assert [r.summary.day for r in results] == sorted({r.summary.day for r in results})
 
 
-def test_late_start_opens_a_fresh_entry_window(config):
-    """Deploying at 16:00 should still be able to trade today."""
+def test_a_start_inside_a_slot_needs_no_catch_up(config):
+    """16:00 lands in the 16:00 crypto slot, so there is nothing to fix."""
     late = DAY_START + timedelta(hours=16)
-    clock = SimulatedClock(late)
-    session, journal, broker, _ = build_session(config, clock=clock)
+    session, _, _, _ = build_session(config, clock=SimulatedClock(late))
 
-    original = build_schedule(config, late)
-    assert late > original.entry_until, "fixture must actually be a late start"
+    schedule = build_schedule(config, late)
+    assert schedule.slot_at(late) is not None, "fixture must land inside a slot"
+    assert session._adjust_for_late_start(schedule).slots == schedule.slots
 
-    adjusted = session._adjust_for_late_start(original)
-    assert adjusted.entry_until > late
-    assert adjusted.entry_until <= original.flatten_at
-    assert adjusted.day == original.day
+
+def test_a_start_between_slots_gets_a_catch_up_slot(config):
+    """02:30 sits in the gap between the day-open and 04:00 slots."""
+    gap = DAY_START + timedelta(hours=2, minutes=30)
+    session, _, _, _ = build_session(config, clock=SimulatedClock(gap))
+
+    schedule = build_schedule(config, gap)
+    assert schedule.slot_at(gap) is None, "fixture must land between slots"
+
+    adjusted = session._adjust_for_late_start(schedule)
+    slot = adjusted.slot_at(gap)
+    assert slot is not None and slot.label == "late-start"
+    # It must not run into the next scheduled slot, or one bar would be
+    # considered twice.
+    assert slot.end <= schedule.later_slots(gap)[0].start
 
 
 def test_late_start_applies_only_once(config):
-    late = DAY_START + timedelta(hours=16)
-    clock = SimulatedClock(late)
-    session, _, _, _ = build_session(config, clock=clock)
+    gap = DAY_START + timedelta(hours=2, minutes=30)
+    session, _, _, _ = build_session(config, clock=SimulatedClock(gap))
 
-    schedule = build_schedule(config, late)
+    schedule = build_schedule(config, gap)
     session._adjust_for_late_start(schedule)
     second = session._adjust_for_late_start(schedule)
-    assert second.entry_until == schedule.entry_until, (
+    assert second.slots == schedule.slots, (
         "only the first day of a run gets a catch-up window"
     )
 
 
 def test_late_start_can_be_disabled(config):
     config["session"]["allow_late_start"] = False
-    late = DAY_START + timedelta(hours=16)
-    session, _, _, _ = build_session(config, clock=SimulatedClock(late))
+    gap = DAY_START + timedelta(hours=2, minutes=30)
+    session, _, _, _ = build_session(config, clock=SimulatedClock(gap))
 
-    schedule = build_schedule(config, late)
-    assert session._adjust_for_late_start(schedule).entry_until == schedule.entry_until
+    schedule = build_schedule(config, gap)
+    assert session._adjust_for_late_start(schedule).slots == schedule.slots
 
 
 def test_starting_on_time_is_unaffected(config):

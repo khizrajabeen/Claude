@@ -58,6 +58,9 @@ class BotState:
     current_day: str | None = None
     day_start_equity: float = 0.0
     trades_opened_today: int = 0
+    # Per asset class, so one class's early slots cannot spend the whole
+    # day's entry budget before another class's market has even opened.
+    opened_today_by_class: dict = field(default_factory=dict)
     trades_closed_today: int = 0
     realized_pnl_today: float = 0.0
     consecutive_losses: int = 0

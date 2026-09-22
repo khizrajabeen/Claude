@@ -336,14 +336,24 @@ def print_banner(logger, config, mode):
     session = config.get("session", {})
     risk = config.get("risk", {})
     logger.info("═" * 62)
-    logger.info("  DAILY CRYPTO TRADING BOT")
+    logger.info("  DAILY MULTI-ASSET TRADING BOT")
     logger.info("═" * 62)
     logger.info("  Mode       : %s", mode.upper())
-    logger.info("  Exchange   : %s (%s)", config["exchange"]["name"],
-                config["exchange"].get("market_type", "spot"))
-    logger.info("  Universe   : %s", ", ".join(config["data"]["symbols"]))
-    logger.info("  Timeframe  : %s (trend filter %s)",
-                config["data"]["timeframe"], config["data"].get("higher_timeframe"))
+    from bot.markets import build_universe
+    universe = build_universe(config)
+    by_class: dict[str, list[str]] = {}
+    for instrument in universe:
+        by_class.setdefault(instrument.asset_class.value, []).append(instrument.symbol)
+    logger.info("  Universe   : %d instruments across %d asset class(es)",
+                len(universe), len(by_class))
+    for name, symbols in sorted(by_class.items()):
+        logger.info("    %-12s %s", name, ", ".join(symbols))
+    adaptive = config["data"].get("adaptive_timeframes", True)
+    logger.info("  Timeframe  : %s",
+                "chosen per instrument per day (15m/1h/4h crypto, 1d equity)"
+                if adaptive else
+                f"{config['data']['timeframe']} "
+                f"(trend filter {config['data'].get('higher_timeframe')})")
     logger.info("  Day        : open %s | entries +%sm | flat %s",
                 session.get("day_open"), session.get("entry_window_minutes"),
                 session.get("flatten_at"))

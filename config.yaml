@@ -66,11 +66,27 @@ data:
 # boundary exchanges use for daily candles and funding settlement.
 session:
   day_open: "00:00"                # briefing runs here
-  entry_window_minutes: 120        # new positions only in this window
+  entry_window_minutes: 120        # how long each entry slot stays open
+  # Crypto runs 24/7 and US stocks do not, so the day carries several entry
+  # slots rather than one morning window. Crypto gets a slot at every
+  # 4-hour boundary — where its higher-timeframe bar closes and a trend
+  # filter can actually change its mind. Equities get one inside their own
+  # session, inset past the opening auction and stopping well short of the
+  # bell. Set enabled: false to go back to a single window at the day open.
+  entry_slots:
+    enabled: true
+    crypto_every_hours: 4
+    equity_open_delay_minutes: 30   # the first half hour is all gap and spread
+    equity_entry_cutoff_minutes: 90 # no new stock with less than this to manage
   allow_late_start: true           # starting mid-day gets one fresh window
   flatten_at: "23:30"              # close intraday book before the boundary
   manage_interval_seconds: 900     # how often the book is walked
-  max_new_positions_per_day: 3
+  max_new_positions_per_day: 6      # across the whole universe
+  # Crypto's first slot opens at 00:00 and the US session not until 13:30,
+  # so without a per-class reservation crypto would spend the whole daily
+  # budget before a stock could be looked at — and the cross-asset
+  # comparison would be crypto versus nothing.
+  max_new_positions_per_class: 2
   carry_overnight: true            # trend systems need multi-day holds;
                                    # a nightly flatten pays the round trip again
                                    # every morning for no reason
@@ -84,7 +100,7 @@ risk:
   risk_per_trade_pct: 0.75         # of equity, lost if the stop is hit
   min_risk_per_trade_pct: 0.10
   max_portfolio_heat_pct: 4.0      # total open risk if every stop hits
-  max_open_positions: 5
+  max_open_positions: 8            # 4 asset classes now share the book
   max_correlated_positions: 3      # crypto majors trade as one factor
   max_net_beta: 1.5                # beta-weighted exposure vs equity
   max_daily_loss_pct: 2.0          # circuit breaker, measured on equity

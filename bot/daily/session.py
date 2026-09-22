@@ -23,7 +23,13 @@ from datetime import datetime, timedelta, timezone
 from bot.daily.briefing import Briefing, BriefingBuilder
 from bot.daily.journal import BotState, DaySummary, Journal
 from bot.daily.plan import DayPlan, DayPlanner
-from bot.daily.schedule import DaySchedule, Phase, build_schedule, next_schedule
+from bot.daily.schedule import (
+    DaySchedule,
+    EntrySlot,
+    Phase,
+    build_schedule,
+    next_schedule,
+)
 from bot.portfolio.allocator import StrategyAllocator
 from bot.portfolio.autopilot import AutoPilot
 from bot.portfolio.tracker import StrategyTracker
@@ -162,6 +168,7 @@ class DailySession:
         self._begin_day(day)
         briefing, plan = self.open_day(schedule)
         opened = self.execute_entries(plan, schedule)
+        opened.extend(self.work_later_slots(schedule))
         self.manage_until(schedule.flatten_at, schedule)
         closed_at_flatten = self.flatten(schedule)
         result = self.close_day(schedule, briefing, plan, opened)
@@ -172,21 +179,23 @@ class DailySession:
         self.running = False
 
     def _adjust_for_late_start(self, schedule: DaySchedule) -> DaySchedule:
-        """Give a mid-day start its own entry window, once.
+        """Give a mid-day start a slot of its own when it has landed between
+        the day's scheduled ones.
 
-        Starting the bot at 16:00 would otherwise find the morning's window
-        long closed and trade nothing until tomorrow. The plan is built at
-        the current moment either way, so its levels are current — what is
-        missing is only permission to act on them. Later days use the
-        normal schedule.
+        Entry slots already solve most of this: starting at 16:00 finds the
+        16:00 slot live and needs no help. But a start at 02:30 sits in the
+        gap between the day-open slot and the 04:00 one, and would trade
+        nothing for ninety minutes despite having a current plan in hand.
+        The plan is built at the current moment either way, so its levels
+        are current — what is missing is only permission to act on them.
         """
         first_day, self._first_day = self._first_day, False
         if not (first_day and self.allow_late_start):
             return schedule
 
         now = self.clock.now()
-        if now < schedule.entry_until:
-            return schedule  # started on time
+        if schedule.slot_at(now) is not None:
+            return schedule  # a slot is already live
 
         if now >= schedule.flatten_at:
             logger.info(
@@ -200,19 +209,37 @@ class DailySession:
         window = timedelta(minutes=int(
             self.config.get("session", {}).get("entry_window_minutes", 120)
         ))
-        entry_until = min(now + window, schedule.flatten_at)
-        logger.info(
-            "Late start at %s — opening a fresh entry window until %s "
-            "(today's window closed at %s)",
-            now.strftime("%H:%M UTC"), entry_until.strftime("%H:%M UTC"),
-            schedule.entry_until.strftime("%H:%M UTC"),
+        end = min(now + window, schedule.flatten_at)
+        # Do not run past the next scheduled slot; that one will handle it.
+        upcoming = schedule.later_slots(now)
+        if upcoming:
+            end = min(end, upcoming[0].start)
+        if end <= now:
+            return schedule
+
+        # Admit whatever is actually tradable right now. Naming the classes
+        # explicitly rather than admitting everything keeps a stock out of
+        # a window in which its market is shut.
+        classes = frozenset(
+            i.asset_class.value for i in self.universe if i.is_open(now)
         )
+        if not classes:
+            return schedule
+
+        catch_up = EntrySlot(now, end, "late-start", classes)
+        logger.info(
+            "Late start at %s — opening a catch-up slot until %s (%s)",
+            now.strftime("%H:%M UTC"), end.strftime("%H:%M UTC"),
+            ",".join(sorted(classes)),
+        )
+        slots = tuple(sorted(schedule.slots + (catch_up,), key=lambda s: s.start))
         return DaySchedule(
             day=schedule.day,
             open_at=schedule.open_at,
-            entry_until=entry_until,
+            entry_until=max(schedule.entry_until, end),
             flatten_at=schedule.flatten_at,
             close_at=schedule.close_at,
+            slots=slots,
         )
 
     # ── Phase 1: briefing + plan ──────────────────────────────
@@ -268,6 +295,8 @@ class DailySession:
             consecutive_losses=self.state.consecutive_losses,
             cooldown_until=self._cooldown_until(),
             now=now,
+            opened_today=self.state.trades_opened_today,
+            opened_today_by_class=dict(self.state.opened_today_by_class or {}),
         )
 
         payload = briefing.to_dict()
@@ -329,9 +358,16 @@ class DailySession:
 
         for planned in plan.trades:
             now = self.clock.now()
-            if now >= schedule.entry_until:
+            slot = schedule.slot_at(now)
+            if slot is None:
                 logger.info("Entry window closed — %s not taken", planned.symbol)
                 break
+            if not slot.admits(planned.asset_class):
+                # A crypto slot must not open a stock, and vice versa —
+                # the slot exists precisely because the two have different
+                # hours.
+                logger.debug("%s not admitted by %s", planned.symbol, slot.label)
+                continue
             if self.state.halted_reason:
                 logger.warning("Halted (%s) — no further entries", self.state.halted_reason)
                 break
@@ -364,6 +400,7 @@ class DailySession:
                 leverage=1.0,
                 atr=planned.atr,
                 r_distance=planned.r_distance,
+                asset_class=planned.asset_class,
             )
 
             try:
@@ -388,12 +425,127 @@ class DailySession:
 
             opened.append(position)
             self.state.trades_opened_today += 1
+            klass = str(planned.asset_class or "unknown")
+            counts = self.state.opened_today_by_class or {}
+            counts[klass] = counts.get(klass, 0) + 1
+            self.state.opened_today_by_class = counts
             self._persist()
 
             if self.entry_stagger_seconds:
                 self.clock.sleep(self.entry_stagger_seconds)
 
         return opened
+
+    def work_later_slots(self, schedule: DaySchedule) -> list[Position]:
+        """Manage the book to each remaining entry slot, then trade it.
+
+        One window at the day open was enough when the universe was crypto
+        only. It is not enough now: a US stock's session does not start
+        until 13:30 UTC, so with a single window at midnight the equity
+        half of the book would never open a position, and every 4-hour
+        crypto bar after 02:00 would print unseen.
+
+        Each slot gets a fresh briefing over only the instruments it
+        admits, so the plan it acts on is built from the tape at that hour
+        rather than from the morning's.
+        """
+        opened: list[Position] = []
+        slots = schedule.later_slots(self.clock.now())
+        if not slots:
+            return opened
+
+        logger.info("  %d further entry slot(s) today: %s",
+                    len(slots), " | ".join(str(s) for s in slots))
+
+        for slot in slots:
+            if not self.running and self._first_day is False and self.state.halted_reason:
+                break
+            # Walk the book forward to the slot rather than jumping: stops
+            # and targets between here and there must still be honoured.
+            self.manage_until(slot.start, schedule)
+            if self.state.halted_reason:
+                logger.info("Halted (%s) — skipping %s",
+                            self.state.halted_reason, slot.label)
+                continue
+            if self._day_entry_budget_spent():
+                logger.info("Daily entry budget spent — skipping %s", slot.label)
+                continue
+
+            symbols = self._slot_symbols(slot)
+            if not symbols:
+                logger.info("  %s: no instrument open and admitted", slot)
+                continue
+
+            logger.info("─" * 62)
+            logger.info("  ENTRY SLOT %s — %d instrument(s)", slot, len(symbols))
+            plan = self._replan(schedule, symbols)
+            opened.extend(self.execute_entries(plan, schedule))
+
+        return opened
+
+    def _slot_symbols(self, slot) -> list[str]:
+        """Instruments this slot admits whose market is also open."""
+        now = self.clock.now()
+        return [i.symbol for i in self.universe
+                if slot.admits(i.asset_class) and i.is_open(now)]
+
+    def _day_entry_budget_spent(self) -> bool:
+        cap = int(self.config.get("session", {}).get("max_new_positions_per_day", 3))
+        return self.state.trades_opened_today >= cap
+
+    def _replan(self, schedule: DaySchedule, symbols: list[str]) -> DayPlan:
+        """A plan for one slot, over the instruments it admits."""
+        now = self.clock.now()
+        prices = self._latest_prices(self.symbols, now)
+        equity = self.broker.equity(prices)
+
+        briefing, frames = self.briefing_builder.build(
+            symbols=symbols,
+            day=str(schedule.day),
+            equity=equity,
+            cash=self.broker.cash,
+            carried_positions=self.broker.positions,
+            rolling_stats=self.journal.rolling_stats(
+                window=int(self.config.get("journal", {}).get("rolling_window", 50))
+            ),
+            yesterday=self.journal.last_day(),
+            now=now,
+        )
+        self._refresh_market_limits(briefing)
+        self._refresh_funding(briefing)
+        # Management re-reads bars on the timeframe the slot's briefing
+        # chose, so a slot that stepped an instrument to a faster frame is
+        # then managed on that frame too.
+        reads = dict(getattr(self, "_briefing_reads", {}) or {})
+        reads.update(briefing.symbols)
+        self._briefing_reads = reads
+
+        context = MarketContext(
+            day=str(schedule.day),
+            reads=briefing.symbols,
+            frames=frames,
+            funding=self._funding_rates,
+            market_tone=float(briefing.market_tone.get("score", 0.0)),
+            equity=equity,
+            timeframe=self.timeframe,
+        )
+        weights, exposure = self._portfolio_state(equity)
+        return self.planner.build(
+            briefing=briefing,
+            equity=equity,
+            open_positions=self.broker.positions,
+            peak_equity=max(self.state.peak_equity, equity),
+            day_start_equity=self.state.day_start_equity or equity,
+            context=context,
+            strategy_weights=weights,
+            exposure=exposure,
+            market_limits=self._market_limits,
+            consecutive_losses=self.state.consecutive_losses,
+            cooldown_until=self._cooldown_until(),
+            now=now,
+            opened_today=self.state.trades_opened_today,
+            opened_today_by_class=dict(self.state.opened_today_by_class or {}),
+        )
 
     # ── Phase 3: management ───────────────────────────────────
 
@@ -610,6 +762,7 @@ class DailySession:
         self.state.current_day = day
         self.state.day_start_equity = equity
         self.state.trades_opened_today = 0
+        self.state.opened_today_by_class = {}
         self.state.trades_closed_today = 0
         self.state.realized_pnl_today = 0.0
         self.state.halted_reason = None

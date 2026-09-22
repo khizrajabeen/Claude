@@ -133,7 +133,10 @@ class DayPlanner:
         self.book_weight = float(signals.get("book_weight", 0.06))
         self.require_htf = bool(signals.get("require_htf_agreement", True))
         self.veto_on_news = bool(signals.get("news_can_veto", True))
-        self.max_new = int(config.get("session", {}).get("max_new_positions_per_day", 3))
+        session = config.get("session", {})
+        self.max_new = int(session.get("max_new_positions_per_day", 3))
+        # 0 means "no per-class reservation" — the whole budget is shared.
+        self.max_new_per_class = int(session.get("max_new_positions_per_class", 0) or 0)
 
     # ── Step 1-2: strategies and allocation ───────────────────
 
@@ -186,6 +189,8 @@ class DayPlanner:
         consecutive_losses: int = 0,
         cooldown_until: datetime | None = None,
         now: datetime | None = None,
+        opened_today: int = 0,
+        opened_today_by_class: dict | None = None,
     ) -> DayPlan:
         """Score, rank, size and gate the day's trades."""
         now = now or datetime.now(timezone.utc)
@@ -275,9 +280,20 @@ class DayPlanner:
         candidates.sort(key=lambda t: (abs(t[0].edge), t[1].quote_volume_24h), reverse=True)
 
         book = list(open_positions)
+        # The daily budget is spent across every slot of the day, not per
+        # plan: a day with seven entry slots must not take max_new trades
+        # in each of them.
+        per_class = dict(opened_today_by_class or {})
+        taken = int(opened_today)
         for candidate, read, view in candidates:
-            if len(plan.trades) >= self.max_new:
+            if taken >= self.max_new:
                 plan.rejected.append([candidate.symbol, "daily new-position cap reached"])
+                continue
+            klass = str(read.asset_class or "unknown")
+            if self.max_new_per_class and per_class.get(klass, 0) >= self.max_new_per_class:
+                plan.rejected.append(
+                    [candidate.symbol, f"{klass} daily cap reached"]
+                )
                 continue
 
             limits = market_limits.get(candidate.symbol, {})
@@ -294,6 +310,7 @@ class DayPlanner:
                 min_qty=limits.get("min_qty", 0.0),
                 qty_step=limits.get("qty_step", 0.0),
                 min_notional=limits.get("min_notional", 0.0),
+                asset_class=read.asset_class,
             )
 
             # Costs first: a trade whose expected move does not clear the
@@ -336,6 +353,8 @@ class DayPlanner:
                 timeframe=read.timeframe,
             ))
             book.append(_ProvisionalPosition(plan.trades[-1]))
+            taken += 1
+            per_class[klass] = per_class.get(klass, 0) + 1
 
         self._log(plan)
         return plan
