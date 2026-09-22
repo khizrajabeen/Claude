@@ -54,17 +54,15 @@ jobs:
           fi
           echo "No credential-shaped strings found in web/."
 
-      # `enablement: true` asks GitHub to turn Pages on as part of the
-      # deploy. It only works where the workflow token is allowed to
-      # create the Pages site; on many repositories it is not, and the
-      # step then fails with "Evaluated environment url:" and nothing
-      # after it — which says nothing about Pages at all. The step below
-      # catches that and explains it.
+      # No `enablement: true`. It asks GitHub to create the Pages site as
+      # part of the deploy, which needs a token allowed to change
+      # repository settings — and when that permission is absent the step
+      # fails even though Pages is already enabled and nothing needs
+      # creating. Pages is turned on by hand once; this step only reads
+      # the configuration.
       - id: configure
         continue-on-error: true
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Explain a Pages failure in words
         if: steps.configure.outcome == 'failure'
