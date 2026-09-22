@@ -180,8 +180,69 @@ class ExchangeClient:
                           since=since, limit=limit)
         return ohlcv_to_frame(raw)
 
+    def fetch_ohlcv_paged(self, symbol: str, timeframe: str, bars: int) -> pd.DataFrame:
+        """Collect `bars` candles ending now, paging as far back as needed.
+
+        Venues cap a single call differently — OKX and Coinbase at 300,
+        Kraken at 721, KuCoin at 1000 — and silently return the cap rather
+        than erroring. A strategy asking for 600 bars would quietly receive
+        300 and produce no signal at all, so anything that needs real depth
+        must come through here.
+
+        Pages backwards from the newest bar. Anchoring on the oldest page
+        instead returns a window that ends weeks ago.
+        """
+        from bot.analysis.indicators import TIMEFRAME_SECONDS
+
+        bar_ms = TIMEFRAME_SECONDS.get(timeframe, 3600) * 1000
+        newest = self.fetch_ohlcv(symbol, timeframe, limit=min(bars, 1000))
+        if newest.empty or len(newest) >= bars:
+            return newest.tail(bars)
+
+        chunks = [newest]
+        collected = len(newest)
+        oldest_ms = int(newest.index[0].timestamp() * 1000)
+        page = max(len(newest), 100)
+
+        while collected < bars:
+            since = oldest_ms - page * bar_ms
+            df = self.fetch_ohlcv(symbol, timeframe, limit=page, since=since)
+            if df.empty:
+                break
+            new_oldest = int(df.index[0].timestamp() * 1000)
+            if new_oldest >= oldest_ms:
+                break  # the venue ignored `since`; another call would loop
+            chunks.append(df)
+            collected += len(df)
+            oldest_ms = new_oldest
+
+        combined = pd.concat(chunks)
+        combined = combined[~combined.index.duplicated(keep="last")].sort_index()
+        return combined.tail(bars)
+
     def fetch_ticker(self, symbol: str) -> dict:
         return self._retry(self.exchange.fetch_ticker, symbol)
+
+    def fetch_tickers(self, symbols: list[str] | None = None) -> dict:
+        """Every ticker in one call.
+
+        The screen ranks four hundred markets by turnover; asking for them
+        one at a time is four hundred round trips and a rate limit. Venues
+        that cannot serve the batch fall back to individual calls rather
+        than returning nothing.
+        """
+        try:
+            return self._retry(self.exchange.fetch_tickers, symbols) or {}
+        except Exception as e:
+            logger.debug("Batch tickers unavailable (%s) — falling back", e)
+
+        out = {}
+        for symbol in (symbols or [])[:200]:
+            try:
+                out[symbol] = self.fetch_ticker(symbol)
+            except Exception:
+                continue
+        return out
 
     def fetch_order_book(self, symbol: str, limit: int = 20) -> dict:
         return self._retry(self.exchange.fetch_order_book, symbol, limit)
@@ -227,19 +288,39 @@ class ExchangeClient:
             return None
 
     def quote_volume_24h(self, symbol: str) -> float | None:
-        """24h volume in quote currency — the liquidity filter and the
-        market-impact model both need it."""
+        """24h traded value in quote currency.
+
+        Derivatives venues report `baseVolume` in *contracts*, not in the
+        base asset, and leave `quoteVolume` empty. OKX's BTC perp contract
+        is 0.01 BTC, so taking baseVolume at face value overstates turnover
+        a hundredfold — which does not merely look wrong, it waves a
+        genuinely thin market straight through the liquidity filter. The
+        contract size is applied wherever the venue publishes one.
+        """
         try:
             ticker = self.fetch_ticker(symbol)
-            qv = ticker.get("quoteVolume")
-            if qv:
-                return float(qv)
-            base_vol, last = ticker.get("baseVolume"), ticker.get("last")
-            if base_vol and last:
-                return float(base_vol) * float(last)
         except Exception as e:
             logger.debug("Volume unavailable for %s: %s", symbol, e)
-        return None
+            return None
+
+        reported = ticker.get("quoteVolume")
+        if reported:
+            return float(reported)
+
+        base_volume = ticker.get("baseVolume")
+        last = ticker.get("last") or ticker.get("close")
+        if not base_volume or not last:
+            return None
+
+        contract_size = 1.0
+        try:
+            market = self.load_markets().get(symbol) or {}
+            if market.get("contract"):
+                contract_size = float(market.get("contractSize") or 1.0)
+        except Exception:
+            pass
+
+        return float(base_volume) * contract_size * float(last)
 
     # ── Orders ────────────────────────────────────────────────
 

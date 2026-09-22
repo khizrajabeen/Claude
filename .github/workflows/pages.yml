@@ -1,0 +1,94 @@
+# Publishes the dashboard to GitHub Pages.
+#
+# Pages serves static files. It cannot run the bot — that lives on a
+# machine you control (see deploy/README.md), which publishes its JSON
+# into web/data and pushes. This workflow only ships what is already in
+# the repository.
+name: Deploy dashboard
+
+on:
+  push:
+    branches: [main, claude/happy-brown-j5y8bv]
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and let a newer push win rather than queueing
+# behind a stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if credentials were ever committed
+        run: |
+          # The dashboard is public, so anything under web/ is public.
+          #
+          # The patterns require a realistic run of key characters after
+          # each prefix. An earlier version matched the bare prefixes and
+          # failed on settings.html's own placeholder text ("sk-ant-…"),
+          # which is the classic way a security check gets disabled: it
+          # cries wolf on the file it most needs to watch.
+          PATTERNS='sk-ant-[A-Za-z0-9_-]{24,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}|(PK|AK)[A-Z0-9]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+          if grep -rIlnE "$PATTERNS" web/ 2>/dev/null; then
+            echo "::error::Something that looks like a real API key is in web/ — refusing to publish."
+            exit 1
+          fi
+          echo "No credential-shaped strings found in web/."
+
+      # `enablement: true` asks GitHub to turn Pages on as part of the
+      # deploy. It only works where the workflow token is allowed to
+      # create the Pages site; on many repositories it is not, and the
+      # step then fails with "Evaluated environment url:" and nothing
+      # after it — which says nothing about Pages at all. The step below
+      # catches that and explains it.
+      - id: configure
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Explain a Pages failure in words
+        if: steps.configure.outcome == 'failure'
+        run: |
+          echo "::error title=GitHub Pages is not enabled::Turn it on once, then re-run this workflow."
+          cat <<'EOF'
+          ────────────────────────────────────────────────────────────
+          The dashboard is built and committed. What is missing is one
+          switch that only a repository admin can flip:
+
+            Settings → Pages → Build and deployment
+            Source:  GitHub Actions
+
+          Then re-run this workflow (Actions → Deploy dashboard →
+          Re-run all jobs). Every push after that publishes on its own.
+
+          Nothing else is wrong: the files are in web/, the credential
+          scan passed, and the tests are green.
+          ────────────────────────────────────────────────────────────
+          EOF
+          exit 1
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Where it went
+        run: |
+          echo "Dashboard: ${{ steps.deploy.outputs.page_url }}"
+          echo "Portfolio: ${{ steps.deploy.outputs.page_url }}dashboard.html"

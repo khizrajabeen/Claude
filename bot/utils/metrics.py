@@ -178,6 +178,24 @@ def summarize_trades(trades: list, starting_equity: float | None = None) -> dict
     for t in trades:
         reasons[t.exit_reason] = reasons.get(t.exit_reason, 0) + 1
 
+    # How much of this is luck?
+    #
+    # A Sharpe of 13 on 13 trades is not a good strategy, it is a small
+    # sample. The standard error of mean R falls with the square root of
+    # the trade count, so the t-statistic is the only honest way to compare
+    # a selective system against a high-frequency one — without it, the
+    # strategy that traded least always looks best.
+    r_array = np.asarray(r_multiples, dtype=float)
+    r_std = float(r_array.std(ddof=1)) if len(r_array) > 1 else 0.0
+    standard_error = r_std / np.sqrt(len(r_array)) if r_std > 0 else 0.0
+    t_stat = float(np.mean(r_array) / standard_error) if standard_error > 0 else 0.0
+
+    # Trades needed for the observed edge to reach a t of 2, if it is real.
+    if abs(float(np.mean(r_array))) > 1e-9 and r_std > 0:
+        trades_for_significance = int(np.ceil((2 * r_std / float(np.mean(r_array))) ** 2))
+    else:
+        trades_for_significance = 0
+
     return {
         "total_trades": len(trades),
         "wins": len(wins),
@@ -204,4 +222,11 @@ def summarize_trades(trades: list, starting_equity: float | None = None) -> dict
         "avg_mfe_r": round(float(np.mean([t.mfe_r for t in trades])), 4),
         "exit_reasons": reasons,
         "trading_days": len(by_day),
+        "r_std": round(r_std, 4),
+        "expectancy_se": round(standard_error, 4),
+        "t_stat": round(t_stat, 2),
+        # |t| >= 2 is the usual bar. Below it, the result is compatible
+        # with having no edge at all.
+        "significant": bool(abs(t_stat) >= 2.0),
+        "trades_for_significance": trades_for_significance,
     }

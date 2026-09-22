@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Meridian daily cycle at the UTC day boundary
+
+[Timer]
+# The bot anchors its day to 00:00 UTC — the boundary exchanges use for
+# daily candles and funding settlement — so the timer matches it.
+OnCalendar=*-*-* 00:00:30 UTC
+# A machine that was asleep at midnight should still trade when it wakes.
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

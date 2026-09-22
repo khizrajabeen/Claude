@@ -19,4 +19,10 @@ config.local.yaml
 state/
 state.*/
 models/
-data/
+# Cached market data. Anchored with a leading slash: a bare `data/`
+# matches a directory of that name at ANY depth, which silently swallowed
+# both `bot/data/` (the whole provider layer — the repository would not
+# import) and `web/data/` (the dashboard's published state). Neither was
+# visible locally, because the files were there; only CI saw the repo as
+# it actually was.
+/data/

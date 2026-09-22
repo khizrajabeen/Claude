@@ -1,8 +1,9 @@
-# Optional: only needed for `python main.py train`.
-# The daily trading session runs without any of this.
+# Optional. Needed only for `main.py train` and `main.py compare`.
+#
+# The ML layer is disabled in config (`model.enabled: false`) because the
+# bake-off found no model that beat a majority baseline: every AUC
+# between 0.483 and 0.500 across nine candidates. These are here so that
+# finding can be reproduced, not because the bot needs them to trade.
 -r requirements.txt
-
 scikit-learn>=1.3.0
-xgboost>=2.0.0
-lightgbm>=4.0.0
 joblib>=1.3.0

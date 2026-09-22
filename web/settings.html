@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — Meridian</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/app.css">
+</head>
+<body>
+<div class="aurora"></div>
+
+<div class="shell">
+  <aside class="rail">
+    <a href="./index.html" title="Overview">◈</a>
+    <a href="./dashboard.html" title="Dashboard">▦</a>
+    <span class="gap"></span>
+    <a href="./settings.html" aria-current="page" title="Settings">⚙</a>
+  </aside>
+
+  <main class="main" style="max-width:840px">
+    <div class="page-head">
+      <h1>Settings</h1>
+      <span class="spacer"></span>
+      <button class="btn sm" data-toggle-theme>◐</button>
+    </div>
+
+    <div class="note" style="margin-bottom:22px">
+      <strong>Where these keys live.</strong> Everything on this page is
+      stored in this browser only, under this site's own origin. Nothing is
+      uploaded, nothing is committed to the repository, and no server here
+      can read it. That also means it is only as private as the device you
+      are sitting at — and a key kept in a browser can be read by anything
+      that can run script on this page.
+      <br><br>
+      <strong>For a bot that trades unattended</strong>, do not put trading
+      keys here. The bot reads its own credentials from a
+      <code>.env</code> file on the machine it runs on, which is gitignored
+      and never reaches this page. Use this page for read-only keys and for
+      the assistant keys below.
+    </div>
+
+    <section class="card pad-lg" style="margin-bottom:16px">
+      <h3>Dashboard data</h3>
+      <div class="field">
+        <label for="data-url">Data source</label>
+        <div class="hint">
+          Where the dashboard reads the bot's published JSON from. Leave as
+          <code>./data</code> for files published alongside this page, or
+          point it at a server that serves them.
+        </div>
+        <input type="url" id="data-url" placeholder="./data">
+      </div>
+      <div class="field">
+        <label class="switch">
+          <input type="checkbox" id="auto-refresh" checked>
+          Refresh automatically every minute
+        </label>
+      </div>
+    </section>
+
+    <section class="card pad-lg" style="margin-bottom:16px">
+      <h3>Assistants</h3>
+      <div class="hint" style="margin-bottom:14px;color:var(--ink-3);font-size:12px">
+        Used by the dashboard's explain-this feature only. The trading logic
+        does not call a model to decide anything — a language model cannot
+        be backtested, and a decision that cannot be measured has no place
+        in the risk path.
+      </div>
+      <div class="field">
+        <label for="k-anthropic">Anthropic API key</label>
+        <div class="row">
+          <input type="password" id="k-anthropic" placeholder="sk-ant-…" autocomplete="off">
+          <button class="btn sm" data-reveal="k-anthropic">Show</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="k-openai">OpenAI API key</label>
+        <div class="row">
+          <input type="password" id="k-openai" placeholder="sk-…" autocomplete="off">
+          <button class="btn sm" data-reveal="k-openai">Show</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card pad-lg" style="margin-bottom:16px">
+      <h3>Brokers &amp; exchanges</h3>
+      <div class="field">
+        <label for="broker">Primary venue</label>
+        <select id="broker">
+          <option value="okx">OKX — crypto spot &amp; perpetuals</option>
+          <option value="kraken">Kraken — crypto spot</option>
+          <option value="coinbase">Coinbase — crypto spot</option>
+          <option value="kucoin">KuCoin — crypto spot</option>
+          <option value="bybit">Bybit — crypto derivatives</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="k-exchange">Exchange API key / secret</label>
+        <div class="hint">Read-only keys are enough for the dashboard.
+          Never enable withdrawals on a key you paste anywhere.</div>
+        <div class="row" style="margin-bottom:8px">
+          <input type="password" id="k-exchange" placeholder="API key" autocomplete="off">
+          <button class="btn sm" data-reveal="k-exchange">Show</button>
+        </div>
+        <div class="row">
+          <input type="password" id="k-exchange-secret" placeholder="API secret" autocomplete="off">
+          <button class="btn sm" data-reveal="k-exchange-secret">Show</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="k-alpaca">Alpaca (US stocks &amp; ETFs)</label>
+        <div class="hint">Paper keys start with <code>PK</code>; live keys
+          with <code>AK</code>. The bot refuses to place live orders unless
+          it is explicitly configured for them.</div>
+        <div class="row" style="margin-bottom:8px">
+          <input type="password" id="k-alpaca" placeholder="Alpaca key id" autocomplete="off">
+          <button class="btn sm" data-reveal="k-alpaca">Show</button>
+        </div>
+        <div class="row">
+          <input type="password" id="k-alpaca-secret" placeholder="Alpaca secret" autocomplete="off">
+          <button class="btn sm" data-reveal="k-alpaca-secret">Show</button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="switch">
+          <input type="checkbox" id="alpaca-paper" checked>
+          Use Alpaca's paper endpoint
+        </label>
+      </div>
+    </section>
+
+    <section class="card pad-lg" style="margin-bottom:16px">
+      <h3>News &amp; data</h3>
+      <div class="hint" style="margin-bottom:14px;color:var(--ink-3);font-size:12px">
+        The bot's own news comes from public RSS and needs no key. These are
+        for optional richer sources.
+      </div>
+      <div class="field">
+        <label for="k-cryptopanic">CryptoPanic token</label>
+        <input type="password" id="k-cryptopanic" placeholder="optional" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="k-newsapi">NewsAPI key</label>
+        <input type="password" id="k-newsapi" placeholder="optional" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="k-cmc">CoinMarketCap key</label>
+        <input type="password" id="k-cmc" placeholder="optional" autocomplete="off">
+      </div>
+    </section>
+
+    <div class="row" style="gap:10px;margin-bottom:18px">
+      <button class="btn primary" id="save">Save to this browser</button>
+      <button class="btn" id="export">Export .env</button>
+      <button class="btn ghost" id="clear">Clear everything</button>
+      <span class="spacer" style="flex:1"></span>
+      <span class="small muted" id="saved"></span>
+    </div>
+
+    <section class="card pad-lg">
+      <h3>Running it unattended</h3>
+      <p class="small" style="color:var(--ink-2);line-height:1.75">
+        This page is static — GitHub Pages serves files and cannot run the
+        bot. To trade around the clock, the bot runs on a machine you
+        control and publishes its results here. <code>deploy/README.md</code>
+        in the repository has a systemd unit and a docker-compose file that
+        do exactly that: run the daily cycle, publish the JSON, push it.
+        The <em>Export .env</em> button above writes the keys from this page
+        into the format that machine expects.
+      </p>
+    </section>
+  </main>
+</div>
+
+<script type="module" src="./assets/settings.js"></script>
+</body>
+</html>

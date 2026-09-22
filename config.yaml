@@ -5,7 +5,7 @@
 # config.local.yaml is gitignored; never commit keys.
 
 exchange:
-  name: "kraken"           # binance | kraken | coinbase | okx | kucoin | bybit
+  name: "okx"           # binance | kraken | coinbase | okx | kucoin | bybit
   market_type: "spot"      # spot | swap  (swap enables funding accrual)
   api_key: ""
   api_secret: ""
@@ -17,34 +17,185 @@ exchange:
 
 # ── Universe and data ────────────────────────────────────────
 data:
-  symbols:
-    - "BTC/USDT"
-    - "ETH/USDT"
-    - "SOL/USDT"
-    - "XRP/USDT"
-    - "ADA/USDT"
-    - "LINK/USDT"
-  timeframe: "1h"          # the decision timeframe
-  higher_timeframe: "4h"   # trend filter
-  history_bars: 500
+  # One universe, four asset classes. Each instrument carries its own
+  # calendar, cost model and timeframe ladder, so a Nasdaq stock and a
+  # Bitcoin perp can sit in the same book without either being a special
+  # case. Perps are the leveraged, always-on, shortable leg; spot is the
+  # unlevered one; equities and ETFs only trade when their session is open.
+  instruments:
+    # ── Crypto perpetual futures (24/7, fundable, shortable) ──
+    - {symbol: "BTC/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
+    - {symbol: "ETH/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
+    - {symbol: "SOL/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
+    # ── Crypto spot (24/7, unlevered, long only) ──
+    # Widened from five names to fifteen. Spot longs were the best leg of
+    # the 90-day replay (+0.248R over 32 trades) and a cross-sectional
+    # ranking needs enough peers to rank. Every pair here clears $10M of
+    # 24h quote volume on OKX; below that the spread eats the edge.
+    - {symbol: "BTC/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "ETH/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "SOL/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "XRP/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "LINK/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "DOGE/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "SUI/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "UNI/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "NEAR/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "ARB/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "LTC/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "ADA/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "AVAX/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "FIL/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "BCH/USDT", asset_class: "crypto_spot", venue: "okx"}
+    # ── US equities and ETFs — off ──
+    # Removed from the traded universe, not from the code. Over 90 days
+    # the equity leg lost $21 across 9 trades and the ETF leg $72 across
+    # 5, and it cannot be measured properly anyway: the deepest strategy
+    # wants 724 bars, which on a daily series is three years against a
+    # feed that serves about 1,150 days — roughly a hundred replayable
+    # days once warm-up is paid for.
+    #
+    # Everything needed to turn them back on is still here: the
+    # calendars, the session-aware entry slots, the news strategy and the
+    # Alpaca connector (which serves minute bars and fixes the history
+    # problem). Uncomment these and add "news" to the roster above.
+    # - {symbol: "NVDA", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "AAPL", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "MSFT", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "TSLA", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "AMD",  asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "COIN", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "SPY", asset_class: "etf", venue: "alpaca"}
+    # - {symbol: "QQQ", asset_class: "etf", venue: "alpaca"}
+    # - {symbol: "GLD", asset_class: "etf", venue: "alpaca"}
+  timeframe: "1h"          # fallback when an instrument names none
+  higher_timeframe: "4h"   # fallback trend filter
+  history_bars: 900        # must cover the longest strategy lookback
   orderbook_depth: 20
   orderbook_levels: 10
   train_days: 180
+  # The bot picks its own decision timeframe each day per instrument from
+  # realised volatility and how much session is left. A quiet tape gets a
+  # slower frame (fewer, better trades); a wild one gets a faster frame so
+  # the stop is not a day wide. Turning this off pins everything to
+  # data.timeframe above.
+  adaptive_timeframes: true
+  equity:
+    cache_hours: 6         # Nasdaq's endpoint is daily; re-asking is waste
+    max_retries: 3
+    throttle_seconds: 0.5
 
 # ── The trading day ──────────────────────────────────────────
 # Crypto never closes, so the "day" is a convention anchored to the UTC
 # boundary exchanges use for daily candles and funding settlement.
 session:
   day_open: "00:00"                # briefing runs here
-  entry_window_minutes: 120        # new positions only in this window
+  entry_window_minutes: 120        # how long each entry slot stays open
+  # Crypto runs 24/7 and US stocks do not, so the day carries several entry
+  # slots rather than one morning window. Crypto gets a slot at every
+  # 4-hour boundary — where its higher-timeframe bar closes and a trend
+  # filter can actually change its mind. Equities get one inside their own
+  # session, inset past the opening auction and stopping well short of the
+  # bell. Set enabled: false to go back to a single window at the day open.
+  entry_slots:
+    enabled: true
+    crypto_every_hours: 4
+    equity_open_delay_minutes: 30   # the first half hour is all gap and spread
+    equity_entry_cutoff_minutes: 90 # no new stock with less than this to manage
   allow_late_start: true           # starting mid-day gets one fresh window
   flatten_at: "23:30"              # close intraday book before the boundary
   manage_interval_seconds: 900     # how often the book is walked
-  max_new_positions_per_day: 3
-  carry_overnight: false           # true = let winners run into tomorrow
-  max_holding_days: 3              # hard cap even when carrying
+  max_new_positions_per_day: 6      # across the whole universe
+  # Crypto's first slot opens at 00:00 and the US session not until 13:30,
+  # so without a per-class reservation crypto would spend the whole daily
+  # budget before a stock could be looked at — and the cross-asset
+  # comparison would be crypto versus nothing.
+  max_new_positions_per_class: 2
+  carry_overnight: true            # trend systems need multi-day holds;
+                                   # a nightly flatten pays the round trip again
+                                   # every morning for no reason
+  max_holding_days: 10             # hard cap even when carrying
   max_entry_drift_r: 0.5           # don't chase a plan that already ran
   entry_stagger_seconds: 0
+
+# ── Choosing what to look at ─────────────────────────────────
+# A static universe goes stale in two directions: it holds names whose
+# liquidity has drained away, and it misses the ones now dominating the
+# tape. A scan of OKX's 406 active USDT spot markets put ZEC and HYPE in
+# the top twelve by turnover, and neither was in the configured list.
+#
+# Ranked by 24h turnover rather than market capitalisation: cap is a
+# supply figure and says nothing about whether a position can be got out
+# of, and it is liquidity that decides whether an edge survives the
+# spread.
+screen:
+  quote: "USDT"
+  top_n: 10
+  min_quote_volume_24h: 10000000  # below this the spread eats the edge
+  # A market listed last week has no history to measure a trend, a beta
+  # or a volatility on, and its first weeks are listing flow rather than
+  # anything a strategy models. New listings are reported either way.
+  min_age_days: 90
+  new_listing_days: 30
+  include_new_listings: false
+  news_window_hours: 24
+  exclude: []
+
+# ── How each asset class is traded ───────────────────────────
+# Distinct from how it is priced. A perpetual is the only leg that can use
+# leverage, and leverage is what makes a wide stop affordable: the dollar
+# risk is unchanged but the margin falls, so the account can carry a
+# position whose stop sits out of the noise and still have cash for the
+# rest of the book. Over a 90-day replay 65% of all exits were stop-outs,
+# many on moves that then reversed, and an equity entry was once refused
+# for want of $1,300 while the crypto book sat on the cash.
+#
+# The trade-off is deliberate: a wider stop means a smaller position for
+# the same risk and fewer trades clearing their cost gate, so the perp leg
+# becomes a few high-conviction positions rather than a stream of small
+# ones. min_edge raises the bar to match. Omit a key to keep the default.
+profiles:
+  crypto_perp:
+    atr_stop_mult: 4.0             # noise cannot reach a stop this far out
+    max_leverage: 3.0              # what makes that stop affordable
+    min_edge: 0.30                 # fewer, better trades
+  crypto_spot:
+    atr_stop_mult: 2.5
+    max_leverage: 1.0              # spot is cash; no borrow is modelled
+    min_edge: 0.15
+  equity:
+    atr_stop_mult: 2.5
+    max_leverage: 1.0
+    min_edge: 0.15
+  etf:
+    atr_stop_mult: 2.5
+    max_leverage: 1.0
+    min_edge: 0.15
+
+# ── Scaling in and out ───────────────────────────────────────
+# The trailing stop protects a winner. These are the same idea at the
+# other two ends: scaling out converts part of an open gain to cash, and
+# pyramiding presses a position that is working.
+scaling:
+  # Sell this fraction of the position when it reaches this multiple of
+  # its initial risk. Each rung fires once, and the position keeps its
+  # original entry, stop and R measurement — so a trade that sold half at
+  # 2R and then stopped at breakeven is recorded as the winner it was.
+  take_profit_at:
+    - {at_r: 1.5, fraction: 0.33}
+    - {at_r: 3.0, fraction: 0.50}
+  # Spot only. A perp's edge is meant to come from holding a leveraged
+  # trend, and slicing it up works against that.
+  scale_out_classes: ["crypto_spot", "equity", "etf"]
+
+  # Pyramiding. Each added unit risks less than the one before, so four
+  # units at 0.5x do not turn a 0.75% trade into a 3% one. Adding is
+  # gated on the same risk checks a fresh entry passes, because a pyramid
+  # unit is a new position in everything but name.
+  max_units: 3                     # 1 disables pyramiding
+  pyramid_step_r: 1.0              # add another unit every 1R of progress
+  pyramid_size_factor: 0.5         # each unit's risk, as a fraction of a full one
+  pyramid_classes: ["crypto_spot", "crypto_perp"]
 
 # ── Risk ─────────────────────────────────────────────────────
 # Fixed dollar risk per trade at an ATR stop, capped by portfolio heat.
@@ -52,8 +203,20 @@ risk:
   risk_per_trade_pct: 0.75         # of equity, lost if the stop is hit
   min_risk_per_trade_pct: 0.10
   max_portfolio_heat_pct: 4.0      # total open risk if every stop hits
-  max_open_positions: 5
+  max_open_positions: 8            # 4 asset classes now share the book
+  maintenance_margin_rate: 0.005   # exchange's, for the liquidation check
+  liquidation_buffer: 3.0          # the stop must be this much closer than
+                                   # liquidation, or leverage turns a normal
+                                   # loss into a total one
   max_correlated_positions: 3      # crypto majors trade as one factor
+  # Counting positions is only honest when they are independent. Measured
+  # over 199 daily observations, every alt this bot trades runs a beta of
+  # 0.85-1.44 to Bitcoin, with an average pairwise correlation of 0.62 —
+  # so five long alts is about 1.7 independent bets, and a book that
+  # thinks it holds five has understated its concentration fivefold.
+  # Each position must buy at least this fraction of a genuine new bet.
+  # 0 disables the check; betas are still measured and used for net beta.
+  min_effective_positions: 0.34
   max_net_beta: 1.5                # beta-weighted exposure vs equity
   max_daily_loss_pct: 2.0          # circuit breaker, measured on equity
   daily_profit_lock_pct: 4.0       # stand down after a good day (0 = off)
@@ -61,6 +224,24 @@ risk:
   derisk_after_losses: 3
   cooldown_after_losses: 2
   cooldown_minutes: 120
+  min_edge_cost_ratio: 3.0         # expected move must be 3x the round trip
+  # The round trip as a fraction of what the trade risks:
+  #     cost_R = round_trip_bps / (10000 * atr_stop_mult * atr_pct)
+  # A 90-day replay found +0.024R per trade gross against 0.043R per trade
+  # in costs — execution took the whole edge. This refuses trades whose
+  # toll is too large a share of their risk, which in practice means
+  # skipping quiet markets where the same signal costs twice as much.
+  # Measured and switched off. A sweep over one fixed 90-day window gave
+  #   off -1.34% | 0.20 -2.00% | 0.14 -3.18% | 0.10 -1.00% | 0.08 +0.18%
+  #   | 0.06 -4.23%
+  # which is not a trend, it is noise: the single positive reading sits
+  # between two worse-than-baseline ones. Fees fell exactly as expected
+  # ($247 -> $99 -> $48) and returns did not improve, so the edge is not
+  # concentrated in the cheap trades — cutting trades cuts gross edge in
+  # the same proportion. The reasoning behind the gate stands; the
+  # evidence for this lever does not. Set above 0 to re-enable.
+  max_cost_r: 0.0
+  contrarian_risk_factor: 0.7      # fades get less size than confirmations
 
 # ── Stops, targets and trailing ──────────────────────────────
 stops:
@@ -83,13 +264,200 @@ sizing:
   kelly_fraction: 0.25             # quarter-Kelly, as a cap only
   kelly_min_trades: 30             # ... once there is a real sample
 
-# ── Signal blend ─────────────────────────────────────────────
+# ── Strategies ───────────────────────────────────────────────
+# Two families. `selective` are published trend systems that trade rarely
+# and were the only group to survive an out-of-sample split. `lux` are
+# indicator-style signals of the kind LuxAlgo and its peers publish,
+# implemented mechanically so the measurement decides.
+#
+# Six earlier strategies were removed after measuring poorly: a house trend
+# model, cross-sectional momentum, a Donchian breakout, short-term
+# reversion, funding carry and dual momentum.
+strategies:
+  # Finalised on a solo bench: each strategy run alone over the same
+  # 90 days of crypto history, 18 instruments, one shared download.
+  #
+  #   strategy      return%  trades  expect R  maxDD%   win%     PF
+  #   clenow         +14.91      39    +0.581    1.33   69.2   5.58
+  #   turtle         +10.77      69    +0.255    1.29   60.9   2.09
+  #   lorentzian      +3.80      50    -0.002    4.02   48.0   1.37
+  #   supertrend      -1.17     214    -0.070    5.58   42.1   1.01
+  #   nwenvelope      -3.23      19    -0.308    3.25   31.6   0.20
+  #   holygrail       -3.26      55    -0.206    5.14   30.9   0.76
+  #   smc             -6.45     162    -0.321    9.40   30.9   0.65
+  #
+  # The two published trend systems carry the book and do it at a third
+  # of the drawdown the full roster suffered (-0.66% at 6.99% DD). The
+  # four dropped ones traded 450 times between them to lose money; smc
+  # and supertrend alone accounted for 376 of those trades.
+  #
+  # lorentzian is kept on sufferance: its return is positive but its
+  # expectancy is -0.002R, which means the gain came from a handful of
+  # large winners rather than from an edge per trade. It earns its place
+  # as a different kind of driver next to two correlated trend systems,
+  # and the autopilot will bench it if it deteriorates.
+  enabled:
+    - clenow       # Clenow: EMA50/100 filter + 100-bar extreme, 3 ATR stop
+    - turtle       # Dennis & Eckhardt 1983: 20/55 Donchian, N sizing, 2N stop
+    - lorentzian   # kNN over historical market states, Lorentzian distance
+
+  news:
+    asset_classes: ["equity", "etf"]   # crypto's tape is fast enough already
+    min_articles: 6                    # a lone excitable headline is not a signal
+    min_score: 0.12
+    min_strength: 0.05                 # consensus x coverage x magnitude
+    fresh_weight: 0.4                  # how much recency scales the signal
+    require_trend_agreement: true      # no buying good news in a downtrend
+    horizon_bars: 5
+
+  turtle:
+    entry_s1: 20
+    entry_s2: 55
+    exit_s1: 10
+    n_period: 20                   # N is the 20-period ATR
+    stop_n: 2.0
+    pyramid_step_n: 0.5
+    max_units: 4
+    last_winner_filter: true       # skip S1 if the last breakout would have won
+
+  clenow:
+    fast_ema: 50
+    slow_ema: 100
+    breakout_bars: 100
+    atr_period: 20
+    stop_atr: 3.0
+
+  holygrail:
+    adx_period: 14
+    adx_floor: 30.0
+    ema_period: 20
+    touch_atr: 0.5                 # how close to the EMA counts as a touch
+    swing_lookback: 20
+
+  supertrend:
+    atr_period: 10
+    min_factor: 1.0
+    max_factor: 5.0
+    factor_step: 0.5
+    performance_window: 200        # how far back each factor is scored
+
+  smc:
+    swing_length: 10
+    sweep_lookback: 30
+    sweep_reversal_atr: 0.5
+    dealing_range_bars: 60
+    use_fvg: true
+
+  nwenvelope:
+    bandwidth: 8.0
+    window: 200
+    multiplier: 3.0
+    max_adx: 35.0                  # never fade a strong trend
+
+  lorentzian:
+    neighbours: 8
+    horizon: 4                     # bars ahead each neighbour votes on
+    spacing: 4                     # so neighbours are not one afternoon
+    history_bars: 500
+    normalise_window: 200          # trailing, never whole-series
+    min_vote_ratio: 0.6
+    adx_floor: 20.0
+
+# ── Autopilot ────────────────────────────────────────────────
+# The roster manages itself: strategies that earn a materially negative
+# record over a real sample are benched to a probe allocation, and the
+# survivors are tilted toward whatever suits the current tape. Nothing here
+# needs adjusting by hand.
+autopilot:
+  enabled: true
+  min_trades_to_judge: 25          # never judge a strategy on a small sample
+  bench_below_expectancy_r: -0.15  # well below zero, not at it
+  probe_weight: 0.05               # a benched strategy keeps a foot in the door
+  regime_tilt: true
+  max_benched_fraction: 0.5        # if most are losing, the setting is wrong
+
+# ── Portfolio construction ───────────────────────────────────
+portfolio:
+  weighting: "inverse_vol"         # inverse_vol | equal | manual
+  correlation_haircut: true        # shrink strategies that duplicate others
+  max_strategy_weight: 0.40
+  min_strategy_weight: 0.05
+  # max_weights:                   # per-strategy caps, if one needs one
+  #   smc: 0.20
+  lookback_days: 60
+  min_history_days: 10
+  min_agreement: 0.0               # raise to require strategy consensus
+  breadth_floor: 0.6               # conviction a lone strategy keeps
+  # weights: {trend: 0.4, xsmom: 0.3, breakout: 0.2, reversion: 0.1}
+
+# ── Portfolio volatility targeting ───────────────────────────
+# The best-evidenced lever on drawdown: exposure scales down when realised
+# volatility rises, and left-tail events cluster in high-volatility periods.
+vol_target:
+  enabled: true
+  target_annual_pct: 15.0
+  min_scale: 0.25
+  max_scale: 1.5
+  window_days: 20
+  min_days: 8
+  cut_speed: 1.0                   # de-risk immediately
+  restore_speed: 0.25              # re-risk slowly
+  drawdown_throttle: true
+  throttle_start_pct: 4.0
+  throttle_floor: 0.35
+
+# ── Signal tilts ─────────────────────────────────────────────
+# Modifiers on what the strategies decided. None can open a trade alone.
 signals:
-  min_edge_score: 0.18             # |edge| below this is noise
-  news_weight: 0.20                # news tilts, it never triggers alone
-  book_weight: 0.08                # order-book imbalance, confirmation only
+  min_edge_score: 0.15             # |edge| below this is noise
+  news_weight: 0.15                # news tilts, it never triggers alone
+  book_weight: 0.06                # order-book imbalance, confirmation only
   news_can_veto: true
-  require_htf_agreement: true      # don't fight the higher timeframe
+  require_htf_agreement: true      # except for market-neutral strategies
+  # The major trend, read two rungs above the decision frame — daily for
+  # crypto, weekly for equities. require_htf_agreement uses a 21/55 EMA
+  # cross on the 4h bar, which is nine days of history and flips on every
+  # pullback. Over a 90-day replay in which crypto rose 42-77%, the bot
+  # took 120 shorts against 67 longs and the shorts averaged -0.078R;
+  # nothing in the read could see the move it was fighting.
+  # A direction is reported only when price and the slope of the long
+  # average agree, so an ambiguous long-term picture constrains nothing.
+  require_primary_trend: true
+  # 100, not the conventional 200. Measured over ~400 daily bars across
+  # seven liquid pairs, against the unconditional 20-day drift of -2.80%:
+  #
+  #   period  slope    long days   fwd 20d   vs drift
+  #       30     20          396    -1.85%     +0.95%
+  #       50     20          276    -0.50%     +2.30%
+  #      100     20           94    +5.50%     +8.30%
+  #      200     20           19    +9.87%    +12.67%
+  #
+  # The edge grows with the period and the sample collapses with it. 200
+  # rests on nineteen days, which is not a measurement; 100 sits in the
+  # middle of a monotonic pattern with a sample worth reporting. It also
+  # matters that a 200-day average on crypto is a seven-month memory: over
+  # the last 90 days, while these pairs rose 42-77%, its slope was still
+  # falling from an earlier drawdown and it read "downtrend" on 56 of 90
+  # days. A filter that inverts during a rally is worse than none.
+  #
+  # Caveat kept in view: 20-day forward windows overlap heavily, so the
+  # effective sample is far smaller than the day counts suggest.
+  primary_trend_period: 100
+  primary_trend_slope_bars: 20
+  # Relative strength within the asset class. Absolute momentum says an
+  # instrument is rising; relative momentum says whether it is the one
+  # worth owning — in a window where everything rose 42-77%, "trending up"
+  # was true of the whole universe and picked nothing.
+  # A long must rank above `momentum_band`, a short below 1 - band.
+  # 0 disables it. Off by default until the sweep says otherwise.
+  momentum_band: 0.0
+  momentum_min_peers: 4
+  momentum_lookback: 60
+  # Beta and r-squared are measured from the daily bars the briefing
+  # already fetches, not read from a table. The table had XRP at 1.00
+  # against a measured 1.24 and no entry at all for half the universe.
+  beta_window: 120
+  beta_min_observations: 40
 
 # ── Tradability filters ──────────────────────────────────────
 filters:
@@ -108,6 +476,9 @@ news:
   tilt_window_hours: 8
   tone_window_hours: 12
   signal_threshold: 0.35
+  fresh_window_hours: 6            # "has the tape had time to price this?"
+  fetch_workers: 8                 # feeds are fetched in parallel
+  fetch_timeout_seconds: 15
   min_articles: 2
   per_feed_limit: 30
   # feeds:                         # override the defaults if you like

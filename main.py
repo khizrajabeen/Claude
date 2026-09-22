@@ -12,6 +12,9 @@ writes the day to disk so the next one starts from a real record.
     python main.py briefing             # morning read, no orders
     python main.py plan                 # briefing + the plan it would trade
     python main.py replay --days 30     # replay the cycle over history
+    python main.py compare              # bake-off across ML models
+  python main.py bench --days 90      # compare strategy/portfolio variants
+  python main.py bench --oos --days 300 --variants candidates
     python main.py report               # records so far
     python main.py news                 # current sentiment
     python main.py live                 # real money (asks first)
@@ -44,8 +47,9 @@ Examples:
     )
     parser.add_argument(
         "mode",
-        choices=["run", "day", "briefing", "plan", "replay", "report", "news",
-                 "live", "train", "backtest"],
+        choices=["run", "day", "briefing", "plan", "replay", "report", "pnl",
+                 "screen", "publish", "news", "live", "train", "compare",
+                 "bench", "backtest"],
         help="What to do",
     )
     parser.add_argument("--config", default="config.yaml", help="Config file")
@@ -56,6 +60,21 @@ Examples:
                         help="Run the day on a simulated clock (no waiting)")
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     parser.add_argument("--yes", action="store_true", help="Skip the live-trading prompt")
+    parser.add_argument("--models", help="Comma-separated models for 'compare'")
+    parser.add_argument("--variants",
+                        help="Variants for 'bench', or a group: ladder, "
+                             "head-to-head, candidates")
+    parser.add_argument("--oos", action="store_true",
+                        help="Split history and report in-sample vs out-of-sample")
+    parser.add_argument("--split", type=float, default=0.5,
+                        help="Fraction of history used as the in-sample half")
+    parser.add_argument("--months", type=float,
+                        help="Window for 'pnl', in months (default 3)")
+    parser.add_argument("--out", help="Output directory for 'publish'")
+    parser.add_argument("--screen", action="store_true",
+                        help="Include a live market screen in 'publish'")
+    parser.add_argument("--replay-journal", action="store_true",
+                        help="Report on the replay's records, not the live ones")
     parser.add_argument("--reset", action="store_true",
                         help="Start from a clean journal (archives the old one)")
     return parser.parse_args(argv)
@@ -66,10 +85,12 @@ def build_context(config, args, read_only: bool = False):
     args.read_only = read_only
     from bot.daily.journal import Journal
     from bot.daily.session import Clock, DailySession, SimulatedClock
-    from bot.exchange import ExchangeClient
+    from bot.data import DataRouter
+    from bot.markets import build_universe
     from bot.trading.broker import PaperBroker
 
-    exchange = ExchangeClient(config)
+    universe = build_universe(config)
+    router = DataRouter(config)
     journal = Journal(config)
     if not args.read_only:
         journal.acquire()
@@ -87,15 +108,17 @@ def build_context(config, args, read_only: bool = False):
         )
     else:
         clock = Clock()
-    session = DailySession(config, exchange, broker, journal, state, clock=clock)
-    return exchange, journal, state, broker, session
+    session = DailySession(
+        config, router, broker, journal, state, clock=clock, universe=universe,
+    )
+    return router, journal, state, broker, session
 
 
 # ── Modes ────────────────────────────────────────────────────
 
 def mode_briefing(config, logger, args):
     from bot.daily.schedule import build_schedule
-    exchange, journal, state, broker, session = build_context(config, args, read_only=True)
+    router, journal, state, broker, session = build_context(config, args, read_only=True)
     schedule = build_schedule(config, session.clock.now())
     briefing, _ = session.briefing_builder.build(
         symbols=session.symbols,
@@ -114,7 +137,7 @@ def mode_briefing(config, logger, args):
 
 def mode_plan(config, logger, args):
     from bot.daily.schedule import build_schedule
-    exchange, journal, state, broker, session = build_context(config, args, read_only=True)
+    router, journal, state, broker, session = build_context(config, args, read_only=True)
     schedule = build_schedule(config, session.clock.now())
     session._begin_day(str(schedule.day))
     briefing, plan = session.open_day(schedule)
@@ -126,7 +149,7 @@ def mode_plan(config, logger, args):
 
 
 def mode_day(config, logger, args):
-    exchange, journal, state, broker, session = build_context(config, args)
+    router, journal, state, broker, session = build_context(config, args)
     _install_shutdown(session, logger)
     try:
         result = session.run_day()
@@ -138,7 +161,7 @@ def mode_day(config, logger, args):
 
 
 def mode_run(config, logger, args):
-    exchange, journal, state, broker, session = build_context(config, args)
+    router, journal, state, broker, session = build_context(config, args)
     _install_shutdown(session, logger)
     try:
         results = session.run_forever(max_days=args.days)
@@ -157,6 +180,90 @@ def mode_replay(config, logger, args):
     if args.json:
         print(json.dumps(results, indent=2, default=str))
     return results
+
+
+def mode_publish(config, logger, args):
+    """Write the dashboard's data files from the journal."""
+    from bot.daily.journal import Journal
+    from bot.utils.publish import Publisher
+
+    if args.replay_journal:
+        from bot.utils.backtester import _replay_config
+        source = _replay_config(config)
+    else:
+        source = config
+
+    screen = None
+    if args.screen:
+        from bot.exchange import ExchangeClient
+        from bot.markets.screener import CoinScreener
+        screen = CoinScreener(config, exchange=ExchangeClient(config)).scan()
+
+    publisher = Publisher(config, out_dir=args.out)
+    written = publisher.publish(journal=Journal(source), screen=screen)
+    for name in sorted(written):
+        logger.info("  %s", publisher.dir / name)
+    return written
+
+
+def mode_screen(config, logger, args):
+    """Rank the exchange's markets before deciding what to trade."""
+    from bot.analysis.news_sentiment import NewsSentimentAnalyzer
+    from bot.exchange import ExchangeClient
+    from bot.markets.screener import CoinScreener, render
+
+    news = None
+    if config.get("news", {}).get("enabled", True):
+        news = NewsSentimentAnalyzer(config)
+        news.refresh(force=True)
+
+    screener = CoinScreener(config, exchange=ExchangeClient(config), news=news)
+    candidates = screener.scan()
+    if args.json:
+        print(json.dumps([c.to_dict() for c in candidates], indent=2))
+        return candidates
+
+    render(candidates, logger, limit=int(args.days or 25))
+    shortlist = [c for c in candidates if c.tradable][: screener.top_n]
+    logger.info("  Shortlist: %s", ", ".join(c.symbol for c in shortlist))
+    new = [c for c in candidates if c.is_new][:8]
+    if new:
+        logger.info("  Newly listed (%.0fd): %s",
+                    screener.new_listing_days,
+                    ", ".join(f"{c.symbol} {c.age_days:.0f}d" for c in new))
+    return candidates
+
+
+def mode_pnl(config, logger, args):
+    """Cross-asset P&L: per day, and per asset class over the window."""
+    from bot.daily.journal import Journal
+    from bot.utils.pnl import period_report, render
+
+    if args.replay_journal:
+        from bot.utils.backtester import _replay_config
+        config = _replay_config(config)
+
+    journal = Journal(config)
+    days = journal.load_days()
+    trades = journal.load_trades()
+    state = journal.load_state()
+    if not trades and not days:
+        logger.info("Nothing recorded in %s — run 'replay' or 'day' first.",
+                    journal.dir)
+        return {}
+
+    months = args.months if args.months is not None else 3.0
+    window = int(months * 30.44) if months > 0 else None
+    report = period_report(
+        trades, days,
+        starting_equity=state.initial_equity or None,
+        window_days=window,
+    )
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+    else:
+        render(report, logger, daily_rows=int(args.days or 0))
+    return report
 
 
 def mode_report(config, logger, args):
@@ -269,6 +376,33 @@ def mode_train(config, logger, args):
     return pipeline.run(days=args.days)
 
 
+def mode_compare(config, logger, args):
+    """Bake-off: every model, identical features, labels and purged folds."""
+    from bot.ml.trainer import TrainingPipeline
+
+    models = args.models.split(",") if args.models else None
+    report = TrainingPipeline(config).compare(days=args.days, models=models)
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+    return report
+
+
+def mode_bench(config, logger, args):
+    """Replay several configurations over identical data and compare them."""
+    from bot.utils.bench import VariantBench
+
+    variants = args.variants.split(",") if args.variants else None
+    bench = VariantBench(config)
+    if args.oos:
+        report = bench.run_split(days=args.days or 300, variants=variants,
+                                 split=args.split)
+    else:
+        report = bench.run(days=args.days or 90, variants=variants)
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+    return report
+
+
 def mode_backtest(config, logger, args):
     return mode_replay(config, logger, args)
 
@@ -294,14 +428,24 @@ def print_banner(logger, config, mode):
     session = config.get("session", {})
     risk = config.get("risk", {})
     logger.info("═" * 62)
-    logger.info("  DAILY CRYPTO TRADING BOT")
+    logger.info("  DAILY MULTI-ASSET TRADING BOT")
     logger.info("═" * 62)
     logger.info("  Mode       : %s", mode.upper())
-    logger.info("  Exchange   : %s (%s)", config["exchange"]["name"],
-                config["exchange"].get("market_type", "spot"))
-    logger.info("  Universe   : %s", ", ".join(config["data"]["symbols"]))
-    logger.info("  Timeframe  : %s (trend filter %s)",
-                config["data"]["timeframe"], config["data"].get("higher_timeframe"))
+    from bot.markets import build_universe
+    universe = build_universe(config)
+    by_class: dict[str, list[str]] = {}
+    for instrument in universe:
+        by_class.setdefault(instrument.asset_class.value, []).append(instrument.symbol)
+    logger.info("  Universe   : %d instruments across %d asset class(es)",
+                len(universe), len(by_class))
+    for name, symbols in sorted(by_class.items()):
+        logger.info("    %-12s %s", name, ", ".join(symbols))
+    adaptive = config["data"].get("adaptive_timeframes", True)
+    logger.info("  Timeframe  : %s",
+                "chosen per instrument per day (15m/1h/4h crypto, 1d equity)"
+                if adaptive else
+                f"{config['data']['timeframe']} "
+                f"(trend filter {config['data'].get('higher_timeframe')})")
     logger.info("  Day        : open %s | entries +%sm | flat %s",
                 session.get("day_open"), session.get("entry_window_minutes"),
                 session.get("flatten_at"))
@@ -354,9 +498,14 @@ def main(argv=None):
         "plan": mode_plan,
         "replay": mode_replay,
         "report": mode_report,
+        "pnl": mode_pnl,
+        "screen": mode_screen,
+        "publish": mode_publish,
         "news": mode_news,
         "live": mode_live,
         "train": mode_train,
+        "compare": mode_compare,
+        "bench": mode_bench,
         "backtest": mode_backtest,
     }
     try:

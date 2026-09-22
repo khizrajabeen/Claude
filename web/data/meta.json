@@ -1,0 +1,48 @@
+{
+  "as_of": "2026-09-22T10:58:16+00:00",
+  "current_day": null,
+  "days_recorded": 90,
+  "last_day": "2026-08-21",
+  "mode": "paper",
+  "risk": {
+    "max_daily_loss_pct": 2.0,
+    "max_open_positions": 8,
+    "max_portfolio_heat_pct": 4.0,
+    "risk_per_trade_pct": 0.75
+  },
+  "schema": 1,
+  "session": {
+    "day_open": "00:00",
+    "flatten_at": "23:30",
+    "max_new_positions_per_day": 6
+  },
+  "strategies": [
+    "clenow",
+    "turtle",
+    "lorentzian"
+  ],
+  "universe": {
+    "crypto_perp": [
+      "BTC/USDT:USDT",
+      "ETH/USDT:USDT",
+      "SOL/USDT:USDT"
+    ],
+    "crypto_spot": [
+      "BTC/USDT",
+      "ETH/USDT",
+      "SOL/USDT",
+      "XRP/USDT",
+      "LINK/USDT",
+      "DOGE/USDT",
+      "SUI/USDT",
+      "UNI/USDT",
+      "NEAR/USDT",
+      "ARB/USDT",
+      "LTC/USDT",
+      "ADA/USDT",
+      "AVAX/USDT",
+      "FIL/USDT",
+      "BCH/USDT"
+    ]
+  }
+}

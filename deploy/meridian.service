@@ -1,0 +1,24 @@
+[Unit]
+Description=Meridian trading bot — one daily cycle
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=meridian
+WorkingDirectory=/opt/meridian
+ExecStart=/opt/meridian/deploy/run.sh
+TimeoutStartSec=6h
+
+# The bot needs the network, its own directory and nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/meridian
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

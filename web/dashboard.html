@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — Meridian</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/app.css">
+</head>
+<body>
+<div class="aurora"></div>
+
+<div class="shell">
+  <aside class="rail">
+    <a href="./index.html" title="Overview">◈</a>
+    <a href="./dashboard.html" aria-current="page" title="Dashboard">▦</a>
+    <a href="#positions" title="Positions">▤</a>
+    <a href="#trades" title="Trades">⇄</a>
+    <a href="#markets" title="Markets">◎</a>
+    <span class="gap"></span>
+    <a href="./settings.html" title="Settings">⚙</a>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <h1>Portfolio</h1>
+      <span class="pill" id="status"><span class="dot" id="status-dot"></span>
+        <span id="status-text">loading…</span></span>
+      <span class="spacer"></span>
+      <span class="small muted" id="mode-pill"></span>
+      <button class="btn sm" data-toggle-theme title="Switch theme">◐</button>
+      <button class="btn sm" id="refresh">↻ Refresh</button>
+    </div>
+
+    <div id="banner"></div>
+
+    <section class="tiles" id="tiles"></section>
+
+    <section class="cols two" style="margin-bottom:16px">
+      <div class="card">
+        <h3>Equity curve <span class="small muted" id="curve-range"></span></h3>
+        <div id="curve"></div>
+        <div class="row small muted" style="justify-content:space-between;margin-top:10px">
+          <span id="curve-start"></span><span id="curve-end"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Open positions <span class="small muted" id="pos-count"></span></h3>
+        <div id="holdings"></div>
+      </div>
+    </section>
+
+    <section class="cols two" style="margin-bottom:16px">
+      <div class="card" id="positions">
+        <h3>By asset class</h3>
+        <div id="by-class"></div>
+      </div>
+      <div class="card">
+        <h3>Allocation</h3>
+        <div class="row" style="gap:20px;align-items:center">
+          <div id="donut"></div>
+          <div class="legend" id="alloc-legend" style="flex:1"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cols two" style="margin-bottom:16px">
+      <div class="card" id="trades">
+        <h3>Recent trades <span class="small muted">newest first</span></h3>
+        <div style="overflow-x:auto"><table id="trade-table"></table></div>
+      </div>
+      <div class="card">
+        <h3>Strategies</h3>
+        <div style="overflow-x:auto"><table id="strategy-table"></table></div>
+      </div>
+    </section>
+
+    <section class="card" id="markets">
+      <h3>Market screen <span class="small muted" id="screen-note">ranked by 24h turnover</span></h3>
+      <div style="overflow-x:auto"><table id="screen-table"></table></div>
+    </section>
+
+    <p class="small muted center" style="margin-top:26px">
+      Paper trading. Simulated fills with modelled fees, slippage and funding —
+      not a live account.
+    </p>
+  </main>
+</div>
+
+<script type="module" src="./assets/dashboard.js"></script>
+</body>
+</html>

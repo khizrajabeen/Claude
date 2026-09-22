@@ -40,8 +40,14 @@ def load_config(config_path: str = "config.yaml") -> dict:
     return config
 
 
+def _asset_class_names() -> set[str]:
+    from bot.markets.instrument import AssetClass
+    return {member.value for member in AssetClass}
+
+
 def validate_config(config: dict) -> None:
     """Fail loudly at startup rather than mid-session."""
+    _ASSET_CLASSES = _asset_class_names()
     for section in REQUIRED_SECTIONS:
         if section not in config:
             raise ValueError(f"Missing required config section: '{section}'")
@@ -49,12 +55,28 @@ def validate_config(config: dict) -> None:
     if not config["exchange"].get("name"):
         raise ValueError("exchange.name is required")
 
-    symbols = config["data"].get("symbols")
-    if not symbols:
-        raise ValueError("data.symbols must list at least one pair")
+    # Either style of universe is acceptable: an explicit instrument list
+    # spanning asset classes, or the legacy bare symbol list (crypto spot).
+    symbols = config["data"].get("symbols") or []
+    instruments = config["data"].get("instruments") or []
+    if not symbols and not instruments:
+        raise ValueError(
+            "data.instruments or data.symbols must list at least one market"
+        )
     for symbol in symbols:
         if "/" not in symbol:
             raise ValueError(f"data.symbols entry '{symbol}' must look like BASE/QUOTE")
+    for spec in instruments:
+        name = spec if isinstance(spec, str) else spec.get("symbol")
+        if not name:
+            raise ValueError("every data.instruments entry needs a symbol")
+        if isinstance(spec, dict) and spec.get("asset_class"):
+            klass = str(spec["asset_class"])
+            if klass not in _ASSET_CLASSES:
+                raise ValueError(
+                    f"data.instruments entry '{name}' has unknown asset_class "
+                    f"'{klass}'; expected one of {sorted(_ASSET_CLASSES)}"
+                )
 
     if not config["data"].get("timeframe"):
         raise ValueError("data.timeframe is required")
@@ -94,3 +116,26 @@ def validate_config(config: dict) -> None:
     mode = config["exchange"].get("market_type", "spot")
     if mode not in ("spot", "swap", "future"):
         raise ValueError("exchange.market_type must be spot, swap or future")
+
+    _validate_history_depth(config)
+
+
+def _validate_history_depth(config: dict) -> None:
+    """Fetch enough bars for every enabled strategy's lookback.
+
+    A strategy given less history than its longest lookback returns no
+    signals at all, which looks identical to "no opportunity today". That
+    is the worst kind of bug, so it is caught at startup instead.
+    """
+    from bot.strategies import build_strategies
+
+    history = int(config.get("data", {}).get("history_bars", 500))
+    for strategy in build_strategies(config):
+        needed = strategy.required_bars()
+        if needed > history:
+            raise ValueError(
+                f"data.history_bars ({history}) is below what strategy "
+                f"'{strategy.name}' needs ({needed} bars). Raise history_bars, "
+                f"shorten that strategy's lookback, or disable it — as configured "
+                f"it would silently never produce a signal."
+            )

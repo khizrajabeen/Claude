@@ -182,3 +182,154 @@ def test_stablecoins_carry_no_market_beta():
     assert symbol_beta("USDT/USD") == 0.0
     assert symbol_beta("BTC/USDT") == 1.0
     assert symbol_beta("WEIRDCOIN/USDT") > 0, "unknown coins are still crypto"
+
+
+# ── Cost gate ────────────────────────────────────────────────
+
+def test_a_trade_must_clear_its_own_costs(config):
+    """The difference between trading 20 times and 350 times is paying the
+    round trip seventeen times more often for the same gross edge."""
+    budget = RiskBudget(config)
+    price = 100.0
+
+    # A wide-ATR market: the expected move dwarfs the toll.
+    wide = budget.size_order("A/USDT", "long", price, atr=1.0, equity=10_000, risk_pct=0.75)
+    clears, detail = budget.clears_costs(wide, conviction=0.5, round_trip_bps=17.0)
+    assert clears and detail["ratio"] > 3.0
+
+    # A tight-ATR market: the same trade is negative-expectancy on costs.
+    tight = budget.size_order("A/USDT", "long", price, atr=0.1, equity=10_000, risk_pct=0.75)
+    blocked, detail = budget.clears_costs(tight, conviction=0.5, round_trip_bps=17.0)
+    assert not blocked and detail["ratio"] < 3.0
+
+
+def test_weak_conviction_is_not_credited_with_the_full_target(config):
+    budget = RiskBudget(config)
+    order = budget.size_order("A/USDT", "long", 100.0, atr=0.3, equity=10_000, risk_pct=0.75)
+
+    _, strong = budget.clears_costs(order, conviction=0.9, round_trip_bps=17.0)
+    _, weak = budget.clears_costs(order, conviction=0.2, round_trip_bps=17.0)
+    assert strong["expected_bps"] > weak["expected_bps"]
+
+
+def test_higher_costs_block_more_trades(config):
+    budget = RiskBudget(config)
+    order = budget.size_order("A/USDT", "long", 100.0, atr=0.4, equity=10_000, risk_pct=0.75)
+
+    cheap, _ = budget.clears_costs(order, 0.5, round_trip_bps=10.0)
+    dear, _ = budget.clears_costs(order, 0.5, round_trip_bps=120.0)
+    assert cheap and not dear
+
+
+def test_a_degenerate_order_never_clears(config):
+    budget = RiskBudget(config)
+    order = budget.size_order("A/USDT", "long", 0.0, atr=1.0, equity=10_000, risk_pct=0.75)
+    clears, _ = budget.clears_costs(order, 1.0, round_trip_bps=17.0)
+    assert not clears
+
+
+# ── Cost measured in units of risk ───────────────────────────
+
+def _cost_order(price=100.0, atr_pct=0.01, atr_stop_mult=2.0):
+    from bot.risk.budget import SizedOrder
+    stop = atr_stop_mult * price * atr_pct
+    return SizedOrder(
+        symbol="BTC/USDT", side="long", quantity=1.0, entry_price=price,
+        stop_price=price - stop, take_profit=price + 2 * stop,
+        risk_usd=stop, notional=price, leverage=1.0,
+        atr=price * atr_pct, r_distance=stop,
+    )
+
+
+def test_a_quiet_market_costs_more_per_unit_of_risk(config):
+    """The toll is charged on notional but risk is the stop distance, so a
+    0.5%-ATR market costs twice as much per R as a 1.0%-ATR one for the
+    identical signal."""
+    from bot.risk.budget import RiskBudget
+
+    budget = RiskBudget(config)
+    _, quiet = budget.clears_costs(_cost_order(atr_pct=0.005), 0.5, 17.0)
+    _, lively = budget.clears_costs(_cost_order(atr_pct=0.010), 0.5, 17.0)
+    assert quiet["cost_r"] == pytest.approx(2 * lively["cost_r"], rel=1e-6)
+
+
+def test_a_wider_stop_lowers_the_cost_per_unit_of_risk(config):
+    from bot.risk.budget import RiskBudget
+
+    budget = RiskBudget(config)
+    _, tight = budget.clears_costs(_cost_order(atr_stop_mult=2.0), 0.5, 17.0)
+    _, wide = budget.clears_costs(_cost_order(atr_stop_mult=4.0), 0.5, 17.0)
+    assert wide["cost_r"] < tight["cost_r"]
+
+
+def test_a_trade_whose_toll_exceeds_the_cap_is_refused(config):
+    from bot.risk.budget import RiskBudget
+
+    config["risk"]["max_cost_r"] = 0.06
+    budget = RiskBudget(config)
+    allowed, details = budget.clears_costs(_cost_order(atr_pct=0.004), 1.0, 17.0)
+    assert not allowed
+    assert "round trip" in details["reason"]
+    assert details["cost_r"] > details["max_cost_r"]
+
+
+def test_full_conviction_does_not_buy_past_the_cost_cap(config):
+    """The cap is about the toll, not about how sure the book is — a
+    confident signal on a quiet market is still a bad trade to pay for."""
+    from bot.risk.budget import RiskBudget
+
+    config["risk"]["max_cost_r"] = 0.06
+    budget = RiskBudget(config)
+    assert not budget.clears_costs(_cost_order(atr_pct=0.004), 1.0, 17.0)[0]
+
+
+def test_the_cost_cap_can_be_switched_off(config):
+    from bot.risk.budget import RiskBudget
+
+    config["risk"]["max_cost_r"] = 0.0
+    config["risk"]["min_edge_cost_ratio"] = 0.0
+    budget = RiskBudget(config)
+    assert budget.clears_costs(_cost_order(atr_pct=0.004), 1.0, 17.0)[0]
+
+
+def test_a_lively_market_passes_the_cost_cap(config):
+    from bot.risk.budget import RiskBudget
+
+    config["risk"]["max_cost_r"] = 0.06
+    budget = RiskBudget(config)
+    allowed, details = budget.clears_costs(_cost_order(atr_pct=0.020), 0.5, 17.0)
+    assert allowed, details
+    assert details["cost_r"] < 0.06
+
+
+def test_the_older_edge_ratio_gate_still_fires(config):
+    """Kept because it catches a different case: a stop so tight the
+    target sits inside the noise."""
+    from bot.risk.budget import RiskBudget
+
+    config["risk"]["max_cost_r"] = 0.0
+    config["risk"]["min_edge_cost_ratio"] = 3.0
+    budget = RiskBudget(config)
+    allowed, details = budget.clears_costs(_cost_order(atr_pct=0.01), 0.05, 17.0)
+    assert not allowed
+    assert "costs" in details["reason"]
+
+
+def test_a_trade_with_no_stop_distance_is_refused(config):
+    from bot.risk.budget import RiskBudget, SizedOrder
+
+    budget = RiskBudget(config)
+    broken = SizedOrder(symbol="X", side="long", quantity=1.0, entry_price=100.0,
+                        stop_price=100.0, take_profit=104.0, risk_usd=0.0,
+                        notional=100.0, leverage=1.0, atr=0.0, r_distance=0.0)
+    assert not budget.clears_costs(broken, 1.0, 17.0)[0]
+
+
+def test_the_cost_in_r_matches_the_closed_form(config):
+    """cost_R = round_trip_bps / (10000 * atr_stop_mult * atr_pct)."""
+    from bot.risk.budget import RiskBudget
+
+    budget = RiskBudget(config)
+    _, details = budget.clears_costs(
+        _cost_order(atr_pct=0.01, atr_stop_mult=2.0), 0.5, 17.0)
+    assert details["cost_r"] == pytest.approx(17.0 / (10_000 * 2.0 * 0.01), rel=1e-9)

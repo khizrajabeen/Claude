@@ -27,15 +27,36 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
+from bot.markets.instrument import trading_profile
+
 logger = logging.getLogger("trading_bot")
 
 # Symbols that move as one factor with the market. Anything not listed is
 # still crypto, so it gets the default beta rather than a free pass.
 DEFAULT_BETA = 0.8
+# Beta is measured against each group's own factor — crypto against BTC,
+# equities against SPY — because a single market beta across both would
+# claim a long in NVDA hedges a short in ETH, which it does not.
 SYMBOL_BETA = {
+    # Crypto, vs BTC
     "BTC": 1.0, "ETH": 1.05, "SOL": 1.3, "BNB": 0.9, "XRP": 1.0,
     "ADA": 1.1, "DOGE": 1.4, "AVAX": 1.25, "LINK": 1.15, "MATIC": 1.2,
     "USDT": 0.0, "USDC": 0.0, "DAI": 0.0,
+    # US equities and ETFs, vs SPY
+    "SPY": 1.0, "QQQ": 1.15, "IWM": 1.15, "DIA": 0.95,
+    "GLD": 0.15, "TLT": -0.2, "SLV": 0.3,
+    "NVDA": 1.75, "AMD": 1.9, "TSLA": 1.85, "COIN": 2.4, "MSTR": 3.0,
+    "AAPL": 1.15, "MSFT": 1.0, "GOOGL": 1.05, "AMZN": 1.2, "META": 1.25,
+}
+
+# Which positions share a risk factor. Spot BTC and the BTC perp are the
+# same bet; a stock and an index ETF move together through the index. Two
+# instruments in different groups are treated as independent, so the
+# crowding caps apply within a group rather than across the whole book.
+CORRELATION_GROUPS = {
+    "crypto_spot": "crypto", "crypto_perp": "crypto",
+    "equity": "us_equity", "etf": "us_equity",
+    "futures": "futures",
 }
 
 
@@ -67,18 +88,49 @@ class SizedOrder:
     atr: float
     r_distance: float
     caps_applied: list[str] = field(default_factory=list)
+    asset_class: str = ""
 
     @property
     def valid(self) -> bool:
         return self.quantity > 0 and self.r_distance > 0
+
+    @property
+    def group(self) -> str:
+        return correlation_group(self.asset_class, self.symbol)
 
 
 def base_symbol(symbol: str) -> str:
     return symbol.split("/")[0].split(":")[0].upper()
 
 
-def symbol_beta(symbol: str) -> float:
+def symbol_beta(symbol: str, book=None) -> float:
+    """Beta to the instrument's own market factor.
+
+    A measured beta is preferred over the table whenever one exists. The
+    table had XRP at 1.00 against a measured 1.24 and ADA at 1.10 against
+    1.40, and no entry at all for half the pairs the bot now trades — they
+    silently took the default. It survives only as the fallback for an
+    instrument with too little history to measure.
+    """
+    if book is not None and book.known(symbol):
+        return book.beta(symbol)
     return SYMBOL_BETA.get(base_symbol(symbol), DEFAULT_BETA)
+
+
+def _position_group(position) -> str:
+    return correlation_group(getattr(position, "asset_class", ""), position.symbol)
+
+
+def correlation_group(asset_class, symbol: str = "") -> str:
+    """The risk factor a position loads on.
+
+    Falling back on the symbol keeps records written before asset classes
+    existed grouped with the crypto they were.
+    """
+    name = getattr(asset_class, "value", asset_class)
+    if name:
+        return CORRELATION_GROUPS.get(str(name), str(name))
+    return "crypto" if "/" in symbol else "us_equity"
 
 
 class RiskBudget:
@@ -89,6 +141,9 @@ class RiskBudget:
         self.risk = config.get("risk", {})
         self.stops = config.get("stops", {})
         self.sizing = config.get("sizing", {})
+        # Set each day from the bars the briefing fetched. None means fall
+        # back to the static table.
+        self.beta_book = None
 
     # ── Per-trade sizing ──────────────────────────────────────
 
@@ -140,6 +195,19 @@ class RiskBudget:
             logger.debug("Risk/trade %.3f%% (base %.3f%%) %s", final, base, applied)
         return final
 
+    def contrarian_haircut(self, contrarian_share: float) -> float:
+        """Risk multiplier for a view that is fading the move.
+
+        A fade enters earlier than a confirmation signal and is right more
+        often about the turn, but it is betting against whatever is
+        currently working — so when it is wrong, it is wrong into a move
+        that is still running. Same dollar risk at the stop, but the stop
+        is likelier to gap through it, so the position is cut.
+        """
+        share = max(0.0, min(1.0, float(contrarian_share)))
+        floor = float(self.risk.get("contrarian_risk_factor", 0.7))
+        return 1.0 - (1.0 - floor) * share
+
     def size_order(
         self,
         symbol: str,
@@ -152,10 +220,20 @@ class RiskBudget:
         min_qty: float = 0.0,
         qty_step: float = 0.0,
         min_notional: float = 0.0,
+        asset_class: str = "",
     ) -> SizedOrder:
-        """Size a position so a stop-out costs exactly `risk_pct` of equity."""
+        """Size a position so a stop-out costs exactly `risk_pct` of equity.
+
+        The stop width comes from the asset class's trading profile rather
+        than one global multiple. A perpetual takes a stop twice as wide
+        as spot, because leverage makes the margin for it affordable and
+        the measured problem is stop-outs on moves that later reversed —
+        65% of all exits over a 90-day replay were stops.
+        """
         caps: list[str] = []
-        k = float(self.stops.get("atr_stop_mult", 2.0))
+        profile = trading_profile(asset_class, self.config)
+        k = float(profile.get("atr_stop_mult")
+                  or self.stops.get("atr_stop_mult", 2.0))
         stop_distance = k * atr
 
         # A degenerate ATR (flat or missing data) would size the position at
@@ -214,9 +292,35 @@ class RiskBudget:
             notional = 0.0
             caps.append("below_min_notional")
 
+        # Leverage does not change what the trade risks — the stop is
+        # where it is, and a stop-out costs the same dollars either way.
+        # What it changes is how much cash the position ties up: at 3x the
+        # margin is a third of the notional, so the account can carry the
+        # position and still have cash for the rest of the book. That was
+        # a real constraint, not a theoretical one — an equity entry was
+        # refused for want of $1,300 while the crypto book sat on the cash.
+        #
+        # Safety check: the stop must sit well inside the liquidation
+        # price, or leverage converts a normal loss into a total one. At
+        # 3x, liquidation is roughly 33% away and a 4xATR stop on a 1% ATR
+        # instrument is 4% away, so there is an order of magnitude of
+        # room. Where that is not true, the leverage is reduced until it
+        # is.
+        max_leverage = float(profile.get("max_leverage", 1.0) or 1.0)
         leverage = 1.0
-        if notional > equity:
-            leverage = notional / equity
+        if max_leverage > 1.0 and entry_price > 0 and stop_distance > 0:
+            leverage = max_leverage
+            stop_fraction = stop_distance / entry_price
+            maintenance = float(self.risk.get("maintenance_margin_rate", 0.005))
+            buffer = float(self.risk.get("liquidation_buffer", 3.0))
+            # Liquidation sits at about (1/leverage - maintenance) away.
+            # Require the stop to be `buffer` times closer than that.
+            while leverage > 1.0 and \
+                    (1.0 / leverage - maintenance) < stop_fraction * buffer:
+                leverage -= 0.5
+            leverage = max(1.0, round(leverage, 2))
+            if leverage < max_leverage:
+                caps.append("liquidation_buffer")
 
         return SizedOrder(
             symbol=symbol,
@@ -233,6 +337,7 @@ class RiskBudget:
             atr=atr,
             r_distance=stop_distance,
             caps_applied=caps,
+            asset_class=asset_class,
         )
 
     # ── Portfolio gates ───────────────────────────────────────
@@ -247,13 +352,23 @@ class RiskBudget:
             at_risk += risk_per_unit * p.quantity
         return at_risk / equity * 100.0
 
-    def net_beta_exposure(self, positions: list, equity: float) -> float:
-        """Signed market exposure in beta-weighted units of equity."""
+    def net_beta_exposure(self, positions: list, equity: float,
+                          group: str | None = None) -> float:
+        """Signed market exposure in beta-weighted units of equity.
+
+        With `group`, only positions loading on that risk factor count.
+        Each group's beta is measured against its own factor (crypto vs
+        BTC, equities vs SPY), so summing across groups would add numbers
+        that are not in the same units.
+        """
         if equity <= 0:
             return 0.0
         total = 0.0
         for p in positions:
-            total += p.direction * symbol_beta(p.symbol) * p.entry_price * p.quantity
+            if group is not None and _position_group(p) != group:
+                continue
+            total += (p.direction * symbol_beta(p.symbol, self.beta_book)
+                      * p.entry_price * p.quantity)
         return total / equity
 
     def check_new_trade(
@@ -318,16 +433,40 @@ class RiskBudget:
         if new_heat > max_heat:
             return RiskDecision(False, "max_portfolio_heat", details)
 
-        # Correlation: cap same-direction crowding.
-        same_side = sum(1 for p in positions if p.side == order.side)
-        details["same_side"] = same_side
+        # Crowding, within the risk factor the order loads on. Counting
+        # every same-side position in the book instead would call three
+        # long stocks and a long perp four correlated bets; they are two
+        # factors of two, and blocking the fourth denies the book the
+        # diversification that motivated holding both classes.
+        group = order.group
+        same_side = [p for p in positions
+                     if p.side == order.side and _position_group(p) == group]
+        details["group"] = group
+        details["same_side_in_group"] = len(same_side)
         max_corr = int(self.risk.get("max_correlated_positions", 3))
-        if same_side >= max_corr:
+        if len(same_side) >= max_corr:
             return RiskDecision(False, "max_correlated_positions", details)
 
-        # Net beta exposure cap.
-        beta_now = self.net_beta_exposure(positions, equity)
-        order_beta = (1 if order.side == "long" else -1) * symbol_beta(order.symbol) \
+        # Counting positions is only honest when they are independent.
+        # Altcoins run a beta of 0.85-1.44 to Bitcoin with an average
+        # pairwise correlation of 0.62, so five long alts is about 1.7
+        # independent bets — and a book that thinks it holds five has
+        # understated its concentration fivefold.
+        min_effective = float(self.risk.get("min_effective_positions", 0.0) or 0.0)
+        if min_effective > 0 and self.beta_book is not None and same_side:
+            symbols = [p.symbol for p in same_side] + [order.symbol]
+            effective = self.beta_book.effective_positions(symbols)
+            details["positions"] = len(symbols)
+            details["effective_positions"] = round(effective, 2)
+            # Require each additional position to buy some genuine
+            # diversification rather than more of the same trade.
+            if effective < min_effective * len(symbols):
+                return RiskDecision(False, "too_correlated", details)
+
+        # Net beta exposure cap, also per factor.
+        beta_now = self.net_beta_exposure(positions, equity, group=group)
+        order_beta = (1 if order.side == "long" else -1) \
+            * symbol_beta(order.symbol, self.beta_book) \
             * order.notional / equity if equity > 0 else 0.0
         beta_after = beta_now + order_beta
         details["net_beta"] = round(beta_now, 3)
@@ -337,6 +476,70 @@ class RiskBudget:
             return RiskDecision(False, "max_net_beta", details)
 
         return RiskDecision(True, "ok", details)
+
+    # ── Cost gate ─────────────────────────────────────────────
+
+    def clears_costs(self, order: "SizedOrder", conviction: float,
+                     round_trip_bps: float) -> tuple[bool, dict]:
+        """Does the expected move cover the cost of making it?
+
+        Two gates, because they catch different mistakes.
+
+        **Cost in units of risk.** The round trip is a toll on notional;
+        R is the distance to the stop. So the toll as a fraction of what
+        the trade risks is
+
+            cost_R = round_trip_bps / (10,000 * atr_stop_mult * atr_pct)
+
+        and it depends on nothing but the fee schedule, the stop width and
+        the instrument's own volatility. A market whose ATR is 0.5% of
+        price costs twice as much per unit of risk as one at 1.0%, for an
+        identical signal. This is the gate that matters: over a 90-day
+        replay the strategies found +0.024R per trade gross and paid
+        0.043R per trade in costs, so execution took the entire edge and
+        then some. Refusing trades whose toll is a large share of their
+        risk is the direct answer, and unlike a conviction threshold it
+        needs no estimate of anything.
+
+        **Expected move against the toll.** The older gate, kept because
+        it catches a different case — a stop so tight the target is inside
+        the noise. Its expected move assumes the target is reached, which
+        it was on 19% of trades, so it is deliberately the looser of the
+        two and is not relied on alone.
+        """
+        if order.entry_price <= 0 or order.r_distance <= 0:
+            return False, {"reason": "no price or stop distance"}
+
+        # What the round trip costs, measured in R.
+        cost_r = (round_trip_bps / 10_000.0) * order.entry_price / order.r_distance
+
+        target_r = float(self.stops.get("target_r_multiple", 2.0))
+        # Expected gross move, scaled by how convinced the book is: a
+        # marginal signal should not be credited with the full target.
+        expected_move = order.r_distance * target_r * max(0.0, min(1.0, conviction))
+        expected_bps = expected_move / order.entry_price * 10_000
+
+        required = float(self.risk.get("min_edge_cost_ratio", 3.0))
+        ratio = expected_bps / round_trip_bps if round_trip_bps > 0 else float("inf")
+        max_cost_r = float(self.risk.get("max_cost_r", 0.0) or 0.0)
+
+        details = {
+            "expected_bps": round(expected_bps, 2),
+            "cost_bps": round(round_trip_bps, 2),
+            "ratio": round(ratio, 2),
+            "required": required,
+            "cost_r": round(cost_r, 4),
+            "max_cost_r": max_cost_r,
+        }
+
+        if max_cost_r > 0 and cost_r > max_cost_r:
+            details["reason"] = (f"round trip is {cost_r:.3f}R "
+                                 f"(cap {max_cost_r:.3f}R)")
+            return False, details
+        if ratio < required:
+            details["reason"] = f"edge {ratio:.1f}x costs (needs {required:.1f}x)"
+            return False, details
+        return True, details
 
     # ── Exit rules ────────────────────────────────────────────
 

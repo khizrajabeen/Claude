@@ -22,6 +22,7 @@ import math
 from datetime import datetime, timezone
 
 from bot.daily.schedule import funding_events_between
+from bot.markets.instrument import AssetClass
 from bot.risk.budget import SizedOrder
 from bot.trading.models import Position, Trade
 
@@ -30,6 +31,18 @@ logger = logging.getLogger("trading_bot")
 
 class InsufficientFunds(Exception):
     """Raised when an order cannot be funded — callers skip the trade."""
+
+
+def _pays_funding(asset_class: str) -> bool:
+    """Does this instrument have a perpetual funding leg?
+
+    Unknown or missing classes are treated as perpetuals, which is what
+    every record written before asset classes existed was.
+    """
+    try:
+        return AssetClass(str(asset_class or "crypto_perp")).pays_funding
+    except ValueError:
+        return True
 
 
 class PaperBroker:
@@ -128,6 +141,9 @@ class PaperBroker:
         daily_vol_bps: float | None = None,
         strategy: str = "",
         entry_reason: str = "",
+        asset_class: str = "crypto_spot",
+        venue: str = "",
+        timeframe: str = "",
         tags: dict | None = None,
     ) -> Position:
         """Open a position, charging fees and reserving margin."""
@@ -185,6 +201,9 @@ class PaperBroker:
             opened_on_day=day,
             strategy=strategy,
             entry_reason=entry_reason,
+            asset_class=asset_class,
+            venue=venue,
+            timeframe=timeframe,
             tags=tags or {},
         )
         self.positions.append(position)
@@ -196,6 +215,121 @@ class PaperBroker:
             position.risk_usd, fee,
         )
         return position
+
+    def scale_out(
+        self,
+        position: Position,
+        price: float,
+        fraction: float,
+        reason: str = "take_partial",
+        now: datetime | None = None,
+        adv_notional: float | None = None,
+        spread_bps: float | None = None,
+        daily_vol_bps: float | None = None,
+    ) -> float:
+        """Sell part of a position and bank the profit. Returns cash realised.
+
+        A trend system's usual complaint is that it gives back most of an
+        open gain waiting for the trailing stop. Taking a slice off at a
+        set multiple of risk converts some of that paper profit into cash
+        while leaving the rest to run — the position keeps its stop, its
+        target and its identity, so nothing downstream has to know it
+        happened beyond the smaller size.
+
+        The remaining position keeps the *original* entry price and stop,
+        so its R multiple still measures against what was actually risked
+        at the outset rather than against a re-based cost.
+        """
+        fraction = max(0.0, min(1.0, float(fraction)))
+        quantity = position.quantity * fraction
+        if quantity <= 0 or fraction <= 0:
+            return 0.0
+        now = now or datetime.now(timezone.utc)
+
+        notional = quantity * price
+        fill, slip = self._fill_price(
+            price, position.side, notional, False, adv_notional,
+            spread_bps, daily_vol_bps,
+        )
+        gross = (fill - position.entry_price) * quantity * position.direction
+        fee = quantity * fill * self.taker_bps / 10_000
+        net = gross - fee
+
+        # Release the margin this slice was holding, and the cash it made.
+        released = position.margin * fraction
+        position.margin -= released
+        self.cash += released + net
+        self.fees_paid += fee
+        self.slippage_cost += slip
+
+        position.quantity -= quantity
+        position.realized_pnl += net
+        risk_per_unit = abs(position.entry_price - position.initial_stop)
+        at_r = ((fill - position.entry_price) * position.direction / risk_per_unit
+                if risk_per_unit > 0 else 0.0)
+        position.scaled_out_at.append(round(at_r, 3))
+
+        logger.info(
+            "  Booked %.0f%% of %s %s at %.2fR — $%+.2f realised, %.4f left",
+            fraction * 100, position.side, position.symbol, at_r, net,
+            position.quantity,
+        )
+        return net
+
+    def add_to(
+        self,
+        position: Position,
+        order: "SizedOrder",
+        now: datetime | None = None,
+        adv_notional: float | None = None,
+        spread_bps: float | None = None,
+        daily_vol_bps: float | None = None,
+    ) -> bool:
+        """Add a unit to a position that is working. Returns whether it filled.
+
+        This is the entry-side counterpart of a trailing stop: the trail
+        protects a winner, and this one presses it. The combined position
+        is carried at a weighted-average entry, and the stop is *not*
+        loosened — a pyramid that widens its own stop to accommodate the
+        new unit has quietly increased the risk it was sized for.
+        """
+        now = now or datetime.now(timezone.utc)
+        quantity = float(order.quantity)
+        if quantity <= 0:
+            return False
+
+        notional = quantity * order.entry_price
+        fill, slip = self._fill_price(
+            order.entry_price, position.side, notional, True, adv_notional,
+            spread_bps, daily_vol_bps,
+        )
+        fill_notional = quantity * fill
+        leverage = max(1.0, float(position.leverage))
+        margin = fill_notional / leverage
+        fee = fill_notional * self.taker_bps / 10_000
+        if margin + fee > self.cash:
+            logger.info("  No cash to add to %s (need $%.2f, have $%.2f)",
+                        position.symbol, margin + fee, self.cash)
+            return False
+
+        self.cash -= margin + fee
+        self.fees_paid += fee
+        self.slippage_cost += slip
+
+        total = position.quantity + quantity
+        position.entry_price = (
+            (position.entry_price * position.quantity + fill * quantity) / total
+        )
+        position.quantity = total
+        position.margin += margin
+        position.entry_fee += fee
+        position.units += 1
+
+        logger.info(
+            "  Added unit %d to %s %s at %.4f — size now %.4f",
+            position.units, position.side, position.symbol, fill, total,
+        )
+        return True
 
     def close(
         self,
@@ -228,8 +362,18 @@ class PaperBroker:
         self.fees_paid += exit_fee
         self.slippage_cost += slip
 
+        # Profit already banked by scaling out belongs to this trade. A
+        # position that sold half at 2R and then stopped at breakeven made
+        # money; reporting only the final leg would show it as flat and
+        # make every scale-out look like a wasted trade in the record.
+        net += position.realized_pnl
+
+        # R is measured against what was originally risked, not against
+        # whatever quantity happens to be left after scaling out.
         risk_per_unit = abs(position.entry_price - position.initial_stop)
-        r_multiple = (net / (risk_per_unit * position.quantity)) if risk_per_unit > 0 and position.quantity > 0 else 0.0
+        sized_quantity = position.original_quantity or position.quantity
+        r_multiple = (net / (risk_per_unit * sized_quantity)) \
+            if risk_per_unit > 0 and sized_quantity > 0 else 0.0
 
         if position.direction == 1:
             mfe = (position.best_price - position.entry_price)
@@ -240,14 +384,17 @@ class PaperBroker:
         mfe_r = mfe / risk_per_unit if risk_per_unit > 0 else 0.0
         mae_r = mae / risk_per_unit if risk_per_unit > 0 else 0.0
 
-        denom = position.entry_price * position.quantity
+        denom = position.entry_price * (position.original_quantity
+                                        or position.quantity)
         trade = Trade(
             id=position.id,
             symbol=position.symbol,
             side=position.side,
             entry_price=position.entry_price,
             exit_price=fill,
-            quantity=position.quantity,
+            # The size the trade was sized at, so the record describes the
+            # position that was taken rather than its final remnant.
+            quantity=position.original_quantity or position.quantity,
             leverage=position.leverage,
             opened_at=position.opened_at,
             closed_at=now,
@@ -263,6 +410,9 @@ class PaperBroker:
             closed_on_day=day,
             strategy=position.strategy,
             entry_reason=position.entry_reason,
+            asset_class=position.asset_class,
+            venue=position.venue,
+            timeframe=position.timeframe,
             mae_r=round(mae_r, 4),
             mfe_r=round(mfe_r, 4),
         )
@@ -299,15 +449,28 @@ class PaperBroker:
         When a single bar spans both the stop and the target we assume the
         stop — the pessimistic assumption is the only honest one without
         tick data, and the optimistic one is how backtests lie.
+
+        A stop that has been trailed past the entry is a different event
+        from the one the position was opened with: it banks a profit. Both
+        reported as "stop_loss" makes the exit table unreadable — a
+        ten-day replay showed stop_loss exits at +0.54R, +0.80R and +0.47R
+        sitting alongside real losses, so the column said nothing about
+        how trades actually ended.
         """
         if position.direction == 1:
             hit_stop = low <= position.stop_price
             hit_target = position.take_profit > 0 and high >= position.take_profit
+            in_profit = position.stop_price > position.entry_price
         else:
             hit_stop = high >= position.stop_price
             hit_target = position.take_profit > 0 and low <= position.take_profit
+            in_profit = position.stop_price < position.entry_price
 
         if hit_stop:
+            if in_profit:
+                return "trailing_stop"
+            if position.moved_to_breakeven:
+                return "breakeven_stop"
             return "stop_loss"
         if hit_target:
             return "take_profit"
@@ -330,6 +493,12 @@ class PaperBroker:
 
         `rates` are per-settlement rates as decimals (Binance-style, e.g.
         0.0001 = 1bp per 8h). Longs pay a positive rate, shorts receive it.
+
+        Only perpetuals pay it. A stock or an ETF has no funding leg at
+        all, and charging one a crypto rate every eight hours quietly
+        taxes the equity half of the book for a cost it never incurs —
+        which would show up in a cross-asset comparison as equities
+        underperforming.
         """
         if not self.funding_enabled:
             return 0.0
@@ -341,6 +510,8 @@ class PaperBroker:
         prices = prices or {}
         total = 0.0
         for position in self.positions:
+            if not _pays_funding(position.asset_class):
+                continue
             rate = rates.get(position.symbol)
             if rate is None:
                 rate = self.default_funding_bps / 10_000
