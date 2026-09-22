@@ -1,40 +1,112 @@
-# Daily Crypto Trading Bot
+# Meridian — a daily-cycle trading bot
 
-A crypto trading bot built around a **trading day**. Each day it reads the
-news and the tape, writes a plan, works that plan inside a bounded entry
-window, manages the book against volatility-scaled stops for the rest of
-the session, closes out, and writes the day to disk — so tomorrow starts
-from a real record rather than from zero.
+A crypto trading bot built around a **trading day**. Each day it screens
+the venue, reads the news and the tape, writes a plan, works that plan
+inside bounded entry slots, manages the book against volatility-scaled
+stops, closes out, and writes the day to disk — so tomorrow starts from a
+real record rather than from zero.
+
+There is a dashboard. The bot publishes its state as JSON and a static
+page reads it, so the record is legible without a terminal.
 
 Everything runs in paper mode against live public market data. No API keys
 are needed to run it.
 
-> **Where this actually stands.** Nothing in this repository has a
-> demonstrated edge. Across 400 days of hourly bars on six majors, not one
-> configuration clears |t| ≥ 2, and two honest out-of-sample splits
-> *reversed* the ranking between the two leading variants — which is what
-> non-significant results look like when you run them twice. What is
-> trustworthy here is the *measurement*: purged cross-validation, standard
-> errors on every result, out-of-sample splitting, and replays that run
-> the same code the live path does. Read the
-> [results](#measured-results) before running anything with money.
+> **Where this actually stands.** The current roster returns **+16.2% over
+> 90 days** in replay, but read that with the caution it deserves: it is a
+> simulation over historical bars with modelled fees, slippage and
+> funding, chosen by looking at those same bars. Earlier configurations of
+> this same bot returned −0.66% over the same period. What is trustworthy
+> here is the *measurement* — purged cross-validation, standard errors on
+> every result, out-of-sample splitting, and replays that run the same
+> code the live path does. Read the [results](#measured-results) before
+> running anything with money.
 
 ```bash
 pip install -r requirements.txt
 
-python main.py briefing      # what the market and the news look like right now
+python main.py screen        # rank every market on the venue by turnover
+python main.py briefing      # what the market and the news look like now
 python main.py plan          # ... and what the bot would trade
-python main.py replay --days 60   # replay the same logic over history
-python main.py bench --days 150   # compare strategy/portfolio configurations
-python main.py compare       # bake-off across ML models
 python main.py day           # run one full trading day (paper)
 python main.py run           # run day after day
-python main.py report        # the record so far
+python main.py replay --days 90   # replay the same logic over history
+python main.py pnl --months 3     # per-day and per-asset-class P&L
+python main.py publish            # write the dashboard's data files
+python main.py bench --days 150   # compare strategy configurations
 ```
 
-Nothing needs configuring. The bot picks its own strategy roster from what
-those strategies have actually earned, weights them by measured risk, and
-scales total exposure to its own realised volatility.
+Nothing needs configuring. The bot picks its own decision timeframe per
+instrument per day, weights its strategies by measured risk, scales total
+exposure to its own realised volatility, and benches drivers that stop
+earning.
+
+---
+
+## The roster, and how it was chosen
+
+Each strategy was run **alone** over the same 90 days of crypto history,
+on one shared download, so the only thing differing between runs was the
+strategy:
+
+| strategy | return | trades | expectancy | max DD | win% | PF | |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `clenow` | **+14.91%** | 39 | +0.581R | 1.33% | 69.2 | 5.58 | kept |
+| `turtle` | **+10.77%** | 69 | +0.255R | 1.29% | 60.9 | 2.09 | kept |
+| `lorentzian` | +3.80% | 50 | −0.002R | 4.02% | 48.0 | 1.37 | kept, on sufferance |
+| `supertrend` | −1.17% | 214 | −0.070R | 5.58% | 42.1 | 1.01 | dropped |
+| `nwenvelope` | −3.23% | 19 | −0.308R | 3.25% | 31.6 | 0.20 | dropped |
+| `holygrail` | −3.26% | 55 | −0.206R | 5.14% | 30.9 | 0.76 | dropped |
+| `smc` | −6.45% | 162 | −0.321R | 9.40% | 30.9 | 0.65 | dropped |
+
+The two published trend systems carry the book, at roughly a fifth of the
+drawdown the full seven-strategy roster suffered. The four dropped ones
+traded about 450 times between them to lose money — `smc` and
+`supertrend` alone accounted for 376 of those trades. That is the same
+lesson every measurement in this project has returned: **trading less is
+the only durable edge found so far.**
+
+`lorentzian` is kept on sufferance. Its return is positive but its
+expectancy is essentially zero, so the gain came from a handful of large
+winners rather than an edge per trade. It earns its place as a different
+kind of driver beside two correlated trend systems, and the autopilot
+benches it automatically if that stops being true.
+
+Nothing is deleted. The dropped strategies keep their code, their tests
+and their bench variants, because "it lost money over one 90-day window
+on one universe" is a finding, not a proof.
+
+---
+
+## The dashboard
+
+```bash
+python main.py publish --screen     # writes web/data/*.json
+python -m http.server 8000 -d web   # then open http://localhost:8000
+```
+
+Three pages, no framework and no build step: an overview, a portfolio
+dashboard (equity curve, open positions, per-asset-class attribution,
+allocation, recent trades, market screen) and a settings page for API
+keys.
+
+Two things it deliberately will not do. It will not invent numbers — a
+missing data file produces an explanation of how to generate it, not a
+plausible-looking figure. And it will not pretend to be fresh: data older
+than two hours turns the status indicator amber, because a dashboard
+whose data quietly went stale looks exactly like one that is working.
+
+Keys entered on the settings page stay in that browser and go nowhere
+else, which the page says plainly. For a bot that trades unattended they
+are the wrong place; the server reads its own `.env`, and the page has an
+**Export .env** button that writes it.
+
+`deploy/` has a systemd timer, a Dockerfile and a compose file for
+running the cycle around the clock and publishing to GitHub Pages. See
+[deploy/README.md](deploy/README.md) — including the part where Pages
+serves files and cannot run the bot.
+
+---
 
 ---
 
@@ -526,7 +598,7 @@ deeper books and longer history.
 ## Tests
 
 ```bash
-python -m pytest tests/ -q      # 236 tests, no network
+python -m pytest tests/ -q      # 526 tests, no network
 ```
 
 The suite pins the claims this README makes: that margin cannot be
@@ -538,9 +610,15 @@ one stopped.
 
 It also pins the awkward ones: that a benched strategy cannot shout louder
 than a trusted one, that a great-looking result on fourteen trades is
-reported as *not* significant, that dual momentum holds cash when nothing
-is rising, and that the bake-off finds a planted signal but invents none
+reported as *not* significant, that spot crypto cannot be sold short,
+that a trade which sold half at 2R and then stopped at breakeven is
+recorded as the winner it was, that leverage never puts the stop outside
+the liquidation price, that no credential reaches the published
+dashboard, and that the bake-off finds a planted signal but invents none
 from noise.
+
+Tests requiring optional extras skip rather than fail — `requirements-ml.txt`
+installs what the ML bake-off needs.
 
 ---
 
@@ -561,14 +639,45 @@ small, and forward paper results are the only evidence worth acting on.
 
 ```
 bot/
-  strategies/  turtle, clenow, holygrail (selective)
-               supertrend, smc, nwenvelope, lorentzian (lux)
+  strategies/  clenow, turtle, lorentzian (enabled)
+               holygrail, supertrend, smc, nwenvelope, news (measured, off)
+  markets/     instruments, trading calendars, timeframe ladder, screener
+  data/        one router over crypto, Alpaca and daily-equity providers
   portfolio/   risk-parity allocator, vol targeting, autopilot, tracker
-  daily/       schedule, briefing, plan, session, journal
+  daily/       schedule + entry slots, briefing, plan, session, journal
   risk/        position sizing, portfolio gates, circuit breakers
-  trading/     paper broker, shared position/trade records
-  analysis/    indicators, regime detection, news sentiment
+  trading/     paper broker (scale in/out), shared position/trade records
+  analysis/    indicators, regime detection, news sentiment, beta book
   ml/          labeling, purged validation, model zoo, bake-off, trainer
-  utils/       historical replay, variant bench, performance metrics
-tests/         236 tests
+  utils/       replay, variant bench, metrics, P&L attribution, publisher
+web/           landing page, dashboard, settings — plain files, no build
+deploy/        systemd timer, Dockerfile, compose, runbook
+tests/         526 tests
 ```
+
+---
+
+## Reading this repository honestly
+
+A few things worth knowing before the numbers persuade you of anything:
+
+**The roster was chosen by looking at the same data it is measured on.**
+The +16.2% figure is in-sample in that sense. The out-of-sample splitting
+machinery exists (`--oos`) precisely because that distinction matters.
+
+**Single replays cannot resolve small differences.** Four variants of one
+change, over identical data, landed between −6.03% and +0.90% — because
+refusing one trade frees cash and heat, which changes which *other*
+trades get taken, which moves the equity curve that sizes everything
+after. Run over three windows the same comparison gave −1.55% ± 2.19 and
+−1.83% ± 2.59: a difference smaller than its own spread.
+
+**Several things here are documented negative results**, kept because
+they were paid for: the ML bake-off (nine models, every AUC 0.483–0.500,
+below baseline), the cost-in-R gate (swept and switched off — the numbers
+were noise), and four strategies that lost money and kept their code so
+the finding stays repeatable.
+
+**It trades on paper by default.** Backtests flatter: they fill at prices
+nobody queued for and they know which markets survived. Nothing here is
+financial advice.
