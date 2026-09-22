@@ -247,3 +247,260 @@ def test_config_rejects_history_too_short_for_a_strategy(config):
 
 def test_a_valid_config_passes(config):
     validate_config(config)
+
+
+# ── The primary trend ────────────────────────────────────────
+# `htf_trend` is a 21/55 EMA cross on the 4h bar: 55 bars is nine days,
+# and it flips on every pullback. These cover the slower read that was
+# added because, over a window where crypto rose 42-77%, the bot took 120
+# shorts against 67 longs and nothing in its view could see the move.
+
+def _trend_read(primary=0, htf=0, symbol="BTC/USDT:USDT",
+                asset_class="crypto_perp"):
+    from bot.daily.briefing import SymbolRead
+    return SymbolRead(
+        symbol=symbol, price=100.0, atr=1.0, atr_pct=1.0, adx=30.0,
+        regime="trending_up", tradable=True, quote_volume_24h=1e8,
+        asset_class=asset_class, primary_trend=primary, htf_trend=htf,
+        primary_timeframe="1d",
+    )
+
+
+def test_a_short_against_an_unambiguous_uptrend_is_refused(config):
+    from bot.daily.plan import DayPlanner
+    assert DayPlanner.primary_label(_trend_read(primary=1)) == "primary uptrend"
+
+
+def test_an_ambiguous_primary_trend_constrains_nothing(config):
+    """Price above a falling average, or below a rising one, is not a
+    reason to overrule the strategies — only an unambiguous trend is."""
+    read = _trend_read(primary=0)
+    assert read.primary_trend == 0
+
+
+def _primary_frame(direction=1, n=300):
+    import numpy as np
+    import pandas as pd
+    drift = 0.004 * direction
+    idx = pd.date_range("2025-01-01", periods=n, freq="1D", tz="UTC")
+    close = 100 * np.exp(np.cumsum(np.full(n, drift)))
+    return pd.DataFrame({"open": close, "high": close * 1.01,
+                         "low": close * 0.99, "close": close,
+                         "volume": 1.0}, index=idx)
+
+
+class _OneFrameRouter:
+    def __init__(self, df):
+        self.df = df
+
+    def bars(self, instrument, timeframe=None, limit=500):
+        return self.df.tail(limit)
+
+
+def test_a_rising_market_reads_as_a_primary_uptrend(config):
+    from bot.daily.briefing import BriefingBuilder, SymbolRead
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(1)),
+                              universe=[])
+    read = SymbolRead(symbol="BTC/USDT", price=0.0, atr=1.0, atr_pct=1.0,
+                      adx=25.0, regime="trending_up", tradable=True)
+    instrument = build_instrument({"symbol": "BTC/USDT",
+                                   "asset_class": "crypto_spot"})
+    builder._read_primary_trend(read, instrument, "4h")
+    assert read.primary_trend == 1
+    assert read.primary_timeframe == "1d"
+    assert read.primary_strength > 0
+
+
+def test_a_falling_market_reads_as_a_primary_downtrend(config):
+    from bot.daily.briefing import BriefingBuilder, SymbolRead
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(-1)),
+                              universe=[])
+    read = SymbolRead(symbol="BTC/USDT", price=0.0, atr=1.0, atr_pct=1.0,
+                      adx=25.0, regime="trending_down", tradable=True)
+    instrument = build_instrument({"symbol": "BTC/USDT",
+                                   "asset_class": "crypto_spot"})
+    builder._read_primary_trend(read, instrument, "4h")
+    assert read.primary_trend == -1
+    assert read.primary_strength < 0
+
+
+def test_too_little_history_leaves_the_primary_trend_neutral(config):
+    """Below the average's own length its slope means nothing, so the read
+    stays neutral rather than guessing."""
+    from bot.daily.briefing import BriefingBuilder, SymbolRead
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(1, n=60)),
+                              universe=[])
+    read = SymbolRead(symbol="BTC/USDT", price=0.0, atr=1.0, atr_pct=1.0,
+                      adx=25.0, regime="trending_up", tradable=True)
+    instrument = build_instrument({"symbol": "BTC/USDT",
+                                   "asset_class": "crypto_spot"})
+    builder._read_primary_trend(read, instrument, "4h")
+    assert read.primary_trend == 0
+
+
+def test_an_equity_reads_its_primary_trend_on_the_weekly_bar(config):
+    from bot.daily.briefing import BriefingBuilder, SymbolRead
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(1)),
+                              universe=[])
+    read = SymbolRead(symbol="NVDA", price=0.0, atr=1.0, atr_pct=1.0,
+                      adx=25.0, regime="trending_up", tradable=True)
+    instrument = build_instrument({"symbol": "NVDA", "asset_class": "equity"})
+    builder._read_primary_trend(read, instrument, "1w")
+    assert read.primary_timeframe == "1w"
+
+
+def test_a_dead_primary_feed_leaves_the_read_neutral(config):
+    """One unavailable frame must not take down the briefing."""
+    from bot.daily.briefing import BriefingBuilder, SymbolRead
+    from bot.markets.instrument import build_instrument
+
+    class Dead:
+        def bars(self, *a, **k):
+            raise RuntimeError("feed down")
+
+    builder = BriefingBuilder(config, Dead(), universe=[])
+    read = SymbolRead(symbol="BTC/USDT", price=0.0, atr=1.0, atr_pct=1.0,
+                      adx=25.0, regime="ranging", tradable=True)
+    instrument = build_instrument({"symbol": "BTC/USDT",
+                                   "asset_class": "crypto_spot"})
+    builder._read_primary_trend(read, instrument, "4h")
+    assert read.primary_trend == 0
+
+
+def test_the_replay_downloads_enough_bars_for_the_long_average(config):
+    """A 90-day window implies ~170 daily bars but the average is 200 long;
+    without a floor it never forms and the gate silently reports no trend
+    for the whole replay, which looks exactly like the gate being off."""
+    from bot.utils.backtester import _slow_frame_floor
+
+    assert _slow_frame_floor(config, "1d") > int(
+        config.get("signals", {}).get("primary_trend_period", 200))
+    assert _slow_frame_floor(config, "1h") == 0
+
+
+# ── Cross-sectional momentum ─────────────────────────────────
+# Absolute momentum says an instrument is rising; relative momentum says
+# whether it is the one worth owning. Over the measured window everything
+# rose 42-77%, so "trending up" was true of the whole universe.
+
+def _ranked_read(symbol, rank, peers=8, asset_class="crypto_spot"):
+    from bot.daily.briefing import SymbolRead
+    return SymbolRead(
+        symbol=symbol, price=100.0, atr=1.0, atr_pct=1.0, adx=30.0,
+        regime="trending_up", tradable=True, quote_volume_24h=1e8,
+        asset_class=asset_class, momentum_rank=rank, momentum_peers=peers,
+    )
+
+
+def test_ranks_are_spread_across_the_class(config):
+    """A rank is only meaningful relative to peers in the same class: a
+    stock's 90-day return is not comparable to a perp's."""
+    from bot.daily.briefing import Briefing, BriefingBuilder
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(1)),
+                              universe=[])
+    briefing = Briefing(day="2026-09-21", generated_at="", equity=1e4, cash=1e4)
+
+    instruments, scores = [], {"A/USDT": 3.0, "B/USDT": 1.0, "C/USDT": 2.0}
+    for symbol in scores:
+        instruments.append(build_instrument({"symbol": symbol,
+                                             "asset_class": "crypto_spot"}))
+        briefing.symbols[symbol] = _ranked_read(symbol, 0.5)
+
+    builder._momentum_score = lambda inst, read: scores[inst.symbol]
+    builder._rank_cross_section(briefing, instruments)
+
+    ranks = {s: briefing.symbols[s].momentum_rank for s in scores}
+    assert ranks["A/USDT"] > ranks["C/USDT"] > ranks["B/USDT"]
+    assert all(r.momentum_peers == 3 for r in briefing.symbols.values())
+
+
+def test_a_single_instrument_ranks_neutral(config):
+    """One name is neither the best nor the worst of its class."""
+    from bot.daily.briefing import Briefing, BriefingBuilder
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(1)),
+                              universe=[])
+    briefing = Briefing(day="d", generated_at="", equity=1e4, cash=1e4)
+    briefing.symbols["A/USDT"] = _ranked_read("A/USDT", 0.0)
+    instrument = build_instrument({"symbol": "A/USDT",
+                                   "asset_class": "crypto_spot"})
+    builder._momentum_score = lambda inst, read: 1.0
+    builder._rank_cross_section(briefing, [instrument])
+    assert briefing.symbols["A/USDT"].momentum_rank == 0.5
+
+
+def test_classes_are_ranked_separately(config):
+    from bot.daily.briefing import Briefing, BriefingBuilder
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(1)),
+                              universe=[])
+    briefing = Briefing(day="d", generated_at="", equity=1e4, cash=1e4)
+    specs = [("A/USDT", "crypto_spot", 5.0), ("B/USDT", "crypto_spot", 1.0),
+             ("NVDA", "equity", 0.1)]
+    instruments = []
+    for symbol, klass, _ in specs:
+        instruments.append(build_instrument({"symbol": symbol,
+                                             "asset_class": klass}))
+        briefing.symbols[symbol] = _ranked_read(symbol, 0.5, asset_class=klass)
+
+    scores = {s: v for s, _, v in specs}
+    builder._momentum_score = lambda inst, read: scores[inst.symbol]
+    builder._rank_cross_section(briefing, instruments)
+
+    # NVDA has the lowest raw score but is alone in its class, so it ranks
+    # neutral rather than worst.
+    assert briefing.symbols["NVDA"].momentum_rank == 0.5
+    assert briefing.symbols["NVDA"].momentum_peers == 1
+    assert briefing.symbols["A/USDT"].momentum_peers == 2
+
+
+def test_an_untradable_read_is_left_out_of_the_ranking(config):
+    from bot.daily.briefing import Briefing, BriefingBuilder
+    from bot.markets.instrument import build_instrument
+
+    builder = BriefingBuilder(config, _OneFrameRouter(_primary_frame(1)),
+                              universe=[])
+    briefing = Briefing(day="d", generated_at="", equity=1e4, cash=1e4)
+    good = _ranked_read("A/USDT", 0.5)
+    dead = _ranked_read("B/USDT", 0.5)
+    dead.tradable = False
+    briefing.symbols["A/USDT"] = good
+    briefing.symbols["B/USDT"] = dead
+    instruments = [build_instrument({"symbol": s, "asset_class": "crypto_spot"})
+                   for s in ("A/USDT", "B/USDT")]
+    builder._momentum_score = lambda inst, read: 1.0
+    builder._rank_cross_section(briefing, instruments)
+    assert good.momentum_peers == 1
+
+
+def test_the_momentum_band_is_off_by_default(config):
+    from bot.daily.plan import DayPlanner
+    from bot.risk.budget import RiskBudget
+    from bot.portfolio.allocator import StrategyAllocator
+
+    planner = DayPlanner(config, RiskBudget(config), [],
+                         StrategyAllocator(config))
+    assert planner.momentum_band == 0.0
+
+
+def test_the_band_needs_enough_peers_to_mean_anything(config):
+    from bot.daily.plan import DayPlanner
+    from bot.portfolio.allocator import StrategyAllocator
+    from bot.risk.budget import RiskBudget
+
+    config.setdefault("signals", {})["momentum_band"] = 0.5
+    planner = DayPlanner(config, RiskBudget(config), [],
+                         StrategyAllocator(config))
+    assert planner.momentum_min_peers >= 2

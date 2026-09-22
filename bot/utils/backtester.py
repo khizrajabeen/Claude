@@ -369,8 +369,17 @@ class DailyReplay:
             span_days = self._span_days(instrument, days)
             got: dict[str, pd.DataFrame] = {}
             for timeframe in ladder_for(instrument):
-                needed = int(span_days * _bars_per_calendar_day(
-                    timeframe, instrument.asset_class.is_crypto)) + 20
+                # The slow frames also carry the primary-trend read, whose
+                # moving average is 200 bars long. A 90-day window only
+                # implies ~170 daily bars, so without a floor the average
+                # never forms and the gate silently reports "no trend" for
+                # the whole replay — which looks exactly like the gate
+                # being off.
+                needed = max(
+                    int(span_days * _bars_per_calendar_day(
+                        timeframe, instrument.asset_class.is_crypto)) + 20,
+                    _slow_frame_floor(self.config, timeframe),
+                )
                 try:
                     df = router.bars(instrument, timeframe, needed)
                 except Exception as e:
@@ -549,6 +558,15 @@ def _data_span(frames: dict, timeframe: str | None = None, universe=None):
     if not starts:
         return None, None
     return max(starts), min(ends)
+
+
+def _slow_frame_floor(config: dict, timeframe: str) -> int:
+    """Minimum bars for a frame slow enough to carry the primary trend."""
+    if TIMEFRAME_SECONDS.get(timeframe, 3600) < 86_400:
+        return 0
+    signals = config.get("signals", {})
+    return int(signals.get("primary_trend_period", 200)) + \
+        int(signals.get("primary_trend_slope_bars", 20)) + 40
 
 
 def _bars_per_calendar_day(timeframe: str, is_crypto: bool) -> float:

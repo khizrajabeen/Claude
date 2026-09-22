@@ -23,6 +23,7 @@ to be a weak standalone predictor.
 from __future__ import annotations
 
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -92,6 +93,53 @@ COIN_KEYWORDS: dict[str, list[str]] = {
 MARKET_WIDE_TERMS = ("crypto", "cryptocurrency", "digital asset", "blockchain",
                      "altcoin", "stablecoin", "defi")
 
+# Equities are matched by company name as well as ticker, because a
+# headline says "Nvidia" far more often than it says "NVDA" — and a bare
+# three-letter ticker matches too much prose to be used on its own. Extend
+# this from config under news.tickers, or the universe's own symbols will
+# still be matched by ticker alone.
+TICKER_KEYWORDS: dict[str, list[str]] = {
+    "NVDA": ["nvidia"],
+    "AAPL": ["apple"],
+    "MSFT": ["microsoft"],
+    "TSLA": ["tesla"],
+    "AMD": ["advanced micro devices", "amd"],
+    "COIN": ["coinbase"],
+    "MSTR": ["microstrategy", "strategy inc"],
+    "GOOGL": ["google", "alphabet"],
+    "AMZN": ["amazon"],
+    "META": ["meta platforms", "facebook"],
+    "SPY": ["s&p 500", "s&p500", "spdr s&p"],
+    "QQQ": ["nasdaq 100", "nasdaq-100", "invesco qqq"],
+    "GLD": ["gold etf", "spdr gold"],
+    "IWM": ["russell 2000"],
+    "TLT": ["treasury bond etf", "20+ year treasury"],
+}
+
+# Stories that move the whole equity market rather than one name. Mapped
+# to SPY, which is the equity market's beta proxy in the way BTC is
+# crypto's.
+EQUITY_WIDE_TERMS = ("stock market", "wall street", "s&p 500", "nasdaq",
+                     "dow jones", "federal reserve", "fed rate", "cpi report",
+                     "jobs report", "earnings season")
+
+# Market-wide equity feeds, for tone. Per-ticker news is fetched from the
+# templates below, one request per tracked symbol.
+EQUITY_FEEDS: list[tuple[str, float]] = [
+    ("https://feeds.content.dowjones.io/public/rss/mw_topstories", 0.9),
+    ("https://search.cnbc.com/rs/search/combinedcms/view.xml"
+     "?partnerId=wrss01&id=100003114", 0.9),
+]
+
+# {ticker} is substituted per tracked symbol. Nasdaq's own outbound feed is
+# the authoritative one and stays tightly on-topic; Google News is broader
+# and noisier, so it is weighted below it.
+TICKER_FEED_TEMPLATES: list[tuple[str, float]] = [
+    ("https://www.nasdaq.com/feed/rssoutbound?symbol={ticker}", 1.0),
+    ("https://news.google.com/rss/search?q={ticker}+stock&hl=en-US"
+     "&gl=US&ceid=US:en", 0.6),
+]
+
 # Editorial feeds are weighted above social feeds, which are noisier and
 # more reflexive.
 DEFAULT_FEEDS: list[tuple[str, float]] = [
@@ -133,6 +181,14 @@ class NewsSentimentAnalyzer:
         self.fetch_interval = int(self.news_config.get("fetch_interval_seconds", 300))
         self.retention_hours = int(self.news_config.get("retention_hours", 48))
         self.half_life_hours = float(self.news_config.get("half_life_hours", 6.0))
+
+        # Equity tickers this run cares about. Nothing is tracked until a
+        # universe says so, because a per-ticker feed is one HTTP request
+        # per symbol per refresh and fetching news for stocks the bot does
+        # not hold is pure cost.
+        self.tickers: dict[str, list[str]] = {}
+        self.track_tickers(self.news_config.get("tickers") or {})
+
         self.feeds = self._load_feeds()
 
         self._items: list[NewsItem] = []
@@ -141,17 +197,124 @@ class NewsSentimentAnalyzer:
 
     def _load_feeds(self) -> list[tuple[str, float]]:
         configured = self.news_config.get("feeds")
-        if not configured:
-            return list(DEFAULT_FEEDS)
-        feeds = []
-        for entry in configured:
-            if isinstance(entry, dict):
-                feeds.append((entry["url"], float(entry.get("weight", 1.0))))
-            else:
-                feeds.append((str(entry), 1.0))
+        if configured:
+            feeds = []
+            for entry in configured:
+                if isinstance(entry, dict):
+                    feeds.append((entry["url"], float(entry.get("weight", 1.0))))
+                else:
+                    feeds.append((str(entry), 1.0))
+            return feeds
+
+        feeds = list(DEFAULT_FEEDS)
+        if self.tickers:
+            feeds += list(EQUITY_FEEDS)
+            for ticker in sorted(self.tickers):
+                for template, weight in TICKER_FEED_TEMPLATES:
+                    feeds.append((template.format(ticker=ticker), weight))
         return feeds
 
+    def track_tickers(self, tickers) -> None:
+        """Register equity tickers to fetch per-symbol news for.
+
+        Accepts a list of tickers or a {ticker: [keywords]} mapping. A
+        ticker with no known company name is still matched on the ticker
+        itself, which is weaker — a headline says "Nvidia" far more often
+        than "NVDA" — so a name in TICKER_KEYWORDS or in config is worth
+        having for anything the bot actually trades.
+        """
+        if isinstance(tickers, dict):
+            pairs = {str(k).upper(): list(v) for k, v in tickers.items()}
+        else:
+            pairs = {str(t).upper(): [] for t in (tickers or [])}
+
+        for ticker, extra in pairs.items():
+            keywords = set(TICKER_KEYWORDS.get(ticker, []))
+            keywords.update(k.lower() for k in extra)
+            keywords.add(ticker.lower())
+            self.tickers[ticker] = sorted(keywords)
+
+        if pairs:
+            self.feeds = self._load_feeds()
+
+    def track_universe(self, universe) -> None:
+        """Track every equity and ETF in a universe."""
+        tickers = [i.symbol for i in universe
+                   if not i.asset_class.is_crypto and "/" not in i.symbol]
+        if tickers:
+            self.track_tickers(tickers)
+
     # ── Ingestion ─────────────────────────────────────────────
+
+    def _session(self):
+        """One pooled HTTP session for feed fetches.
+
+        feedparser.parse(url) does its own fetch with no timeout and
+        without honouring the environment's proxy settings, so a single
+        unreachable feed can block a worker for as long as the OS lets it.
+        Fetching the bytes here and handing feedparser a string puts a
+        deadline on every request and keeps all traffic on one route.
+        """
+        import requests
+
+        session = getattr(self, "_http", None)
+        if session is not None:
+            return session
+
+        session = requests.Session()
+        session.trust_env = True
+        session.headers.update({
+            # Several publishers return 403 to an unadorned client.
+            "User-Agent": self.news_config.get(
+                "user_agent",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+            ),
+            "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        })
+        bundle = os.environ.get("REQUESTS_CA_BUNDLE") or "/root/.ccr/ca-bundle.crt"
+        if os.path.exists(bundle):
+            session.verify = bundle
+        self._http = session
+        return session
+
+    def _fetch_all(self, feedparser) -> list[tuple[str, float, object]]:
+        """Every feed, fetched in parallel. Failures come back as None.
+
+        Results are collected as they land rather than in order, so one
+        slow publisher costs its own slot and not the whole refresh.
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        workers = int(self.news_config.get("fetch_workers", 8))
+        timeout = float(self.news_config.get("fetch_timeout_seconds", 15))
+        session = self._session()
+
+        def fetch(entry):
+            url, weight = entry
+            try:
+                response = session.get(url, timeout=timeout)
+                response.raise_for_status()
+                return url, weight, feedparser.parse(response.content)
+            except Exception as e:
+                logger.debug("Feed failed %s: %s", url, e)
+                return url, weight, None
+
+        if workers <= 1 or len(self.feeds) <= 1:
+            return [fetch(f) for f in self.feeds]
+
+        results: list[tuple[str, float, object]] = []
+        with ThreadPoolExecutor(max_workers=min(workers, len(self.feeds))) as pool:
+            futures = [pool.submit(fetch, f) for f in self.feeds]
+            try:
+                for future in as_completed(futures, timeout=timeout * 2):
+                    results.append(future.result())
+            except Exception as e:
+                # Whatever did land is still usable; a partial tape beats
+                # no tape, and the caller counts the misses as failures.
+                logger.warning("News fetch incomplete (%s) — %d of %d feeds in",
+                               type(e).__name__, len(results), len(self.feeds))
+        return results
 
     def refresh(self, force: bool = False) -> int:
         """Pull new items into the rolling store. Returns items added."""
@@ -170,10 +333,14 @@ class NewsSentimentAnalyzer:
         added = 0
         failed = 0
 
-        for url, weight in self.feeds:
+        # Fetch concurrently. Tracking a dozen tickers turns one refresh
+        # into nearly thirty HTTP requests, and done in series that is
+        # minutes of wall clock in the middle of an entry slot — long
+        # enough that the prices the plan was built on have moved. The
+        # parsing stays on this thread, so nothing below needs a lock.
+        for url, weight, feed in self._fetch_all(feedparser):
             try:
-                feed = feedparser.parse(url)
-                if getattr(feed, "bozo", 0) and not feed.entries:
+                if feed is None or (getattr(feed, "bozo", 0) and not feed.entries):
                     failed += 1
                     continue
                 source = (feed.feed.get("title") if hasattr(feed, "feed") else None) or url
@@ -199,7 +366,8 @@ class NewsSentimentAnalyzer:
                         source_weight=weight,
                     )
                     item.sentiment = score_text(f"{title}. {title}. {summary}")
-                    item.coins = detect_coins(f"{title} {summary}")
+                    item.coins = detect_coins(f"{title} {summary}",
+                                             self.tickers)
                     self._items.append(item)
                     self._seen.add(key)
                     added += 1
@@ -381,9 +549,15 @@ def score_text(text: str) -> float:
     return round(max(-1.0, min(1.0, avg)), 4)
 
 
-def detect_coins(text: str) -> dict[str, int]:
-    """Which coins a story is about. Market-wide stories map to BTC, which
-    is the market's beta proxy."""
+def detect_coins(text: str, tickers: dict[str, list[str]] | None = None
+                 ) -> dict[str, int]:
+    """Which instruments a story is about.
+
+    Market-wide stories map to the relevant beta proxy — BTC for crypto,
+    SPY for equities — because a story about "the stock market" is a story
+    about every stock in the book, and dropping it would throw away most
+    of the macro tape.
+    """
     lowered = text.lower()
     found: dict[str, int] = {}
     for coin, keywords in COIN_KEYWORDS.items():
@@ -391,8 +565,17 @@ def detect_coins(text: str) -> dict[str, int]:
             # Word-boundary match so "sol" does not fire on "solution".
             if re.search(rf"\b{re.escape(kw)}\b", lowered):
                 found[coin] = found.get(coin, 0) + 1
-    if not found and any(term in lowered for term in MARKET_WIDE_TERMS):
-        found["BTC"] = 1
+
+    for ticker, keywords in (tickers or {}).items():
+        for kw in keywords:
+            if re.search(rf"\b{re.escape(kw)}\b", lowered):
+                found[ticker] = found.get(ticker, 0) + 1
+
+    if not found:
+        if any(term in lowered for term in EQUITY_WIDE_TERMS):
+            found["SPY"] = 1
+        elif any(term in lowered for term in MARKET_WIDE_TERMS):
+            found["BTC"] = 1
     return found
 
 

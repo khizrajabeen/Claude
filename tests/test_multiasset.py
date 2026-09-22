@@ -380,3 +380,68 @@ def test_without_a_per_class_cap_the_budget_is_shared(config):
     session, _ = build_multi_asset_session(config, midnight)
     schedule = build_schedule(config, midnight)
     assert session._entry_budget(schedule) == 4
+
+
+# ── Shorting what cannot be shorted ──────────────────────────
+
+def test_spot_crypto_declares_it_cannot_be_shorted():
+    from bot.markets.instrument import AssetClass
+
+    assert not AssetClass.CRYPTO_SPOT.can_short
+    assert AssetClass.CRYPTO_PERP.can_short
+    assert AssetClass.EQUITY.can_short          # borrow exists for stocks
+
+
+def test_the_planner_refuses_a_spot_short():
+    """The capability was declared from the start but never consulted: a
+    90-day replay took 68 spot shorts out of 100 spot trades, none of them
+    executable on a spot exchange. They were not merely phantom P&L — they
+    consumed entry budget, heat and cash the executable half of the book
+    needed.
+    """
+    from bot.daily.briefing import SymbolRead
+    from bot.daily.plan import DayPlanner
+
+    spot = SymbolRead(symbol="BTC/USDT", price=100.0, atr=1.0, atr_pct=1.0,
+                      adx=25.0, regime="trending_down", tradable=True,
+                      quote_volume_24h=1e8, asset_class="crypto_spot")
+    perp = SymbolRead(symbol="BTC/USDT:USDT", price=100.0, atr=1.0, atr_pct=1.0,
+                      adx=25.0, regime="trending_down", tradable=True,
+                      quote_volume_24h=1e8, asset_class="crypto_perp")
+    assert not DayPlanner._can_short(spot)
+    assert DayPlanner._can_short(perp)
+
+
+def test_a_stock_may_still_be_shorted():
+    from bot.daily.briefing import SymbolRead
+    from bot.daily.plan import DayPlanner
+
+    stock = SymbolRead(symbol="NVDA", price=100.0, atr=1.0, atr_pct=1.0,
+                       adx=25.0, regime="trending_down", tradable=True,
+                       quote_volume_24h=1e8, asset_class="equity")
+    assert DayPlanner._can_short(stock)
+
+
+def test_a_read_with_no_asset_class_takes_the_spot_default():
+    """SymbolRead defaults to spot, so an unlabelled read is not shortable
+    — and refusing is the safe direction: skipping a tradable short costs
+    one trade, booking an unexecutable one puts real risk budget behind a
+    position that does not exist."""
+    from bot.daily.briefing import SymbolRead
+    from bot.daily.plan import DayPlanner
+
+    legacy = SymbolRead(symbol="BTC/USDT", price=100.0, atr=1.0, atr_pct=1.0,
+                        adx=25.0, regime="ranging", tradable=True,
+                        quote_volume_24h=1e8)
+    assert legacy.asset_class == "crypto_spot"
+    assert not DayPlanner._can_short(legacy)
+
+
+def test_an_unknown_asset_class_is_refused_not_crashed():
+    from bot.daily.briefing import SymbolRead
+    from bot.daily.plan import DayPlanner
+
+    odd = SymbolRead(symbol="???", price=100.0, atr=1.0, atr_pct=1.0, adx=25.0,
+                     regime="ranging", tradable=True, quote_volume_24h=1e8,
+                     asset_class="something_new")
+    assert not DayPlanner._can_short(odd)

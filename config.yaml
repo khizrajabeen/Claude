@@ -27,12 +27,26 @@ data:
     - {symbol: "BTC/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
     - {symbol: "ETH/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
     - {symbol: "SOL/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
-    # ── Crypto spot (24/7, unlevered) ──
+    # ── Crypto spot (24/7, unlevered, long only) ──
+    # Widened from five names to fifteen. Spot longs were the best leg of
+    # the 90-day replay (+0.248R over 32 trades) and a cross-sectional
+    # ranking needs enough peers to rank. Every pair here clears $10M of
+    # 24h quote volume on OKX; below that the spread eats the edge.
     - {symbol: "BTC/USDT", asset_class: "crypto_spot", venue: "okx"}
     - {symbol: "ETH/USDT", asset_class: "crypto_spot", venue: "okx"}
     - {symbol: "SOL/USDT", asset_class: "crypto_spot", venue: "okx"}
     - {symbol: "XRP/USDT", asset_class: "crypto_spot", venue: "okx"}
     - {symbol: "LINK/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "DOGE/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "SUI/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "UNI/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "NEAR/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "ARB/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "LTC/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "ADA/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "AVAX/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "FIL/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "BCH/USDT", asset_class: "crypto_spot", venue: "okx"}
     # ── US equities (session-bound, daily bars) ──
     - {symbol: "NVDA", asset_class: "equity", venue: "nasdaq"}
     - {symbol: "AAPL", asset_class: "equity", venue: "nasdaq"}
@@ -116,8 +130,16 @@ risk:
   # in costs — execution took the whole edge. This refuses trades whose
   # toll is too large a share of their risk, which in practice means
   # skipping quiet markets where the same signal costs twice as much.
-  # Set to 0 to disable.
-  max_cost_r: 0.06
+  # Measured and switched off. A sweep over one fixed 90-day window gave
+  #   off -1.34% | 0.20 -2.00% | 0.14 -3.18% | 0.10 -1.00% | 0.08 +0.18%
+  #   | 0.06 -4.23%
+  # which is not a trend, it is noise: the single positive reading sits
+  # between two worse-than-baseline ones. Fees fell exactly as expected
+  # ($247 -> $99 -> $48) and returns did not improve, so the edge is not
+  # concentrated in the cheap trades — cutting trades cuts gross edge in
+  # the same proportion. The reasoning behind the gate stands; the
+  # evidence for this lever does not. Set above 0 to re-enable.
+  max_cost_r: 0.0
   contrarian_risk_factor: 0.7      # fades get less size than confirmations
 
 # ── Stops, targets and trailing ──────────────────────────────
@@ -161,6 +183,17 @@ strategies:
     - smc          # structure breaks, liquidity sweeps, fair value gaps
     - nwenvelope   # Nadaraya-Watson envelope (non-repainting endpoint form)
     - lorentzian   # kNN over historical market states, Lorentzian distance
+    # news — the wire, not the chart; equities and ETFs only
+    - news         # per-company sentiment, coverage-weighted and trend-gated
+
+  news:
+    asset_classes: ["equity", "etf"]   # crypto's tape is fast enough already
+    min_articles: 6                    # a lone excitable headline is not a signal
+    min_score: 0.12
+    min_strength: 0.05                 # consensus x coverage x magnitude
+    fresh_weight: 0.4                  # how much recency scales the signal
+    require_trend_agreement: true      # no buying good news in a downtrend
+    horizon_bars: 5
 
   turtle:
     entry_s1: 20
@@ -266,6 +299,26 @@ signals:
   book_weight: 0.06                # order-book imbalance, confirmation only
   news_can_veto: true
   require_htf_agreement: true      # except for market-neutral strategies
+  # The major trend, read two rungs above the decision frame — daily for
+  # crypto, weekly for equities. require_htf_agreement uses a 21/55 EMA
+  # cross on the 4h bar, which is nine days of history and flips on every
+  # pullback. Over a 90-day replay in which crypto rose 42-77%, the bot
+  # took 120 shorts against 67 longs and the shorts averaged -0.078R;
+  # nothing in the read could see the move it was fighting.
+  # A direction is reported only when price and the slope of the long
+  # average agree, so an ambiguous long-term picture constrains nothing.
+  require_primary_trend: true
+  primary_trend_period: 200
+  primary_trend_slope_bars: 20
+  # Relative strength within the asset class. Absolute momentum says an
+  # instrument is rising; relative momentum says whether it is the one
+  # worth owning — in a window where everything rose 42-77%, "trending up"
+  # was true of the whole universe and picked nothing.
+  # A long must rank above `momentum_band`, a short below 1 - band.
+  # 0 disables it. Off by default until the sweep says otherwise.
+  momentum_band: 0.0
+  momentum_min_peers: 4
+  momentum_lookback: 60
 
 # ── Tradability filters ──────────────────────────────────────
 filters:
@@ -284,6 +337,9 @@ news:
   tilt_window_hours: 8
   tone_window_hours: 12
   signal_threshold: 0.35
+  fresh_window_hours: 6            # "has the tape had time to price this?"
+  fetch_workers: 8                 # feeds are fetched in parallel
+  fetch_timeout_seconds: 15
   min_articles: 2
   per_feed_limit: 30
   # feeds:                         # override the defaults if you like

@@ -25,7 +25,12 @@ import pandas as pd
 from bot.analysis import indicators as ind
 from bot.analysis.news_sentiment import NewsSentimentAnalyzer
 from bot.analysis.regime import MarketRegime, RegimeDetector
-from bot.markets.timeframes import bars_per_day, choose_timeframe, fits_in_session
+from bot.markets.timeframes import (
+    HIGHER_OF,
+    bars_per_day,
+    choose_timeframe,
+    fits_in_session,
+)
 
 logger = logging.getLogger("trading_bot")
 
@@ -49,6 +54,19 @@ class SymbolRead:
     ema_fast: float = 0.0
     ema_slow: float = 0.0
     htf_trend: int = 0
+    # The major trend, read two rungs above the decision frame — daily for
+    # crypto, weekly for equities. Separate from htf_trend, which is a fast
+    # EMA cross on the 4h bar and cannot see past about nine days.
+    primary_trend: int = 0
+    primary_strength: float = 0.0
+    primary_timeframe: str = ""
+    # Where this instrument sits against its own asset class on
+    # risk-adjusted momentum: 1.0 is the strongest name in the class,
+    # 0.0 the weakest. Absolute strength says an instrument is rising;
+    # relative strength says whether it is the one worth owning.
+    momentum_score: float = 0.0
+    momentum_rank: float = 0.5
+    momentum_peers: int = 0
     htf_strength: float = 0.0
     overnight_return_pct: float = 0.0
     regime: str = "ranging"
@@ -60,6 +78,11 @@ class SymbolRead:
     news_score: float = 0.0
     news_articles: int = 0
     news_tilt: float = 0.0
+    # Consensus x coverage x magnitude, in [0,1]. Distinct from the score:
+    # a +0.9 score from two stories is a strong opinion weakly held, and
+    # the strength is what says so.
+    news_strength: float = 0.0
+    news_short_score: float = 0.0
     news_headlines: list = field(default_factory=list)
     bars: int = 0
     tradable: bool = True
@@ -122,6 +145,12 @@ class BriefingBuilder:
         from bot.markets import build_universe
         self.universe = universe if universe is not None else build_universe(config)
         self.by_symbol = {i.symbol: i for i in self.universe}
+        # Per-ticker news is one HTTP request per symbol per refresh, so
+        # nothing is fetched until a universe says which names matter.
+        try:
+            self.news.track_universe(self.universe)
+        except AttributeError:
+            pass        # a test double without ticker support
 
         data = config.get("data", {})
         self.history_bars = int(data.get("history_bars", 500))
@@ -136,6 +165,15 @@ class BriefingBuilder:
         self.min_bars = int(filters.get("min_bars", 120))
         self.book_depth = int(config.get("data", {}).get("orderbook_depth", 20))
         self.book_levels = int(config.get("data", {}).get("orderbook_levels", 10))
+
+        signals = config.get("signals", {})
+        self.primary_period = int(signals.get("primary_trend_period", 200))
+        self.primary_slope_bars = int(signals.get("primary_trend_slope_bars", 20))
+        # Below this the moving average is still finding its level and its
+        # slope means nothing, so the read stays neutral rather than guessing.
+        self.primary_min_bars = int(signals.get("primary_trend_min_bars",
+                                                self.primary_period + 20))
+        self.momentum_lookback = int(signals.get("momentum_lookback", 60))
 
     def build(
         self,
@@ -211,6 +249,8 @@ class BriefingBuilder:
             briefing.symbols[symbol] = read
             if df is not None and not df.empty:
                 frames[symbol] = df
+
+        self._rank_cross_section(briefing, instruments)
 
         if tone["articles"]:
             logger.info(
@@ -327,6 +367,8 @@ class BriefingBuilder:
         except Exception as e:
             logger.debug("HTF unavailable for %s: %s", symbol, e)
 
+        self._read_primary_trend(read, instrument, higher)
+
         regime = self.regime_detector.detect(df)
         read.regime = regime["regime"].value if isinstance(regime["regime"], MarketRegime) \
             else str(regime["regime"])
@@ -350,8 +392,15 @@ class BriefingBuilder:
             sent = self.news.sentiment_for(symbol, 24, now)
             read.news_score = sent["score"]
             read.news_articles = sent["articles"]
+            read.news_strength = sent["signal_strength"]
             read.news_tilt = self.news.tilt_for(symbol, now)
             read.news_headlines = sent["headlines"][:3]
+            # A shorter window as well, so a strategy can tell a story
+            # that broke this morning from one the tape has had all day
+            # to price.
+            fresh = self.news.sentiment_for(
+                symbol, float(self.config["news"].get("fresh_window_hours", 6)), now)
+            read.news_short_score = fresh["score"]
 
         self._apply_filters(read)
 
@@ -362,6 +411,116 @@ class BriefingBuilder:
             "ok" if read.tradable else read.skip_reason,
         )
         return read, df
+
+    def _rank_cross_section(self, briefing: "Briefing", instruments: list) -> None:
+        """Rank each instrument against its own asset class.
+
+        Absolute momentum says an instrument is rising; relative momentum
+        says whether it is the one worth owning. In a market where
+        everything rose 42-77% over three months, "BTC is trending up" is
+        true of the whole universe and picks nothing. The rank is what
+        distinguishes the leaders from the laggards, and buying leaders is
+        the oldest documented effect in the literature.
+
+        Ranked within the asset class, not across it: a stock's 90-day
+        return is not comparable to a perp's, and pooling them would rank
+        crypto above equities every time volatility is high rather than
+        when it is actually leading.
+        """
+        by_class: dict[str, list[SymbolRead]] = {}
+        for instrument in instruments:
+            read = briefing.symbols.get(instrument.symbol)
+            if read is None or not read.tradable:
+                continue
+            score = self._momentum_score(instrument, read)
+            if score is None:
+                continue
+            read.momentum_score = round(score, 4)
+            by_class.setdefault(instrument.asset_class.value, []).append(read)
+
+        for klass, reads in by_class.items():
+            reads.sort(key=lambda r: r.momentum_score)
+            n = len(reads)
+            for position, read in enumerate(reads):
+                read.momentum_peers = n
+                # Midpoint of the rank so a single instrument is 0.5 —
+                # neutral — rather than being called both best and worst.
+                read.momentum_rank = round((position + 0.5) / n, 4) if n else 0.5
+
+    def _momentum_score(self, instrument, read: "SymbolRead") -> float | None:
+        """Risk-adjusted momentum on the primary frame.
+
+        Dividing by realised volatility is what makes two instruments
+        comparable: a 40% move in something that swings 5% a day is a
+        smaller achievement than a 20% move in something that swings 1%.
+        """
+        try:
+            df = self.router.bars(instrument, read.primary_timeframe
+                                  or instrument.higher_timeframe, 200)
+        except Exception:
+            return None
+        if df is None or len(df) < self.momentum_lookback + 5:
+            return None
+
+        close = df["close"]
+        past = float(close.iloc[-1 - self.momentum_lookback])
+        if not past:
+            return None
+        total_return = float(close.iloc[-1]) / past - 1.0
+
+        returns = close.pct_change().dropna().tail(self.momentum_lookback)
+        vol = float(returns.std())
+        if vol <= 0:
+            return None
+        return total_return / (vol * (self.momentum_lookback ** 0.5))
+
+    def _read_primary_trend(self, read: "SymbolRead", instrument, higher: str) -> None:
+        """The major trend, on a frame slow enough to see one.
+
+        `htf_trend` is a 21/55 EMA cross on the 4-hour bar: 55 bars is nine
+        days, and in a pullback it flips. Over a 90-day replay in which
+        crypto rose between 42% and 77%, the bot took 120 shorts against 67
+        longs and the shorts averaged -0.078R. Nothing in the read could
+        see the move it was fighting.
+
+        So this reads two rungs up — daily for crypto, weekly for equities
+        — and reports a direction only when price and the slope of the
+        long moving average agree. When they disagree the answer is zero,
+        which places no constraint at all: an ambiguous long-term picture
+        is not a reason to overrule the strategies, only an unambiguous one
+        is.
+        """
+        primary = HIGHER_OF.get(higher, higher)
+        read.primary_timeframe = primary
+        try:
+            df = self.router.bars(instrument, primary, 400)
+        except Exception as e:
+            logger.debug("Primary trend unavailable for %s: %s", read.symbol, e)
+            return
+        if df is None or len(df) < self.primary_min_bars:
+            return
+
+        close = df["close"]
+        trend_ma = ind.ema(close, self.primary_period)
+        now = ind.last_value(trend_ma)
+        if not now:
+            return
+        # Slope over a window, not bar to bar: a single flat bar is noise.
+        back = min(self.primary_slope_bars, len(trend_ma) - 1)
+        earlier = float(trend_ma.iloc[-1 - back]) if back > 0 else now
+        if not earlier or earlier != earlier:
+            return
+
+        price = float(close.iloc[-1])
+        above = price > now
+        rising = now > earlier
+        if above and rising:
+            read.primary_trend = 1
+        elif not above and not rising:
+            read.primary_trend = -1
+        else:
+            read.primary_trend = 0
+        read.primary_strength = (price - now) / now if now else 0.0
 
     def _apply_filters(self, read: SymbolRead) -> None:
         """Liquidity and volatility gates — a signal in an untradeable market

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from bot.strategies import LUX, REGISTRY, SELECTIVE, build_strategies
+from bot.strategies import LUX, NEWS, REGISTRY, SELECTIVE, build_strategies
 from bot.strategies.base import MarketContext, StrategySignal
 from bot.strategies.clenow import ClenowTrend
 from bot.strategies.holygrail import HolyGrailPullback
@@ -27,7 +27,7 @@ def signals_by_symbol(signals: list[StrategySignal]) -> dict:
 # ── Registry ─────────────────────────────────────────────────
 
 def test_registry_holds_only_the_strategies_that_earned_a_place():
-    assert set(REGISTRY) == set(SELECTIVE) | set(LUX)
+    assert set(REGISTRY) == set(SELECTIVE) | set(LUX) | set(NEWS)
     assert set(SELECTIVE) == {"clenow", "turtle", "holygrail"}
     assert set(LUX) == {"supertrend", "smc", "nwenvelope", "lorentzian"}
 

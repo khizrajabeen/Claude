@@ -11,6 +11,11 @@ rather than on reputation:
   signals of the kind LuxAlgo and its peers publish, implemented
   mechanically so the measurement decides rather than the marketing.
 
+  **news** — `news`. Per-company sentiment, for equities. A US stock
+  prints one bar a day and gets one entry slot per session; the chart
+  simply does not say enough for a technical system to act on, so for
+  stocks the story is the signal and the chart is the filter.
+
 Six earlier strategies were removed after measuring poorly across repeated
 benches: a house trend model, cross-sectional momentum, a Donchian
 breakout, short-term reversion, funding carry and dual momentum. Their
@@ -26,6 +31,7 @@ from bot.strategies.base import BaseStrategy, MarketContext, Strategy, StrategyS
 from bot.strategies.clenow import ClenowTrend
 from bot.strategies.holygrail import HolyGrailPullback
 from bot.strategies.lorentzian import LorentzianClassifier
+from bot.strategies.newsdriven import NewsDriven
 from bot.strategies.nwenvelope import NadarayaWatsonEnvelope
 from bot.strategies.smc import SmartMoneyConcepts
 from bot.strategies.supertrend_ai import SuperTrendAI
@@ -43,14 +49,20 @@ REGISTRY: dict[str, type[BaseStrategy]] = {
     SmartMoneyConcepts.name: SmartMoneyConcepts,  # structure, sweeps, imbalances
     NadarayaWatsonEnvelope.name: NadarayaWatsonEnvelope,  # kernel-regression fade
     LorentzianClassifier.name: LorentzianClassifier,      # kNN on market state
+    # Single-name news, for instruments whose tape is too slow to signal.
+    NewsDriven.name: NewsDriven,
 }
 
 # The three published systems that survived the out-of-sample split.
 SELECTIVE = ["clenow", "turtle", "holygrail"]
 # Indicator-style signals in the LuxAlgo mould.
 LUX = ["supertrend", "smc", "nwenvelope", "lorentzian"]
+# Driven by the wire rather than the chart. Equities print one bar a day
+# and get one entry slot, so over a 90-day replay the equity leg managed
+# nine trades — there were barely any setups to have an opinion about.
+NEWS = ["news"]
 
-DEFAULT_ENABLED = SELECTIVE + LUX
+DEFAULT_ENABLED = SELECTIVE + LUX + NEWS
 
 
 def build_strategies(config: dict) -> list[BaseStrategy]:
@@ -77,6 +89,7 @@ __all__ = [
     "BaseStrategy", "MarketContext", "Strategy", "StrategySignal",
     "TurtleStrategy", "ClenowTrend", "HolyGrailPullback",
     "SuperTrendAI", "SmartMoneyConcepts", "NadarayaWatsonEnvelope",
-    "LorentzianClassifier",
-    "REGISTRY", "DEFAULT_ENABLED", "SELECTIVE", "LUX", "build_strategies",
+    "LorentzianClassifier", "NewsDriven",
+    "REGISTRY", "DEFAULT_ENABLED", "SELECTIVE", "LUX", "NEWS",
+    "build_strategies",
 ]

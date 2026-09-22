@@ -132,6 +132,15 @@ class DayPlanner:
         self.news_weight = float(signals.get("news_weight", 0.15))
         self.book_weight = float(signals.get("book_weight", 0.06))
         self.require_htf = bool(signals.get("require_htf_agreement", True))
+        self.require_primary = bool(signals.get("require_primary_trend", True))
+        # Only for measuring what the shorting rule is worth. Leaving it on
+        # books positions that cannot be executed on a spot exchange.
+        self.allow_spot_shorts = bool(signals.get("allow_spot_shorts", False))
+        # Longs must rank in the top (1 - band) of their class, shorts in
+        # the bottom. 0 disables the filter; 0.5 would admit only the
+        # single strongest and weakest name.
+        self.momentum_band = float(signals.get("momentum_band", 0.0) or 0.0)
+        self.momentum_min_peers = int(signals.get("momentum_min_peers", 4))
         self.veto_on_news = bool(signals.get("news_can_veto", True))
         session = config.get("session", {})
         self.max_new = int(session.get("max_new_positions_per_day", 3))
@@ -261,10 +270,62 @@ class DayPlanner:
                 plan.rejected.append([symbol, "tilts flipped the signal — standing aside"])
                 continue
 
+            # Can this instrument actually be sold short? Spot crypto cannot,
+            # without a margin facility this bot does not model. The
+            # capability was declared on the asset class from the start but
+            # never consulted, and a 90-day replay took 68 spot shorts out of
+            # 100 spot trades — none of them executable. They were not merely
+            # phantom P&L: they consumed the daily entry budget, portfolio
+            # heat and cash that the executable half of the book needed.
+            if side == "short" and not self.allow_spot_shorts \
+                    and not self._can_short(read):
+                plan.rejected.append(
+                    [symbol, f"{read.asset_class or 'spot'} cannot be sold short"]
+                )
+                continue
+
+            # The major trend, before anything faster. When it is
+            # unambiguous, a trade against it is refused outright: over a
+            # window where crypto rose 42-77% the bot took 120 shorts and
+            # 67 longs, and the shorts lost. The 4h filter below cannot see
+            # a move on that scale — 55 of its bars is nine days.
+            if (self.require_primary and read.primary_trend
+                    and not self._neutral_view(view)):
+                wants_long = side == "long"
+                if (wants_long and read.primary_trend < 0) or \
+                        (not wants_long and read.primary_trend > 0):
+                    plan.rejected.append([
+                        symbol,
+                        f"{side} against the {self.primary_label(read)} "
+                        f"({read.primary_timeframe or 'primary'})",
+                    ])
+                    continue
+
             if self.require_htf and read.htf_trend and not self._neutral_view(view):
                 wants_long = side == "long"
                 if (wants_long and read.htf_trend < 0) or (not wants_long and read.htf_trend > 0):
                     plan.rejected.append([symbol, f"{side} against {self.htf_label(read)}"])
+                    continue
+
+            # Relative strength within the asset class. In a market where
+            # everything rose 42-77% over three months, "it is trending up"
+            # was true of the whole universe and picked nothing; the rank
+            # is what separates the leaders from the laggards. Applied only
+            # where there are enough peers for a rank to mean anything.
+            if self.momentum_band > 0 and read.momentum_peers >= self.momentum_min_peers:
+                if side == "long" and read.momentum_rank < self.momentum_band:
+                    plan.rejected.append([
+                        symbol,
+                        f"long but ranks {read.momentum_rank:.0%} of "
+                        f"{read.momentum_peers} in its class",
+                    ])
+                    continue
+                if side == "short" and read.momentum_rank > 1.0 - self.momentum_band:
+                    plan.rejected.append([
+                        symbol,
+                        f"short but ranks {read.momentum_rank:.0%} of "
+                        f"{read.momentum_peers} in its class",
+                    ])
                     continue
 
             if self.veto_on_news and read.news_tilt:
@@ -363,6 +424,24 @@ class DayPlanner:
 
     # ── Helpers ───────────────────────────────────────────────
 
+    @staticmethod
+    def _can_short(read: SymbolRead) -> bool:
+        """Whether a short is executable on this instrument.
+
+        An unrecognised asset class is refused rather than allowed: the
+        cost of skipping a tradable short is one missed trade, and the
+        cost of booking an unexecutable one is a position that does not
+        exist holding real risk budget.
+        """
+        from bot.markets.instrument import AssetClass
+
+        if not read.asset_class:
+            return False
+        try:
+            return AssetClass(str(read.asset_class)).can_short
+        except ValueError:
+            return False
+
     def _round_trip_bps(self, read: SymbolRead) -> float:
         """Modelled cost of opening and closing one position, in bps.
 
@@ -401,6 +480,10 @@ class DayPlanner:
     @staticmethod
     def htf_label(read: SymbolRead) -> str:
         return "higher-TF uptrend" if read.htf_trend > 0 else "higher-TF downtrend"
+
+    @staticmethod
+    def primary_label(read: SymbolRead) -> str:
+        return "primary uptrend" if read.primary_trend > 0 else "primary downtrend"
 
     def _describe(self, view: CombinedView, read: SymbolRead, edge: float) -> str:
         drivers = sorted(view.contributors.items(), key=lambda kv: -abs(kv[1]))[:2]
