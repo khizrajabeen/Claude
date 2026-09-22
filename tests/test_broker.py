@@ -111,12 +111,14 @@ def test_slippage_always_works_against_the_trader(config):
 
 def test_funding_charges_longs_and_pays_shorts(config):
     long_broker = PaperBroker(config)
-    long_position = long_broker.open(make_order(config, side="long"), now=T0)
+    long_position = long_broker.open(make_order(config, side="long"), now=T0,
+                                     asset_class="crypto_perp")
     long_broker.accrue_funding(T0, T0 + timedelta(hours=10),
                                {"BTC/USDT": 0.0001}, {"BTC/USDT": 100.0})
 
     short_broker = PaperBroker(config)
-    short_position = short_broker.open(make_order(config, side="short"), now=T0)
+    short_position = short_broker.open(make_order(config, side="short"), now=T0,
+                                       asset_class="crypto_perp")
     short_broker.accrue_funding(T0, T0 + timedelta(hours=10),
                                 {"BTC/USDT": 0.0001}, {"BTC/USDT": 100.0})
 
@@ -126,13 +128,36 @@ def test_funding_charges_longs_and_pays_shorts(config):
 
 def test_funding_only_accrues_across_settlements(config):
     broker = PaperBroker(config)
-    position = broker.open(make_order(config), now=T0)
+    position = broker.open(make_order(config), now=T0, asset_class="crypto_perp")
 
     # 06:00 to 07:00 crosses no settlement (00/08/16 UTC).
     broker.accrue_funding(T0, T0 + timedelta(hours=1), {"BTC/USDT": 0.01}, {})
     assert position.funding_paid == 0.0
 
     broker.accrue_funding(T0, T0 + timedelta(hours=3), {"BTC/USDT": 0.01}, {})
+    assert position.funding_paid > 0
+
+
+def test_only_perpetuals_pay_funding(config):
+    """A stock has no funding leg, and charging it one every eight hours
+    quietly taxes the equity half of the book for a cost it never incurs.
+    """
+    for asset_class in ("crypto_spot", "equity", "etf"):
+        broker = PaperBroker(config)
+        position = broker.open(make_order(config), now=T0,
+                               asset_class=asset_class)
+        broker.accrue_funding(T0, T0 + timedelta(hours=10),
+                              {"BTC/USDT": 0.01}, {"BTC/USDT": 100.0})
+        assert position.funding_paid == 0.0, asset_class
+        assert broker.funding_paid == 0.0, asset_class
+
+
+def test_a_record_with_no_asset_class_still_pays_funding(config):
+    """Every position written before asset classes existed was a perp."""
+    broker = PaperBroker(config)
+    position = broker.open(make_order(config), now=T0, asset_class="")
+    broker.accrue_funding(T0, T0 + timedelta(hours=10),
+                          {"BTC/USDT": 0.01}, {"BTC/USDT": 100.0})
     assert position.funding_paid > 0
 
 

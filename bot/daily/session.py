@@ -297,6 +297,7 @@ class DailySession:
             now=now,
             opened_today=self.state.trades_opened_today,
             opened_today_by_class=dict(self.state.opened_today_by_class or {}),
+            entry_budget=self._entry_budget(schedule),
         )
 
         payload = briefing.to_dict()
@@ -493,6 +494,40 @@ class DailySession:
         cap = int(self.config.get("session", {}).get("max_new_positions_per_day", 3))
         return self.state.trades_opened_today >= cap
 
+    def _entry_budget(self, schedule: DaySchedule) -> int:
+        """The daily entry cap, less what later-opening classes are owed.
+
+        Crypto's first slot opens at midnight and the US session not until
+        13:30. Without a reservation crypto spends the whole day's budget
+        before a stock can be looked at — which it did: a ten-day replay
+        took thirty crypto trades and two equity ones, so the cross-asset
+        comparison the reservation exists to make was crypto versus noise.
+
+        So classes that still have a slot ahead of them today keep their
+        per-class share in reserve, and the budget offered to the current
+        slot is whatever is left over.
+        """
+        session = self.config.get("session", {})
+        cap = int(session.get("max_new_positions_per_day", 3))
+        per_class = int(session.get("max_new_positions_per_class", 0) or 0)
+        if per_class <= 0:
+            return cap
+
+        now = self.clock.now()
+        opened = dict(self.state.opened_today_by_class or {})
+        current = schedule.slot_at(now)
+        pending = set()
+        for slot in schedule.later_slots(now):
+            for instrument in self.universe:
+                klass = instrument.asset_class.value
+                if current is not None and current.admits(klass):
+                    continue          # this class is being served right now
+                if slot.admits(klass):
+                    pending.add(klass)
+
+        reserved = sum(max(0, per_class - opened.get(k, 0)) for k in pending)
+        return max(1, cap - reserved)
+
     def _replan(self, schedule: DaySchedule, symbols: list[str]) -> DayPlan:
         """A plan for one slot, over the instruments it admits."""
         now = self.clock.now()
@@ -545,6 +580,7 @@ class DailySession:
             now=now,
             opened_today=self.state.trades_opened_today,
             opened_today_by_class=dict(self.state.opened_today_by_class or {}),
+            entry_budget=self._entry_budget(schedule),
         )
 
     # ── Phase 3: management ───────────────────────────────────

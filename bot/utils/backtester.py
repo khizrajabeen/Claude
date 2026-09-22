@@ -148,15 +148,27 @@ class ReplayExchange:
 
     def bars(self, instrument, timeframe: str | None = None,
              limit: int = 500) -> pd.DataFrame:
-        tf = timeframe or instrument.timeframe
+        """Visible bars, stepping to a coarser frame if the asked-for one
+        has nothing yet.
+
+        Feeds do not serve every frame equally far back: OKX gives about
+        seventy days of 15-minute bars but years of hourly ones. A replay
+        of a longer window would find the fast rung empty and go blind on
+        an instrument it has perfectly good hourly history for. Stepping
+        up is what the live bot would do too, since the chooser only
+        reaches for a fast frame when the history exists.
+        """
         available = self.frames.get(instrument.symbol, {})
-        if tf not in available:
-            # An instrument whose ladder does not carry this frame falls
-            # back to its coarsest available one rather than going blind.
-            if not available:
-                return pd.DataFrame()
-            tf = max(available, key=lambda f: TIMEFRAME_SECONDS.get(f, 3600))
-        return self._visible(instrument.symbol, tf).tail(limit)
+        if not available:
+            return pd.DataFrame()
+        asked = timeframe or instrument.timeframe
+        order = sorted(available, key=lambda f: TIMEFRAME_SECONDS.get(f, 3600))
+        start = order.index(asked) if asked in order else 0
+        for tf in order[start:] or order:
+            visible = self._visible(instrument.symbol, tf)
+            if not visible.empty:
+                return visible.tail(limit)
+        return pd.DataFrame()
 
     def price(self, instrument) -> float | None:
         try:
@@ -220,7 +232,7 @@ class DailyReplay:
         logger.info("  Universe      : %s",
                     " | ".join(f"{k} x{len(v)}" for k, v in sorted(by_class.items())))
 
-        start, end = _data_span(frames)
+        start, end = _data_span(frames, universe=universe)
         if start is None:
             return {"days": 0, "error": "no data"}
 
@@ -230,14 +242,38 @@ class DailyReplay:
         # which is indistinguishable from having no opportunity, so the
         # measured result belongs to whichever half of the roster happened
         # to be awake.
+        # Each instrument becomes tradable a warm-up after its own first
+        # bar, and that warm-up is a different span on every frame — 30
+        # days for an hourly crypto series, nearly three years for an
+        # equity daily one. The replay can only begin once the last of
+        # them is ready, or it would replay a stretch in which the deep
+        # strategies on some instruments are still starved. A starved
+        # strategy returns nothing, which is indistinguishable in a report
+        # from having had no opportunity.
         warmup_bars = self._warmup_bars()
-        bar_seconds = TIMEFRAME_SECONDS.get(self.timeframe, 3600)
-        first_tradeable = start + timedelta(seconds=warmup_bars * bar_seconds)
+        ready_at = start
+        laggard = None
+        for instrument in universe:
+            available = frames[instrument.symbol]
+            wanted = {instrument.timeframe, instrument.higher_timeframe}
+            firsts = [df.index[0] for tf, df in available.items()
+                      if tf in wanted and not df.empty]
+            if not firsts:
+                firsts = [df.index[0] for df in available.values() if not df.empty]
+            when = max(firsts) + self._warmup_span(instrument)
+            if when > ready_at:
+                ready_at, laggard = when, instrument
+        first_tradeable = ready_at
+        if laggard is not None:
+            logger.info("  Warm-up       : %d bars; last ready is %s at %s",
+                        warmup_bars, laggard.symbol, first_tradeable.date())
         if first_tradeable >= end:
             logger.error(
-                "Only %s of data but the roster needs %d bars of warm-up — "
-                "download more history or shorten the deepest lookback",
+                "Only %s of data but the roster needs %d bars of warm-up "
+                "(%s is the laggard) — download more history or shorten "
+                "the deepest lookback",
                 end - start, warmup_bars,
+                laggard.symbol if laggard else "?",
             )
             return {"days": 0, "error": "not enough history for the roster's warm-up"}
 
@@ -318,28 +354,23 @@ class DailyReplay:
     def _download(self, days: int) -> dict:
         """Fetch enough history for `days` sessions plus indicator warm-up.
 
-        Every instrument gets its whole ladder, because the adaptive chooser
-        may land on any rung of it on any day. Equities need far fewer bars
-        for the same span than a 15-minute crypto frame does, so the count
-        is computed per timeframe rather than once for the universe.
+        Sized by calendar span rather than by bar count. Every instrument
+        gets its whole ladder because the adaptive chooser may land on any
+        rung on any day, and the rungs have wildly different bar counts for
+        the same span — 120 days is 11,520 fifteen-minute bars but only 83
+        equity sessions. Asking for one count across all of them leaves the
+        fast frames covering a fortnight while the slow ones cover years,
+        and the replay window is the *intersection*, so the fortnight wins.
         """
         router = DataRouter(self.config)
-        warmup = self._warmup_bars()
 
         frames: dict[str, dict[str, pd.DataFrame]] = {}
         for instrument in self.universe:
-            ladder = ladder_for(instrument)
+            span_days = self._span_days(instrument, days)
             got: dict[str, pd.DataFrame] = {}
-            for timeframe in ladder:
-                seconds = TIMEFRAME_SECONDS.get(timeframe, 3600)
-                # An equity session is 6.5h of a 24h day, so a calendar
-                # span of N days holds only ~N daily bars, not N*3.7.
-                spans_per_day = (1.0 if seconds >= 86_400
-                                 else 86_400 / seconds)
-                if not instrument.asset_class.is_crypto and seconds >= 86_400:
-                    # Weekends and holidays: ~252 sessions a year.
-                    spans_per_day = 252 / 365
-                needed = int(days * spans_per_day) + warmup + 50
+            for timeframe in ladder_for(instrument):
+                needed = int(span_days * _bars_per_calendar_day(
+                    timeframe, instrument.asset_class.is_crypto)) + 20
                 try:
                     df = router.bars(instrument, timeframe, needed)
                 except Exception as e:
@@ -349,7 +380,9 @@ class DailyReplay:
                 if df is not None and not df.empty:
                     got[timeframe] = df
 
-            base = got.get(instrument.timeframe) or next(iter(got.values()), None)
+            base = got.get(instrument.timeframe)
+            if base is None:
+                base = next(iter(got.values()), None)
             if base is None or len(base) < 60:
                 logger.warning("%s: %d bars — excluded from replay",
                                instrument.symbol, 0 if base is None else len(base))
@@ -361,6 +394,33 @@ class DailyReplay:
 
         self._router = router
         return frames
+
+    def _span_days(self, instrument, days: int) -> int:
+        """Calendar days of history to fetch for one instrument.
+
+        Per instrument, not once for the universe, because the same
+        warm-up costs wildly different spans on different frames. The
+        deepest strategy wants 724 bars: that is 7.5 days of a 15-minute
+        crypto series and about three years of an equity daily one. Sizing
+        the whole universe on the larger figure would mean downloading
+        three years of 15-minute bars — a hundred thousand of them per
+        symbol — to warm up a strategy that needed a week of them.
+        """
+        warmup_bars = self._warmup_bars()
+        seconds = TIMEFRAME_SECONDS.get(instrument.timeframe, 3600)
+        warmup_days = warmup_bars * seconds / 86_400
+        if not instrument.asset_class.is_crypto:
+            # Only ~252 of 365 calendar days carry an equity session.
+            warmup_days *= 365 / 252
+        return int(days + warmup_days) + 30
+
+    def _warmup_span(self, instrument) -> timedelta:
+        """How far past its first bar an instrument becomes tradable."""
+        seconds = TIMEFRAME_SECONDS.get(instrument.timeframe, 3600)
+        days = self._warmup_bars() * seconds / 86_400
+        if not instrument.asset_class.is_crypto:
+            days *= 365 / 252
+        return timedelta(days=days)
 
     def _limits(self) -> dict:
         router = getattr(self, "_router", None)
@@ -447,7 +507,7 @@ def _clear_directory(path) -> None:
         shutil.rmtree(child) if child.is_dir() else child.unlink()
 
 
-def _data_span(frames: dict, timeframe: str | None = None):
+def _data_span(frames: dict, timeframe: str | None = None, universe=None):
     """The window every instrument can be replayed over.
 
     The start is the *latest* first bar and the end the *earliest* last bar,
@@ -457,19 +517,56 @@ def _data_span(frames: dict, timeframe: str | None = None):
     calendar days, and comparing their raw index bounds would hand the
     replay a start before the equity feed begins.
     """
+    # Which frames decide the span, per instrument. The adaptive chooser
+    # may reach for a faster rung, but a rung whose history does not go
+    # back that far is not a reason to shorten the replay — the chooser
+    # steps up to a coarser frame there, exactly as it would live.
+    spanning = {}
+    for instrument in (universe or []):
+        spanning[instrument.symbol] = {instrument.timeframe,
+                                       instrument.higher_timeframe}
+
     starts, ends = [], []
-    for tfs in frames.values():
-        candidates = [tfs[timeframe]] if timeframe and timeframe in tfs \
-            else list(tfs.values())
+    for symbol, tfs in frames.items():
+        wanted = spanning.get(symbol)
+        if timeframe and timeframe in tfs:
+            candidates = [tfs[timeframe]]
+        elif wanted and any(tf in tfs for tf in wanted):
+            candidates = [df for tf, df in tfs.items() if tf in wanted]
+        else:
+            candidates = list(tfs.values())
         firsts = [df.index[0] for df in candidates if df is not None and not df.empty]
         lasts = [df.index[-1] for df in candidates if df is not None and not df.empty]
         if not firsts:
             continue
-        starts.append(min(firsts))
-        ends.append(max(lasts))
+        # Within an instrument, take the intersection of its frames too.
+        # Its 15-minute series reaches back weeks and its daily series
+        # years; starting where the daily one begins would replay months
+        # in which the fast frames have no bars at all, and the adaptive
+        # chooser would step onto an empty one.
+        starts.append(max(firsts))
+        ends.append(min(lasts))
     if not starts:
         return None, None
     return max(starts), min(ends)
+
+
+def _bars_per_calendar_day(timeframe: str, is_crypto: bool) -> float:
+    """How many bars of `timeframe` a calendar day yields.
+
+    A calendar day holds 96 fifteen-minute crypto bars but only about 0.69
+    equity daily bars, because weekends and holidays carry no session.
+    """
+    seconds = TIMEFRAME_SECONDS.get(timeframe, 3600)
+    per_day = 86_400 / seconds
+    if is_crypto:
+        return per_day
+    if seconds >= 604_800:            # weekly
+        return 1 / 7
+    if seconds >= 86_400:             # daily
+        return 252 / 365
+    # Intraday equity bars: a 6.5-hour session, five days in seven.
+    return per_day * (6.5 / 24) * (252 / 365)
 
 
 def attribute_by_class(trades: list[dict]) -> dict:

@@ -191,6 +191,7 @@ class DayPlanner:
         now: datetime | None = None,
         opened_today: int = 0,
         opened_today_by_class: dict | None = None,
+        entry_budget: int | None = None,
     ) -> DayPlan:
         """Score, rank, size and gate the day's trades."""
         now = now or datetime.now(timezone.utc)
@@ -285,8 +286,9 @@ class DayPlanner:
         # in each of them.
         per_class = dict(opened_today_by_class or {})
         taken = int(opened_today)
+        budget = self.max_new if entry_budget is None else int(entry_budget)
         for candidate, read, view in candidates:
-            if taken >= self.max_new:
+            if taken >= budget:
                 plan.rejected.append([candidate.symbol, "daily new-position cap reached"])
                 continue
             klass = str(read.asset_class or "unknown")

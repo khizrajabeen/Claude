@@ -272,3 +272,111 @@ def test_attribution_buckets_unlabelled_trades_rather_than_dropping_them():
 
 def test_attribution_of_nothing_is_empty_not_an_error():
     assert attribute_by_class([]) == {}
+
+
+# ── The daily entry budget across slots ──────────────────────
+
+def build_multi_asset_session(config, clock_at, bars=1000):
+    """A session over one perp, one coin, one stock and one ETF."""
+    from datetime import timedelta as td
+
+    from bot.daily.journal import Journal
+    from bot.daily.session import DailySession, SimulatedClock
+    from bot.trading.broker import PaperBroker
+    from tests.conftest import FakeRouter, make_ohlcv
+
+    config["data"]["symbols"] = []
+    config["data"]["instruments"] = [
+        {"symbol": "BTC/USDT:USDT", "asset_class": "crypto_perp"},
+        {"symbol": "ETH/USDT", "asset_class": "crypto_spot"},
+        {"symbol": "NVDA", "asset_class": "equity"},
+        {"symbol": "SPY", "asset_class": "etf"},
+    ]
+    clock = SimulatedClock(clock_at)
+    start = clock_at - td(hours=bars)
+    frames = {}
+    for i, spec in enumerate(config["data"]["instruments"]):
+        frames[spec["symbol"]] = make_ohlcv(
+            bars=bars, start_price=100 * (i + 1), drift=0.004, vol=0.012,
+            seed=i, start=start,
+        )
+    router = FakeRouter(frames, clock=clock)
+    journal = Journal(config)
+    state = journal.load_state()
+    broker = PaperBroker(config, cash=state.cash)
+    session = DailySession(config, router, broker, journal, state, clock=clock)
+    return session, broker
+
+
+def test_the_midnight_slot_cannot_spend_the_whole_day(config):
+    """Crypto opens at 00:00 and the US session not until 13:30.
+
+    Without a reservation crypto spends the entire daily budget before a
+    stock can be looked at — which is what happened: a ten-day replay took
+    thirty crypto trades and two equity ones, so the cross-asset
+    comparison the bot exists to make was crypto versus noise.
+    """
+    from bot.daily.schedule import build_schedule
+
+    config["session"]["max_new_positions_per_day"] = 6
+    config["session"]["max_new_positions_per_class"] = 2
+    midnight = utc(2026, 9, 21, 0, 30)
+    session, _ = build_multi_asset_session(config, midnight)
+    schedule = build_schedule(config, midnight)
+
+    budget = session._entry_budget(schedule)
+    assert budget < 6, "equities must keep a reserve for their own session"
+    assert budget >= 1, "the current slot must still be able to trade"
+
+
+def test_the_last_slot_of_the_day_may_use_what_is_left(config):
+    """Nothing opens later, so nothing needs reserving."""
+    from bot.daily.schedule import build_schedule
+
+    config["session"]["max_new_positions_per_day"] = 6
+    config["session"]["max_new_positions_per_class"] = 2
+    late = utc(2026, 9, 21, 20, 30)          # the 20:00 crypto slot
+    session, _ = build_multi_asset_session(config, late)
+    schedule = build_schedule(config, late)
+
+    assert session._entry_budget(schedule) == 6
+
+
+def test_no_reservation_is_made_for_a_class_already_served(config):
+    """A class being traded right now does not reserve against itself."""
+    from bot.daily.schedule import build_schedule
+
+    config["session"]["max_new_positions_per_day"] = 6
+    config["session"]["max_new_positions_per_class"] = 2
+    midnight = utc(2026, 9, 21, 0, 30)
+    session, _ = build_multi_asset_session(config, midnight)
+    schedule = build_schedule(config, midnight)
+
+    # Two classes (equity, etf) have a later slot; each reserves 2.
+    assert session._entry_budget(schedule) == 2
+
+
+def test_the_reservation_shrinks_as_a_class_gets_filled(config):
+    from bot.daily.schedule import build_schedule
+
+    config["session"]["max_new_positions_per_day"] = 6
+    config["session"]["max_new_positions_per_class"] = 2
+    midnight = utc(2026, 9, 21, 0, 30)
+    session, _ = build_multi_asset_session(config, midnight)
+    schedule = build_schedule(config, midnight)
+
+    before = session._entry_budget(schedule)
+    session.state.opened_today_by_class = {"equity": 2}
+    after = session._entry_budget(schedule)
+    assert after > before, "a filled class no longer needs a reserve"
+
+
+def test_without_a_per_class_cap_the_budget_is_shared(config):
+    from bot.daily.schedule import build_schedule
+
+    config["session"]["max_new_positions_per_day"] = 4
+    config["session"]["max_new_positions_per_class"] = 0
+    midnight = utc(2026, 9, 21, 0, 30)
+    session, _ = build_multi_asset_session(config, midnight)
+    schedule = build_schedule(config, midnight)
+    assert session._entry_budget(schedule) == 4

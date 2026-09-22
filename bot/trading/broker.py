@@ -22,6 +22,7 @@ import math
 from datetime import datetime, timezone
 
 from bot.daily.schedule import funding_events_between
+from bot.markets.instrument import AssetClass
 from bot.risk.budget import SizedOrder
 from bot.trading.models import Position, Trade
 
@@ -30,6 +31,18 @@ logger = logging.getLogger("trading_bot")
 
 class InsufficientFunds(Exception):
     """Raised when an order cannot be funded — callers skip the trade."""
+
+
+def _pays_funding(asset_class: str) -> bool:
+    """Does this instrument have a perpetual funding leg?
+
+    Unknown or missing classes are treated as perpetuals, which is what
+    every record written before asset classes existed was.
+    """
+    try:
+        return AssetClass(str(asset_class or "crypto_perp")).pays_funding
+    except ValueError:
+        return True
 
 
 class PaperBroker:
@@ -339,6 +352,12 @@ class PaperBroker:
 
         `rates` are per-settlement rates as decimals (Binance-style, e.g.
         0.0001 = 1bp per 8h). Longs pay a positive rate, shorts receive it.
+
+        Only perpetuals pay it. A stock or an ETF has no funding leg at
+        all, and charging one a crypto rate every eight hours quietly
+        taxes the equity half of the book for a cost it never incurs —
+        which would show up in a cross-asset comparison as equities
+        underperforming.
         """
         if not self.funding_enabled:
             return 0.0
@@ -350,6 +369,8 @@ class PaperBroker:
         prices = prices or {}
         total = 0.0
         for position in self.positions:
+            if not _pays_funding(position.asset_class):
+                continue
             rate = rates.get(position.symbol)
             if rate is None:
                 rate = self.default_funding_bps / 10_000
