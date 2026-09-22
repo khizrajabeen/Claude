@@ -101,7 +101,17 @@ def base_symbol(symbol: str) -> str:
     return symbol.split("/")[0].split(":")[0].upper()
 
 
-def symbol_beta(symbol: str) -> float:
+def symbol_beta(symbol: str, book=None) -> float:
+    """Beta to the instrument's own market factor.
+
+    A measured beta is preferred over the table whenever one exists. The
+    table had XRP at 1.00 against a measured 1.24 and ADA at 1.10 against
+    1.40, and no entry at all for half the pairs the bot now trades — they
+    silently took the default. It survives only as the fallback for an
+    instrument with too little history to measure.
+    """
+    if book is not None and book.known(symbol):
+        return book.beta(symbol)
     return SYMBOL_BETA.get(base_symbol(symbol), DEFAULT_BETA)
 
 
@@ -129,6 +139,9 @@ class RiskBudget:
         self.risk = config.get("risk", {})
         self.stops = config.get("stops", {})
         self.sizing = config.get("sizing", {})
+        # Set each day from the bars the briefing fetched. None means fall
+        # back to the static table.
+        self.beta_book = None
 
     # ── Per-trade sizing ──────────────────────────────────────
 
@@ -317,7 +330,8 @@ class RiskBudget:
         for p in positions:
             if group is not None and _position_group(p) != group:
                 continue
-            total += p.direction * symbol_beta(p.symbol) * p.entry_price * p.quantity
+            total += (p.direction * symbol_beta(p.symbol, self.beta_book)
+                      * p.entry_price * p.quantity)
         return total / equity
 
     def check_new_trade(
@@ -388,17 +402,34 @@ class RiskBudget:
         # factors of two, and blocking the fourth denies the book the
         # diversification that motivated holding both classes.
         group = order.group
-        same_side = sum(1 for p in positions
-                        if p.side == order.side and _position_group(p) == group)
+        same_side = [p for p in positions
+                     if p.side == order.side and _position_group(p) == group]
         details["group"] = group
-        details["same_side_in_group"] = same_side
+        details["same_side_in_group"] = len(same_side)
         max_corr = int(self.risk.get("max_correlated_positions", 3))
-        if same_side >= max_corr:
+        if len(same_side) >= max_corr:
             return RiskDecision(False, "max_correlated_positions", details)
+
+        # Counting positions is only honest when they are independent.
+        # Altcoins run a beta of 0.85-1.44 to Bitcoin with an average
+        # pairwise correlation of 0.62, so five long alts is about 1.7
+        # independent bets — and a book that thinks it holds five has
+        # understated its concentration fivefold.
+        min_effective = float(self.risk.get("min_effective_positions", 0.0) or 0.0)
+        if min_effective > 0 and self.beta_book is not None and same_side:
+            symbols = [p.symbol for p in same_side] + [order.symbol]
+            effective = self.beta_book.effective_positions(symbols)
+            details["positions"] = len(symbols)
+            details["effective_positions"] = round(effective, 2)
+            # Require each additional position to buy some genuine
+            # diversification rather than more of the same trade.
+            if effective < min_effective * len(symbols):
+                return RiskDecision(False, "too_correlated", details)
 
         # Net beta exposure cap, also per factor.
         beta_now = self.net_beta_exposure(positions, equity, group=group)
-        order_beta = (1 if order.side == "long" else -1) * symbol_beta(order.symbol) \
+        order_beta = (1 if order.side == "long" else -1) \
+            * symbol_beta(order.symbol, self.beta_book) \
             * order.notional / equity if equity > 0 else 0.0
         beta_after = beta_now + order_beta
         details["net_beta"] = round(beta_now, 3)

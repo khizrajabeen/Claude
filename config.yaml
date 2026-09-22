@@ -108,6 +108,31 @@ session:
   max_entry_drift_r: 0.5           # don't chase a plan that already ran
   entry_stagger_seconds: 0
 
+# ── Scaling in and out ───────────────────────────────────────
+# The trailing stop protects a winner. These are the same idea at the
+# other two ends: scaling out converts part of an open gain to cash, and
+# pyramiding presses a position that is working.
+scaling:
+  # Sell this fraction of the position when it reaches this multiple of
+  # its initial risk. Each rung fires once, and the position keeps its
+  # original entry, stop and R measurement — so a trade that sold half at
+  # 2R and then stopped at breakeven is recorded as the winner it was.
+  take_profit_at:
+    - {at_r: 1.5, fraction: 0.33}
+    - {at_r: 3.0, fraction: 0.50}
+  # Spot only. A perp's edge is meant to come from holding a leveraged
+  # trend, and slicing it up works against that.
+  scale_out_classes: ["crypto_spot", "equity", "etf"]
+
+  # Pyramiding. Each added unit risks less than the one before, so four
+  # units at 0.5x do not turn a 0.75% trade into a 3% one. Adding is
+  # gated on the same risk checks a fresh entry passes, because a pyramid
+  # unit is a new position in everything but name.
+  max_units: 3                     # 1 disables pyramiding
+  pyramid_step_r: 1.0              # add another unit every 1R of progress
+  pyramid_size_factor: 0.5         # each unit's risk, as a fraction of a full one
+  pyramid_classes: ["crypto_spot", "crypto_perp"]
+
 # ── Risk ─────────────────────────────────────────────────────
 # Fixed dollar risk per trade at an ATR stop, capped by portfolio heat.
 risk:
@@ -116,6 +141,14 @@ risk:
   max_portfolio_heat_pct: 4.0      # total open risk if every stop hits
   max_open_positions: 8            # 4 asset classes now share the book
   max_correlated_positions: 3      # crypto majors trade as one factor
+  # Counting positions is only honest when they are independent. Measured
+  # over 199 daily observations, every alt this bot trades runs a beta of
+  # 0.85-1.44 to Bitcoin, with an average pairwise correlation of 0.62 —
+  # so five long alts is about 1.7 independent bets, and a book that
+  # thinks it holds five has understated its concentration fivefold.
+  # Each position must buy at least this fraction of a genuine new bet.
+  # 0 disables the check; betas are still measured and used for net beta.
+  min_effective_positions: 0.34
   max_net_beta: 1.5                # beta-weighted exposure vs equity
   max_daily_loss_pct: 2.0          # circuit breaker, measured on equity
   daily_profit_lock_pct: 4.0       # stand down after a good day (0 = off)
@@ -308,7 +341,26 @@ signals:
   # A direction is reported only when price and the slope of the long
   # average agree, so an ambiguous long-term picture constrains nothing.
   require_primary_trend: true
-  primary_trend_period: 200
+  # 100, not the conventional 200. Measured over ~400 daily bars across
+  # seven liquid pairs, against the unconditional 20-day drift of -2.80%:
+  #
+  #   period  slope    long days   fwd 20d   vs drift
+  #       30     20          396    -1.85%     +0.95%
+  #       50     20          276    -0.50%     +2.30%
+  #      100     20           94    +5.50%     +8.30%
+  #      200     20           19    +9.87%    +12.67%
+  #
+  # The edge grows with the period and the sample collapses with it. 200
+  # rests on nineteen days, which is not a measurement; 100 sits in the
+  # middle of a monotonic pattern with a sample worth reporting. It also
+  # matters that a 200-day average on crypto is a seven-month memory: over
+  # the last 90 days, while these pairs rose 42-77%, its slope was still
+  # falling from an earlier drawdown and it read "downtrend" on 56 of 90
+  # days. A filter that inverts during a rally is worse than none.
+  #
+  # Caveat kept in view: 20-day forward windows overlap heavily, so the
+  # effective sample is far smaller than the day counts suggest.
+  primary_trend_period: 100
   primary_trend_slope_bars: 20
   # Relative strength within the asset class. Absolute momentum says an
   # instrument is rising; relative momentum says whether it is the one
@@ -319,6 +371,11 @@ signals:
   momentum_band: 0.0
   momentum_min_peers: 4
   momentum_lookback: 60
+  # Beta and r-squared are measured from the daily bars the briefing
+  # already fetches, not read from a table. The table had XRP at 1.00
+  # against a measured 1.24 and no entry at all for half the universe.
+  beta_window: 120
+  beta_min_observations: 40
 
 # ── Tradability filters ──────────────────────────────────────
 filters:

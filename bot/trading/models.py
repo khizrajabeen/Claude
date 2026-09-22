@@ -56,6 +56,16 @@ class Position:
     asset_class: str = "crypto_spot"
     venue: str = ""
     timeframe: str = ""
+    # Scaling in and out. `units` counts how many entries built this
+    # position; `original_quantity` is what it opened with, so a
+    # partial exit can be measured against the position that was sized,
+    # not against whatever is left of it.
+    units: int = 1
+    original_quantity: float = 0.0
+    scaled_out_at: list = field(default_factory=list)
+    # Which configured rungs have already fired, so each fires once.
+    scaled_out_at_levels: list = field(default_factory=list)
+    realized_pnl: float = 0.0
     tags: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -65,6 +75,8 @@ class Position:
             self.best_price = self.entry_price
         if not self.worst_price:
             self.worst_price = self.entry_price
+        if not self.original_quantity:
+            self.original_quantity = self.quantity
 
     @property
     def direction(self) -> int:

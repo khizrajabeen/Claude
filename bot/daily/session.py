@@ -125,6 +125,19 @@ class DailySession:
         self.max_holding_days = int(session.get("max_holding_days", 3))
         self.entry_stagger_seconds = int(session.get("entry_stagger_seconds", 0))
         self.allow_late_start = bool(session.get("allow_late_start", True))
+
+        scaling = config.get("scaling", {})
+        self.scale_out_levels = [
+            (float(rung.get("at_r", 0)), float(rung.get("fraction", 0)))
+            for rung in scaling.get("take_profit_at", []) or []
+            if float(rung.get("at_r", 0)) > 0 and 0 < float(rung.get("fraction", 0)) < 1
+        ]
+        self.scale_out_levels.sort()
+        self.scale_out_classes = set(scaling.get("scale_out_classes", []) or [])
+        self.max_units = int(scaling.get("max_units", 1))
+        self.pyramid_step_r = float(scaling.get("pyramid_step_r", 1.0))
+        self.pyramid_size_factor = float(scaling.get("pyramid_size_factor", 0.5))
+        self.pyramid_classes = set(scaling.get("pyramid_classes", []) or [])
         self._first_day = True
 
         self.symbols = [i.symbol for i in self.universe]
@@ -269,6 +282,10 @@ class DailySession:
         self._briefing_frames = frames
         self._refresh_market_limits(briefing)
         self._refresh_funding(briefing)
+        # The risk gates need the same betas the briefing just measured;
+        # without this they fall back to a static table that has no entry
+        # for half the universe.
+        self.risk.beta_book = self.briefing_builder.beta_book
 
         context = MarketContext(
             day=str(schedule.day),
@@ -548,6 +565,7 @@ class DailySession:
         )
         self._refresh_market_limits(briefing)
         self._refresh_funding(briefing)
+        self.risk.beta_book = self.briefing_builder.beta_book
         # Management re-reads bars on the timeframe the slot's briefing
         # chose, so a slot that stepped an instrument to a faster frame is
         # then managed on that frame too.
@@ -671,6 +689,14 @@ class DailySession:
                 continue
 
             atr = self._current_atr(position.symbol) or position.atr_at_entry
+
+            # Bank some of the open gain, then press the rest. Both are
+            # the same idea as a trailing stop applied at different ends:
+            # the trail protects a winner, scaling out converts part of it
+            # to cash, and pyramiding presses it.
+            self._book_profit(position, price, now)
+            self._pyramid(position, price, atr, now, schedule)
+
             new_stop, stop_reason = self.risk.update_stop(position, price, atr)
             if stop_reason and new_stop != position.stop_price:
                 logger.info(
@@ -685,6 +711,108 @@ class DailySession:
         self._check_breakers(now, schedule, prices)
         self._persist()
         return closed
+
+    def _book_profit(self, position: Position, price: float,
+                     now: datetime) -> None:
+        """Sell a slice at each profit rung the position has reached.
+
+        A trend system's standing complaint is that it hands most of an
+        open gain back waiting for the trailing stop to catch up. Taking a
+        fixed fraction off at set multiples of risk converts some of that
+        paper profit into cash while leaving the rest to run.
+
+        Each rung fires once. The position keeps its original entry, stop
+        and R measurement, so a trade that sold half at 2R and then
+        stopped at breakeven is recorded as the winner it was.
+        """
+        if not self.scale_out_levels or position.quantity <= 0:
+            return
+        if self.scale_out_classes and \
+                str(position.asset_class) not in self.scale_out_classes:
+            return
+
+        open_r = position.unrealized_r(price)
+        for level, fraction in self.scale_out_levels:
+            if open_r < level or level in position.scaled_out_at_levels:
+                continue
+            # Never sell the last of it here; the stop and target own the
+            # exit, and a position closed by a scale-out would bypass the
+            # trade record entirely.
+            remaining = position.quantity * (1.0 - fraction)
+            if remaining <= 0:
+                continue
+            self.broker.scale_out(
+                position, price, fraction,
+                now=now,
+                adv_notional=self._adv_notional(position.symbol),
+                spread_bps=self._spread(position.symbol),
+                daily_vol_bps=self._daily_vol_bps(position.symbol),
+            )
+            position.scaled_out_at_levels.append(level)
+
+    def _pyramid(self, position: Position, price: float, atr: float,
+                 now: datetime, schedule: DaySchedule) -> None:
+        """Add a unit to a position that is working.
+
+        The entry-side counterpart of the trailing stop. Adding is gated
+        on the same things a fresh entry is — the risk budget, the entry
+        slot, the daily cap — because a pyramid unit is a new position in
+        everything but name, and exempting it would let the book grow past
+        limits it was told to respect.
+        """
+        if self.max_units <= 1 or position.units >= self.max_units:
+            return
+        if self.pyramid_classes and \
+                str(position.asset_class) not in self.pyramid_classes:
+            return
+        if self.state.halted_reason:
+            return
+        if not schedule.admits(position.asset_class, now):
+            return
+
+        open_r = position.unrealized_r(price)
+        if open_r < self.pyramid_step_r * position.units:
+            return
+        if atr <= 0:
+            return
+
+        equity = self.broker.equity(self._latest_prices(self.symbols, now))
+        limits = self._market_limits.get(position.symbol, {})
+        order = self.risk.size_order(
+            symbol=position.symbol,
+            side=position.side,
+            entry_price=price,
+            atr=atr,
+            equity=equity,
+            # Each unit risks less than the one before it, so a pyramid
+            # cannot quietly turn a 0.75% trade into a 3% one.
+            risk_pct=self.risk.risk_per_trade_pct() * self.pyramid_size_factor,
+            min_qty=limits.get("min_qty", 0.0),
+            qty_step=limits.get("qty_step", 0.0),
+            min_notional=limits.get("min_notional", 0.0),
+            asset_class=position.asset_class,
+        )
+        if not order.valid:
+            return
+
+        decision = self.risk.check_new_trade(
+            order,
+            [p for p in self.broker.positions if p is not position],
+            equity=equity,
+            day_start_equity=self.state.day_start_equity or equity,
+            peak_equity=max(self.state.peak_equity, equity),
+        )
+        if not decision.allowed:
+            logger.debug("Pyramid on %s refused: %s", position.symbol,
+                         decision.reason)
+            return
+
+        self.broker.add_to(
+            position, order, now=now,
+            adv_notional=self._adv_notional(position.symbol),
+            spread_bps=self._spread(position.symbol),
+            daily_vol_bps=self._daily_vol_bps(position.symbol),
+        )
 
     # ── Phase 4: flatten ──────────────────────────────────────
 

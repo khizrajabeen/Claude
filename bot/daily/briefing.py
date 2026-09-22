@@ -67,6 +67,13 @@ class SymbolRead:
     momentum_score: float = 0.0
     momentum_rank: float = 0.5
     momentum_peers: int = 0
+    # Measured, not tabulated. Beta says how much of the market's move
+    # this instrument takes; r-squared says how much of *its* move is the
+    # market's. A coin at beta 1.0 with r-squared 0.2 is a different bet
+    # from one at beta 1.0 with r-squared 0.8.
+    beta: float = 1.0
+    beta_r2: float = 0.0
+    beta_benchmark: str = ""
     htf_strength: float = 0.0
     overnight_return_pct: float = 0.0
     regime: str = "ranging"
@@ -175,6 +182,9 @@ class BriefingBuilder:
                                                 self.primary_period + 20))
         self.momentum_lookback = int(signals.get("momentum_lookback", 60))
 
+        from bot.analysis.beta import BetaBook
+        self.beta_book = BetaBook(config)
+
     def build(
         self,
         symbols: list[str] | None,
@@ -251,6 +261,7 @@ class BriefingBuilder:
                 frames[symbol] = df
 
         self._rank_cross_section(briefing, instruments)
+        self._measure_betas(briefing, instruments)
 
         if tone["articles"]:
             logger.info(
@@ -411,6 +422,36 @@ class BriefingBuilder:
             "ok" if read.tradable else read.skip_reason,
         )
         return read, df
+
+    def _measure_betas(self, briefing: "Briefing", instruments: list) -> None:
+        """Beta and r-squared against each class's own benchmark.
+
+        Computed on the daily frame rather than the decision frame: an
+        hourly beta is mostly microstructure, and the exposure question
+        this answers — how much Bitcoin am I really holding — is a
+        multi-day one.
+        """
+        daily: dict[str, pd.DataFrame] = {}
+        for instrument in instruments:
+            read = briefing.symbols.get(instrument.symbol)
+            if read is None or not read.tradable:
+                continue
+            frame = read.primary_timeframe or instrument.higher_timeframe
+            try:
+                df = self.router.bars(instrument, frame, self.beta_book.window + 20)
+            except Exception:
+                continue
+            if df is not None and not df.empty:
+                daily[instrument.symbol] = df
+
+        self.beta_book.update(daily, [
+            i for i in instruments if i.symbol in daily
+        ])
+        for symbol, read in briefing.symbols.items():
+            if self.beta_book.known(symbol):
+                read.beta = round(self.beta_book.beta(symbol), 3)
+                read.beta_r2 = round(self.beta_book.r2(symbol), 3)
+                read.beta_benchmark = self.beta_book.benchmark(symbol) or ""
 
     def _rank_cross_section(self, briefing: "Briefing", instruments: list) -> None:
         """Rank each instrument against its own asset class.
