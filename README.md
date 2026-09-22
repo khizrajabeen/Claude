@@ -10,10 +10,12 @@ Everything runs in paper mode against live public market data. No API keys
 are needed to run it.
 
 > **Where this actually stands.** Nothing in this repository has a
-> demonstrated edge. Across 150 days of hourly bars on six majors, not one
-> configuration clears |t| ≥ 2 — every measured expectancy is compatible
-> with having none. What is trustworthy here is the *measurement*: purged
-> cross-validation, standard errors on every result, and replays that run
+> demonstrated edge. Across 400 days of hourly bars on six majors, not one
+> configuration clears |t| ≥ 2, and two honest out-of-sample splits
+> *reversed* the ranking between the two leading variants — which is what
+> non-significant results look like when you run them twice. What is
+> trustworthy here is the *measurement*: purged cross-validation, standard
+> errors on every result, out-of-sample splitting, and replays that run
 > the same code the live path does. Read the
 > [results](#measured-results) before running anything with money.
 
@@ -84,54 +86,55 @@ down; a good one lets it back to the configured base, never above it.
 
 ## Strategies
 
-Five independent return drivers, not one formula with five terms. The
-distinction is the point: the evidence on managed futures is that combining
-weakly correlated drivers is what shrinks drawdown, far more than improving
-any single signal. A trend model and a carry model lose money at different
-times; two trend models lose money together.
+Seven, in two families. Six earlier ones were removed after measuring
+poorly across repeated benches — a house trend model, cross-sectional
+momentum, a Donchian breakout, short-term reversion, funding carry and
+dual momentum. That removal is recorded rather than quietly done, because
+"we tried it and it did not work" is information.
 
-| Strategy | What it trades | Why it is here |
-|---|---|---|
-| `trend` | Volatility-scaled time-series momentum, blended over 1d / 3d / 2w | The CTA workhorse. Convex payoff — it is positioned for the persistent moves that make a crash a crash |
-| `xsmom` | Cross-sectional momentum, 12-1 style | Roughly market-neutral by construction. It can **short a rising asset** that is rising less than its peers, which is exactly what makes it a diversifier rather than a trend clone |
-| `breakout` | Donchian channel break, filtered on volatility compression | Flat during a grind that never makes a new high; already positioned when a quiet range snaps |
-| `reversion` | Short-term reversal on statistically stretched moves | Makes money in the chop that whipsaws trend. Suppressed entirely when ADX says a real trend is running |
-| `carry` | Perpetual funding, taking the paid side | Uncorrelated with price direction — but see the caveat below |
+### selective — survived the out-of-sample split
 
-Adding a strategy is a file in `bot/strategies/` and a line in config. Each
-one sees the same market context and knows nothing about the others; sizing
-and capital allocation are not its business.
-
-### Published systems
-
-Four well-documented systems implemented to their stated rules, so that any
-comparison is against the real thing rather than a paraphrase of it.
+Published systems, implemented to their stated rules so a comparison is
+against the real thing rather than a paraphrase.
 
 | Strategy | Source | The rules, as published |
 |---|---|---|
-| `turtle` | Dennis & Eckhardt, 1983 | 20-bar and 55-bar Donchian entries; N = ATR(20); 2N stop; a unit added every 0.5N to four units; exit on the 10-bar opposite channel. Includes the filter most implementations drop — skip an S1 breakout if the previous one would have won — with the 55-bar failsafe always taken |
-| `clenow` | Clenow, *Following the Trend* | EMA(50) above EMA(100) plus price at a 100-bar extreme; 3 ATR stop; ATR-normalised sizing |
-| `holygrail` | Raschke & Connors, *Street Smarts* | ADX(14) above 30, then wait for the retracement to the 20 EMA and enter in the trend's direction, targeting a retest of the recent swing |
-| `dualmom` | Antonacci, *Dual Momentum Investing* | Hold the strongest names in the universe, but only while their own trailing return clears a hurdle. Failing the absolute gate means cash, not the next name down |
+| `turtle` | Dennis & Eckhardt, 1983 | 20-bar and 55-bar Donchian entries; N = ATR(20); 2N stop; a unit every 0.5N to four units; 10-bar opposite-channel exit. Includes the filter most implementations drop — skip an S1 breakout if the previous one would have won — with the 55-bar failsafe always taken |
+| `clenow` | Clenow, *Following the Trend* | EMA(50) above EMA(100) plus price at a 100-bar extreme; 3 ATR stop |
+| `holygrail` | Raschke & Connors, *Street Smarts* | ADX(14) above 30, then wait for the retracement to the 20 EMA. The only pullback entry here — the others all buy strength, so they fire at the same moment and are effectively one bet |
 
-### LuxAlgo-style (implemented, measured, off by default)
+### lux — indicator-style, measured not trusted
 
 | Strategy | What it does |
 |---|---|
-| `supertrend` | SuperTrend run across a range of multipliers, each scored on what it would actually have earned, then k-means into three groups — the best group's centroid is traded. Seeded at the quartiles so the result is deterministic |
+| `supertrend` | SuperTrend across a range of multipliers, each scored on what it would actually have earned, then k-means into three groups with the best group's centroid traded. Seeded at the quartiles so the result is deterministic |
 | `smc` | Smart Money Concepts: BOS/CHoCH structure breaks, liquidity sweeps, fair value gaps, premium/discount positioning — each component reported separately |
 | `nwenvelope` | Nadaraya-Watson envelope, endpoint estimator only. The default form repaints |
+| `lorentzian` | kNN over historical market states. Instead of applying a rule it asks what happened the last time the market looked like this, and lets the closest neighbours vote |
 
-They are off because they measured worse, not because they are unfinished.
-See [the out-of-sample result](#did-luxalgo-help-no). Uncomment them in
-`config.yaml` to re-measure on your own data.
+**Lorentzian Classification** is the most-used open-source ML indicator on
+TradingView and the only genuinely different thing in the book. Features
+are RSI(14), WaveTrend, CCI(20), ADX(20) and RSI(9); distance is
+`sum(log(1 + |dx|))`. The logarithm is the point — under Euclidean
+distance a single volatility spike decides who counts as a neighbour.
 
-`clenow` is deliberately close to the house `trend` strategy. That is the
-point: two respected formulations with different lookbacks are a check on
-whether a result depends on the specific parameters or on trend following
-as such. `holygrail` is the only pullback entry in the book — every other
-trend system buys strength, so they all fire at the same moment and are
-effectively one bet.
+Two details this implementation gets right that most do not. Features are
+normalised on a **trailing** window, not the whole series, because
+rescaling against a future minimum is a leak. And neighbours are drawn
+only from bars whose outcome had already resolved, so no bar votes on a
+future it could not have seen. Both have tests.
+
+### Confirmation vs contrarian
+
+From LuxAlgo's Oscillator Matrix, which separates signals that ride a move
+from ones that fade it. The distinction is not cosmetic: a fade enters
+earlier and is right more often about the turn, but it is betting against
+whatever is currently working — so when it is wrong, it is wrong into a
+move that is still running.
+
+Every signal carries a stance. `smc` picks per-signal, since a structure
+break confirms while a sweep reversal opposes. The risk layer cuts size on
+fades in proportion to how much of the combined view is one.
 
 ## Autopilot
 
@@ -152,15 +155,6 @@ guards: nothing is judged before 25 trades, the bench threshold sits at
 −0.15R rather than at zero, and no more than half the roster can be benched
 at once — when most strategies are losing, the settings or the market are
 the problem, not the selection.
-
-**On carry, honestly:** published work puts the crypto carry Sharpe above 6
-over 2020–2023, falling through 2024 and turning negative in 2025 as
-delta-neutral yield products crowded the trade. Recent samples show average
-funding below the threshold at which it covers costs, so a disciplined rule
-simply does not fire. This implementation stands aside rather than chasing
-a yield that no longer clears fees — and on a spot venue there are no
-funding rates at all, so it reports itself inactive and contributes
-nothing.
 
 ## Portfolio construction
 
@@ -387,27 +381,80 @@ signal the first bench produced, now visible on data that did not choose it.
 the first half. This is a reason to keep watching `selective`, not a reason
 to fund it.
 
-### Did LuxAlgo help? No.
+### Did LuxAlgo help? Two tests, two different answers.
 
-The three LuxAlgo-style strategies are implemented in full and measured on
-the same footing:
+The LuxAlgo-style strategies are implemented in full and measured on the
+same footing as everything else. Two out-of-sample splits, on different
+sample lengths:
 
-- `luxalgo` alone: **−0.10%** out of sample, t = −0.12.
-- Adding them to the selective three took it from **+3.87% to +2.94%**.
+**300 days, split in half:**
 
-They made it worse. That is consistent with the published evidence on Smart
-Money Concepts — 648 backtests across four markets found no ICT/SMC signal
-with a significant forward edge, and nothing beat buy-and-hold — and it is
-why they ship disabled by default. They remain in the registry because the
-code is correct and the measurement is repeatable, not because it works.
+```
+  variant                   in-sample            OUT-OF-SAMPLE
+                    return%    trades     return%  trades      t
+  selective           -4.04        33       +3.87      42   0.95
+  luxalgo            -10.47       220       -0.10     145  -0.12
+  selective+lux      -10.36       175       +2.94     142   0.10
+```
 
-The one genuine contribution from that work is defensive: implementing
-these properly surfaced two look-ahead traps that would have made any naive
-version look excellent. Swing points are only knowable once the right
-shoulder prints, and the standard Nadaraya-Watson fit repaints — it is
-recalculated every bar, so the band a backtest "touched" was drawn knowing
-what came next. Both now have tests asserting the values do not change when
-future bars are removed.
+**400 days, split in half, after the prune:**
+
+```
+  variant                   in-sample            OUT-OF-SAMPLE
+                    return%    trades     return%  trades      t
+  selective           -3.64        53       +1.50      47   0.38
+  lux                -10.47       204       -0.27     161   0.10
+  everything          -9.19       221       +4.33     167   0.81
+  autopilot           -8.49       145       +1.14     179   0.05
+```
+
+On the first test, adding the LuxAlgo strategies to the selective three
+made things **worse** (+3.87% → +2.94%). On the second, the same
+combination made things **better** (+1.50% → +4.33%).
+
+**That contradiction is the finding.** With t-statistics of 0.38 and 0.81,
+neither test can distinguish these variants from each other or from zero,
+and so two honest runs on two samples reversed the ranking. Anyone
+reporting either number alone would be reporting noise as a result. It is
+the single clearest demonstration in this repository of why the
+significance column exists.
+
+What holds across both: `lux` on its own is the weakest family — worst
+in-sample in both tests and roughly flat out of sample. That is consistent
+with the published evidence on Smart Money Concepts, where 648 backtests
+across four markets found no ICT/SMC signal with a significant forward
+edge and nothing beating buy-and-hold. It is kept enabled because the user
+asked to keep measuring it, and because the code is correct even where the
+signal is not.
+
+Also consistent across both: **no variant is positive in both halves**,
+and the selective three trade a fraction as often as everything else
+(47–53 trades against 161–221) for comparable or better results.
+
+### What the prune actually bought
+
+Not performance — the tables above cannot support that claim. What it
+bought is measurable in other ways:
+
+- **Seven strategies instead of thirteen**, with the six removals recorded
+  and their reasons stated.
+- **A 7x faster replay.** Profiling found 51% of replay time in one place:
+  every price lookup ran a boolean mask over the whole index and allocated
+  a fresh frame, thousands of times per simulated day. Twenty days went
+  from 8.4s to 1.2s, which is the difference between a bench being a
+  coffee break and an afternoon — and therefore between running one
+  experiment and running ten.
+- **Two look-ahead traps closed**, both found by implementing the LuxAlgo
+  indicators properly: swing points that are only knowable once the right
+  shoulder prints, and a Nadaraya-Watson fit that repaints unless the
+  endpoint estimator is used. Either would have made a naive version look
+  excellent.
+- **A warm-up correctness fix.** The replay warmed up on `filters.min_bars`
+  (120) rather than on what the enabled strategies need (724 with
+  `lorentzian` in the roster), so it was replaying a stretch where the
+  deepest strategies were starved. A starved strategy returns nothing,
+  which is indistinguishable from having no opportunity — so the measured
+  result silently belonged to whichever half of the roster was awake.
 
 ## Machine learning: measured, then left switched off
 
@@ -479,7 +526,7 @@ deeper books and longer history.
 ## Tests
 
 ```bash
-python -m pytest tests/ -q      # 242 tests, no network
+python -m pytest tests/ -q      # 236 tests, no network
 ```
 
 The suite pins the claims this README makes: that margin cannot be
@@ -514,8 +561,8 @@ small, and forward paper results are the only evidence worth acting on.
 
 ```
 bot/
-  strategies/  trend, xsmom, breakout, reversion, carry,
-               turtle, clenow, holygrail, dualmom
+  strategies/  turtle, clenow, holygrail (selective)
+               supertrend, smc, nwenvelope, lorentzian (lux)
   portfolio/   risk-parity allocator, vol targeting, autopilot, tracker
   daily/       schedule, briefing, plan, session, journal
   risk/        position sizing, portfolio gates, circuit breakers
@@ -523,5 +570,5 @@ bot/
   analysis/    indicators, regime detection, news sentiment
   ml/          labeling, purged validation, model zoo, bake-off, trainer
   utils/       historical replay, variant bench, performance metrics
-tests/         242 tests
+tests/         236 tests
 ```
