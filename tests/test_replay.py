@@ -174,3 +174,78 @@ def test_single_trade_does_not_crash_the_statistics():
     assert summary["total_trades"] == 1
     assert summary["expectancy_se"] == 0.0
     assert summary["significant"] is False
+
+
+# ── Warm-up is capped by what the feed can supply ────────────
+# The deepest strategy wants 724 bars: 30 calendar days of a 1-hour
+# crypto series but 1,048 of an equity daily one, against a feed that
+# serves about 1,150 days in total. Demanding the full warm-up left the
+# equity leg with roughly a hundred replayable days, and any study that
+# shortened the history produced zero trades on it.
+
+def test_warmup_is_capped_so_there_is_something_left_to_replay(config):
+    from bot.markets.instrument import build_instrument
+    from bot.utils.backtester import DailyReplay
+
+    replay = DailyReplay(config)
+    stock = build_instrument({"symbol": "NVDA", "asset_class": "equity"})
+
+    uncapped = replay._warmup_span(stock)
+    capped = replay._warmup_span(stock, available_bars=300, days=60)
+    assert capped < uncapped
+    assert capped.days >= 0
+
+
+def test_a_generous_feed_keeps_the_full_warmup(config):
+    from bot.markets.instrument import build_instrument
+    from bot.utils.backtester import DailyReplay
+
+    replay = DailyReplay(config)
+    perp = build_instrument({"symbol": "BTC/USDT:USDT",
+                             "asset_class": "crypto_perp"})
+    full = replay._warmup_span(perp)
+    plenty = replay._warmup_span(perp, available_bars=20_000, days=60)
+    assert plenty == full
+
+
+def test_crypto_needs_far_less_calendar_warmup_than_equities(config):
+    """The same 724 bars is a month of hourly bars and three years of
+    daily ones."""
+    from bot.markets.instrument import build_instrument
+    from bot.utils.backtester import DailyReplay
+
+    replay = DailyReplay(config)
+    perp = build_instrument({"symbol": "BTC/USDT:USDT",
+                             "asset_class": "crypto_perp"})
+    stock = build_instrument({"symbol": "NVDA", "asset_class": "equity"})
+    assert replay._warmup_span(stock) > replay._warmup_span(perp) * 10
+
+
+def test_starved_strategies_are_named_not_left_to_be_inferred(config, caplog):
+    """A strategy that cannot be warmed declines silently, which looks
+    exactly like having had no opportunity."""
+    import logging
+
+    from bot.markets.instrument import build_instrument
+    from bot.utils.backtester import DailyReplay
+
+    replay = DailyReplay(config)
+    stock = build_instrument({"symbol": "NVDA", "asset_class": "equity"})
+    with caplog.at_level(logging.WARNING, logger="trading_bot"):
+        replay._warmup_span(stock, available_bars=300, days=60)
+    assert any("cannot be warmed" in r.message for r in caplog.records)
+
+
+def test_each_instrument_is_only_warned_about_once(config, caplog):
+    import logging
+
+    from bot.markets.instrument import build_instrument
+    from bot.utils.backtester import DailyReplay
+
+    replay = DailyReplay(config)
+    stock = build_instrument({"symbol": "NVDA", "asset_class": "equity"})
+    with caplog.at_level(logging.WARNING, logger="trading_bot"):
+        for _ in range(4):
+            replay._warmup_span(stock, available_bars=300, days=60)
+    warnings = [r for r in caplog.records if "cannot be warmed" in r.message]
+    assert len(warnings) == 1

@@ -254,13 +254,15 @@ class DailyReplay:
         ready_at = start
         laggard = None
         for instrument in universe:
-            available = frames[instrument.symbol]
+            got = frames[instrument.symbol]
             wanted = {instrument.timeframe, instrument.higher_timeframe}
-            firsts = [df.index[0] for tf, df in available.items()
-                      if tf in wanted and not df.empty]
-            if not firsts:
-                firsts = [df.index[0] for df in available.values() if not df.empty]
-            when = max(firsts) + self._warmup_span(instrument)
+            deciding = [df for tf, df in got.items()
+                        if tf in wanted and not df.empty]
+            if not deciding:
+                deciding = [df for df in got.values() if not df.empty]
+            firsts = [df.index[0] for df in deciding]
+            available = max((len(df) for df in deciding), default=0)
+            when = max(firsts) + self._warmup_span(instrument, available, days)
             if when > ready_at:
                 ready_at, laggard = when, instrument
         first_tradeable = ready_at
@@ -423,13 +425,67 @@ class DailyReplay:
             warmup_days *= 365 / 252
         return int(days + warmup_days) + 30
 
-    def _warmup_span(self, instrument) -> timedelta:
-        """How far past its first bar an instrument becomes tradable."""
+    def _warmup_span(self, instrument, available_bars: int | None = None,
+                     days: int = 0) -> timedelta:
+        """How far past its first bar an instrument becomes tradable.
+
+        Capped by what the feed can actually supply. The deepest strategy
+        wants 724 bars: 30 calendar days of a 1-hour crypto series, but
+        1,048 of an equity daily one — and the free Nasdaq feed serves
+        about 1,150 days in total. Demanding the full warm-up therefore
+        left the equity leg with roughly a hundred replayable days, and
+        any study that shortened the history at all produced zero trades
+        on it.
+
+        Waiting for the deepest strategy is also the wrong rule. A
+        strategy starved of history already declines on its own — it
+        checks its bar count and returns nothing — so holding the whole
+        replay back for one that will never be warm on this instrument
+        buys nothing and costs every other strategy its run. The warm-up
+        is capped at what leaves room to replay, and which strategies that
+        starves is logged rather than left to be inferred from an
+        empty result.
+        """
         seconds = TIMEFRAME_SECONDS.get(instrument.timeframe, 3600)
-        days = self._warmup_bars() * seconds / 86_400
-        if not instrument.asset_class.is_crypto:
-            days *= 365 / 252
-        return timedelta(days=days)
+        per_day = 86_400 / seconds
+        if not instrument.asset_class.is_crypto and seconds >= 86_400:
+            per_day *= 252 / 365
+
+        wanted = self._warmup_bars()
+        if available_bars and days > 0:
+            # Leave room for the replay itself, plus a small margin.
+            affordable = int(available_bars - days * per_day - 10)
+            if affordable < wanted:
+                if affordable < int(self.config["filters"].get("min_bars", 120)):
+                    # Not even the shallow strategies can be warmed here.
+                    wanted = max(affordable, 0)
+                else:
+                    self._note_starved(instrument, affordable)
+                    wanted = affordable
+
+        days_needed = wanted / per_day if per_day else 0.0
+        return timedelta(days=max(0.0, days_needed))
+
+    def _note_starved(self, instrument, affordable: int) -> None:
+        """Say which strategies cannot be warmed on this instrument."""
+        from bot.strategies import build_strategies
+
+        starved = [s.name for s in build_strategies(self.config)
+                   if s.required_bars() > affordable]
+        if not starved:
+            return
+        key = (instrument.symbol, tuple(starved))
+        seen = getattr(self, "_starved_seen", None)
+        if seen is None:
+            seen = self._starved_seen = set()
+        if key in seen:
+            return
+        seen.add(key)
+        logger.warning(
+            "  %s has only %d bars of run-up — %s cannot be warmed here "
+            "and will stand aside",
+            instrument.symbol, affordable, ", ".join(starved),
+        )
 
     def _limits(self) -> dict:
         router = getattr(self, "_router", None)
