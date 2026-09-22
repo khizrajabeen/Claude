@@ -23,6 +23,13 @@ Three things keep this from being a headline-chasing machine:
   this morning has not been fully priced; one the tape has had all day to
   digest has. The signal is scaled by how much of the sentiment is recent.
 
+  One caveat on that, stated rather than hidden: on a cold start the
+  headline store holds only what was just fetched, so every story looks
+  fresh and the scale is degenerate at 1.0. It only begins to discriminate
+  once the bot has been running long enough to hold stories older than
+  the fresh window — a few hours of live operation, and never in a replay,
+  where news is neutral anyway.
+
   **The chart still holds a veto.** A bullish story on an instrument in a
   primary downtrend is not a reason to buy it. Direction must agree with
   the trend read, which is the same gate every other strategy passes.

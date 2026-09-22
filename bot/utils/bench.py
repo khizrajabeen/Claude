@@ -30,9 +30,12 @@ from bot.utils.backtester import DailyReplay
 logger = logging.getLogger("trading_bot")
 
 
-SELECTIVE = ["clenow", "turtle", "holygrail"]
-LUX = ["supertrend", "smc", "nwenvelope", "lorentzian"]
-EVERYTHING = SELECTIVE + LUX
+# Imported rather than restated. These lists were duplicated here, and a
+# strategy added to the registry then silently had no bench variant —
+# which is the one place it would have been measured.
+from bot.strategies import LUX, NEWS, SELECTIVE  # noqa: E402
+
+EVERYTHING = SELECTIVE + LUX + NEWS
 
 _NO_VOL_TARGET = {"enabled": False}
 _PARITY = {"weighting": "inverse_vol", "correlation_haircut": True}
@@ -67,9 +70,11 @@ VARIANTS: dict[str, dict] = {
     "smc": _solo("smc", "Smart Money Concepts only"),
     "nwenvelope": _solo("nwenvelope", "Nadaraya-Watson envelope only"),
     "lorentzian": _solo("lorentzian", "Lorentzian kNN only"),
+    "news": _solo("news", "Per-company news sentiment only"),
     # Families.
     "selective": _group(SELECTIVE, "the three published systems, risk parity"),
     "lux": _group(LUX, "the four indicator-style signals, risk parity"),
+    "news-only": _group(NEWS, "per-company news, equities and ETFs only"),
     "everything": _group(EVERYTHING, "all seven, risk parity + vol target"),
     "autopilot": _group(EVERYTHING, "all seven, autopilot manages the roster",
                         autopilot=True),
@@ -77,7 +82,7 @@ VARIANTS: dict[str, dict] = {
 
 # Every strategy on its own, for attribution.
 SOLO = ["clenow", "turtle", "holygrail", "supertrend", "smc", "nwenvelope",
-        "lorentzian"]
+        "lorentzian", "news"]
 # The families worth testing out of sample.
 CANDIDATES = ["selective", "lux", "everything", "autopilot"]
 GROUPS = {"solo": SOLO, "candidates": CANDIDATES}

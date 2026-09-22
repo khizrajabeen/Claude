@@ -55,14 +55,20 @@ def test_solo_variants_strip_the_portfolio_layers():
 
 
 def test_families_differ_only_in_membership():
-    selective = VARIANTS["selective"]["overrides"]
-    lux = VARIANTS["lux"]["overrides"]
+    """Every family shares one set of portfolio settings, so a difference
+    between them is a difference in roster and nothing else."""
+    families = ["selective", "lux", "news-only"]
+    overrides = {name: VARIANTS[name]["overrides"] for name in families}
     everything = VARIANTS["everything"]["overrides"]
 
-    assert selective["portfolio"] == lux["portfolio"] == everything["portfolio"]
-    assert selective["vol_target"] == lux["vol_target"] == everything["vol_target"]
-    assert set(everything["strategies"]["enabled"]) == \
-        set(selective["strategies"]["enabled"]) | set(lux["strategies"]["enabled"])
+    for name in families:
+        assert overrides[name]["portfolio"] == everything["portfolio"], name
+        assert overrides[name]["vol_target"] == everything["vol_target"], name
+
+    union = set()
+    for name in families:
+        union |= set(overrides[name]["strategies"]["enabled"])
+    assert set(everything["strategies"]["enabled"]) == union
 
 
 def test_autopilot_variant_differs_only_by_the_autopilot():
