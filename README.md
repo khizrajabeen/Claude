@@ -53,7 +53,7 @@ strategy:
 |---|---:|---:|---:|---:|---:|---:|---|
 | `clenow` | **+14.91%** | 39 | +0.581R | 1.33% | 69.2 | 5.58 | kept |
 | `turtle` | **+10.77%** | 69 | +0.255R | 1.29% | 60.9 | 2.09 | kept |
-| `lorentzian` | +3.80% | 50 | −0.002R | 4.02% | 48.0 | 1.37 | kept, on sufferance |
+| `lorentzian` | +3.80% | 50 | −0.002R | 4.02% | 48.0 | 1.37 | dropped |
 | `supertrend` | −1.17% | 214 | −0.070R | 5.58% | 42.1 | 1.01 | dropped |
 | `nwenvelope` | −3.23% | 19 | −0.308R | 3.25% | 31.6 | 0.20 | dropped |
 | `holygrail` | −3.26% | 55 | −0.206R | 5.14% | 30.9 | 0.76 | dropped |
@@ -66,11 +66,23 @@ traded about 450 times between them to lose money — `smc` and
 lesson every measurement in this project has returned: **trading less is
 the only durable edge found so far.**
 
-`lorentzian` is kept on sufferance. Its return is positive but its
-expectancy is essentially zero, so the gain came from a handful of large
-winners rather than an edge per trade. It earns its place as a different
-kind of driver beside two correlated trend systems, and the autopilot
-benches it automatically if that stops being true.
+Run **together**, on the same window:
+
+| roster | return | trades | expectancy | max DD | win% | PF | Sharpe |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `clenow + turtle` | +15.66% | 64 | +0.400R | **1.23%** | 65.6 | 2.98 | **9.00** |
+| ...+ `lorentzian` | **+16.20%** | 90 | +0.283R | 1.77% | 57.8 | 2.29 | 6.17 |
+| the old seven | +3.58% | 144 | −0.039R | 4.55% | 43.1 | 1.22 | 1.75 |
+
+`lorentzian` buys half a point of return and costs half a point of
+drawdown, 26 trades, $64 of fees and a third of the Sharpe, so it is out
+too. Adding a third driver for diversification is a good instinct, but
+one whose per-trade expectancy is zero diversifies nothing except the fee
+bill.
+
+**Read that Sharpe of 9.00 with suspicion rather than pleasure.** It is
+not a number a real edge produces over 90 days. It is what a lucky window
+looks like, and the roster was chosen by looking at that window.
 
 Nothing is deleted. The dropped strategies keep their code, their tests
 and their bench variants, because "it lost money over one 90-day window
@@ -639,8 +651,8 @@ small, and forward paper results are the only evidence worth acting on.
 
 ```
 bot/
-  strategies/  clenow, turtle, lorentzian (enabled)
-               holygrail, supertrend, smc, nwenvelope, news (measured, off)
+  strategies/  clenow, turtle (enabled)
+               lorentzian, holygrail, supertrend, smc, nwenvelope, news (off)
   markets/     instruments, trading calendars, timeframe ladder, screener
   data/        one router over crypto, Alpaca and daily-equity providers
   portfolio/   risk-parity allocator, vol targeting, autopilot, tracker

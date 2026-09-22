@@ -8,7 +8,9 @@
 import {
   loadAll, fmt, sign, el, sparkline, donut, PALETTE, initTheme,
 } from "./app.js";
+import { renderNav } from "./nav.js";
 
+renderNav();
 initTheme();
 
 const CLASS_LABEL = {

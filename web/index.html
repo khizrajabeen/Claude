@@ -17,11 +17,7 @@
 <header class="nav">
   <div class="wrap" style="display:flex;align-items:center;gap:22px">
     <a class="brand" href="./index.html"><span class="mark">◈</span> Meridian</a>
-    <nav>
-      <a href="./index.html" aria-current="page">Overview</a>
-      <a href="./dashboard.html">Dashboard</a>
-      <a href="./settings.html">Settings</a>
-    </nav>
+    <nav data-topnav></nav>
     <span class="spacer"></span>
     <button class="btn sm" data-toggle-theme title="Switch theme">◐</button>
     <a class="btn sm primary" href="./dashboard.html">Open Dashboard →</a>
@@ -188,8 +184,10 @@
 
 <script type="module">
 import { load, fmt, sign, setText, initTheme } from "./assets/app.js";
+import { renderNav } from "./assets/nav.js";
 
 initTheme();
+renderNav();
 
 load("portfolio").then((p) => {
   setText("s-equity", fmt.money(p.equity));

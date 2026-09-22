@@ -77,6 +77,7 @@ class CoinCandidate:
             "is_new": self.is_new,
             "news_score": round(self.news_score, 3),
             "news_articles": self.news_articles,
+            "price": self.price,
             "beta": round(self.beta, 3) if self.beta is not None else None,
             "beta_r2": round(self.beta_r2, 3) if self.beta_r2 is not None else None,
             "change_24h_pct": round(self.change_24h_pct, 2),

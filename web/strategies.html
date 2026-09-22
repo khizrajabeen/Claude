@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strategies — Meridian</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/app.css">
+</head>
+<body>
+<div class="aurora"></div>
+<div class="shell">
+  <aside class="rail" data-nav></aside>
+  <main class="main">
+    <div class="page-head">
+      <h1>Strategies</h1>
+      <span class="count" id="count"></span>
+      <span class="spacer"></span>
+      <span class="small muted" id="asof"></span>
+      <button class="btn sm" data-toggle-theme>◐</button>
+    </div>
+    <div id="banner"></div>
+    <section class="cols two" style="margin-bottom:16px">
+      <div class="card">
+        <h3>Live performance <span class="small muted">from the journal</span></h3>
+        <div class="scroll"><table id="live"></table></div>
+        <div id="live-empty"></div>
+      </div>
+      <div class="card">
+        <h3>By asset class</h3>
+        <div class="scroll"><table id="classes"></table></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-bottom:16px">
+      <h3>The solo bench <span class="small muted">how the roster was chosen</span></h3>
+      <div class="scroll"><table id="bench"></table></div>
+      <p class="small muted" style="margin-top:14px;line-height:1.7" id="bench-note"></p>
+    </section>
+
+    <section class="card">
+      <h3>By market</h3>
+      <div class="scroll"><table id="symbols"></table></div>
+    </section>
+  </main>
+</div>
+<script type="module" src="./assets/strategies.js"></script>
+</body>
+</html>

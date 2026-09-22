@@ -11,7 +11,9 @@
    on the machine it runs on. */
 
 import { initTheme, safeGet, safeSet, safeRemove } from "./app.js";
+import { renderNav } from "./nav.js";
 
+renderNav();
 initTheme();
 
 const PREFIX = "meridian.";

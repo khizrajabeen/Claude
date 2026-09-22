@@ -291,15 +291,23 @@ strategies:
   # four dropped ones traded 450 times between them to lose money; smc
   # and supertrend alone accounted for 376 of those trades.
   #
-  # lorentzian is kept on sufferance: its return is positive but its
-  # expectancy is -0.002R, which means the gain came from a handful of
-  # large winners rather than from an edge per trade. It earns its place
-  # as a different kind of driver next to two correlated trend systems,
-  # and the autopilot will bench it if it deteriorates.
+  # Then the three were run together, against the two alone and against
+  # the old seven, on the same window:
+  #
+  #   roster           return%  trades  expect R  maxDD%   win%    PF  Sharpe
+  #   clenow+turtle     +15.66      64    +0.400    1.23   65.6  2.98    9.00
+  #   +lorentzian       +16.20      90    +0.283    1.77   57.8  2.29    6.17
+  #   old seven          +3.58     144    -0.039    4.55   43.1  1.22    1.75
+  #
+  # lorentzian buys 0.54 points of return and costs 0.54 points of
+  # drawdown, 26 trades, $64 of fees and a third of the Sharpe. On every
+  # risk-adjusted measure the pair is better than the trio, so it is out.
+  # Read the Sharpe of 9.00 with suspicion rather than pleasure: that is
+  # not a number a real edge produces over 90 days, it is what a lucky
+  # window looks like, and the roster was chosen by looking at it.
   enabled:
     - clenow       # Clenow: EMA50/100 filter + 100-bar extreme, 3 ATR stop
     - turtle       # Dennis & Eckhardt 1983: 20/55 Donchian, N sizing, 2N stop
-    - lorentzian   # kNN over historical market states, Lorentzian distance
 
   news:
     asset_classes: ["equity", "etf"]   # crypto's tape is fast enough already

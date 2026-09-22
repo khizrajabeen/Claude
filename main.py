@@ -195,9 +195,31 @@ def mode_publish(config, logger, args):
 
     screen = None
     if args.screen:
+        from bot.analysis.beta import BetaBook
+        from bot.data import DataRouter
         from bot.exchange import ExchangeClient
+        from bot.markets import build_universe
         from bot.markets.screener import CoinScreener
-        screen = CoinScreener(config, exchange=ExchangeClient(config)).scan()
+
+        # Measure beta over the universe the bot actually holds, so the
+        # screen can say how much of each candidate is really Bitcoin.
+        # Without this the column is empty and the page looks broken
+        # rather than unmeasured.
+        beta_book = BetaBook(config)
+        try:
+            router, universe = DataRouter(config), build_universe(config)
+            frames = {}
+            for instrument in universe:
+                frame = router.bars(instrument, instrument.higher_timeframe,
+                                    beta_book.window + 20)
+                if frame is not None and not frame.empty:
+                    frames[instrument.symbol] = frame
+            beta_book.update(frames, [i for i in universe if i.symbol in frames])
+        except Exception as e:
+            logger.warning("Could not measure betas for the screen: %s", e)
+
+        screen = CoinScreener(config, exchange=ExchangeClient(config)).scan(
+            beta_book=beta_book)
 
     publisher = Publisher(config, out_dir=args.out)
     written = publisher.publish(journal=Journal(source), screen=screen)

@@ -13,7 +13,7 @@ thing differing between runs was the strategy:
     holygrail       -3.26      55    -0.206    5.14   30.9   0.76
     smc             -6.45     162    -0.321    9.40   30.9   0.65
 
-**Enabled by default**: `clenow`, `turtle`, `lorentzian`.
+**Enabled by default**: `clenow`, `turtle`.
 
 The two published trend systems carry the book, and do it at roughly a
 fifth of the drawdown the full roster suffered. The four dropped ones
@@ -22,11 +22,22 @@ alone accounted for 376 of those trades, which is the same lesson every
 measurement in this project has returned — trading less is the only
 durable edge found so far.
 
-`lorentzian` is kept on sufferance. Its return is positive but its
-expectancy is -0.002R, meaning the gain came from a handful of large
-winners rather than from an edge per trade. It earns its place as a
-different kind of driver sitting next to two correlated trend systems,
-and the autopilot benches it automatically if it deteriorates.
+`lorentzian` was kept briefly and then dropped. Run together the three
+rosters compared as:
+
+    roster           return%  trades  expect R  maxDD%   win%    PF  Sharpe
+    clenow+turtle     +15.66      64    +0.400    1.23   65.6  2.98    9.00
+    +lorentzian       +16.20      90    +0.283    1.77   57.8  2.29    6.17
+    old seven          +3.58     144    -0.039    4.55   43.1  1.22    1.75
+
+It buys 0.54 points of return and costs 0.54 points of drawdown, 26
+trades, $64 of fees and a third of the Sharpe. Adding a third driver for
+diversification is a good instinct, but one whose per-trade expectancy is
+zero diversifies nothing except the fee bill.
+
+Read that Sharpe of 9.00 with suspicion rather than pleasure. It is not a
+number a real edge produces over 90 days; it is what a lucky window looks
+like, and the roster was chosen by looking at that window.
 
 Everything dropped stays in the registry and keeps its tests. They are
 still reachable by name in config and still have bench variants, because
@@ -88,7 +99,7 @@ NEWS = ["news"]
 
 # What actually gets run. See the module docstring for the bench that
 # chose it.
-PROFITABLE = ["clenow", "turtle", "lorentzian"]
+PROFITABLE = ["clenow", "turtle"]
 
 DEFAULT_ENABLED = PROFITABLE
 

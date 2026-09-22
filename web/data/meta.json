@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-09-22T10:58:16+00:00",
+  "as_of": "2026-09-22T11:16:32+00:00",
   "current_day": null,
   "days_recorded": 90,
   "last_day": "2026-08-21",
@@ -18,8 +18,7 @@
   },
   "strategies": [
     "clenow",
-    "turtle",
-    "lorentzian"
+    "turtle"
   ],
   "universe": {
     "crypto_perp": [
