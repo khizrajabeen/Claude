@@ -97,10 +97,16 @@ python main.py publish --screen     # writes web/data/*.json
 python -m http.server 8000 -d web   # then open http://localhost:8000
 ```
 
-Three pages, no framework and no build step: an overview, a portfolio
+Live at **https://khizrajabeen.github.io/Claude/**.
+
+Six pages, no framework and no build step: an overview, a portfolio
 dashboard (equity curve, open positions, per-asset-class attribution,
-allocation, recent trades, market screen) and a settings page for API
-keys.
+allocation, recent trades), every closed trade, the full market screen,
+per-strategy results, and a settings page for API keys. Light, dark and
+match-system themes; the choice is remembered per browser and resolved
+before first paint, so switching to light does not flash dark on the way
+in. Both palettes measure at or above the 4.5:1 contrast WCAG AA asks
+for on every text element.
 
 Two things it deliberately will not do. It will not invent numbers — a
 missing data file produces an explanation of how to generate it, not a

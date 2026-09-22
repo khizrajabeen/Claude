@@ -104,6 +104,19 @@ Then enable Pages once, in **Settings → Pages → Source: GitHub Actions**.
 The workflow in `.github/workflows/pages.yml` does the rest, and refuses
 to publish if anything key-shaped appears under `web/`.
 
+Three repository settings gate a publish, and all three fail the same
+unhelpful way — a job that ends in a couple of seconds with no
+downloadable logs, which reads like nothing happened at all:
+
+- **Pages enabled**, with Actions as the source, as above.
+- **A plan that allows it.** Pages from a private repository needs a
+  paid plan; on a free one, make the repository public.
+- **The `github-pages` environment must allow the branch.** When Pages
+  is first enabled it permits the default branch only, so a deploy from
+  any other branch is rejected before a step runs. Widen it under
+  *Settings → Environments → github-pages → Deployment branches*, or
+  deploy from the default branch.
+
 Without push access the bot still trades and still records; only the
 public dashboard goes stale. The dashboard says so rather than showing
 old numbers as current.
