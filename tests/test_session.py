@@ -17,7 +17,7 @@ from bot.daily.schedule import (
 )
 from bot.daily.session import DailySession, SimulatedClock
 from bot.trading.broker import PaperBroker
-from tests.conftest import FakeExchange, make_ohlcv
+from tests.conftest import FakeRouter, make_ohlcv
 
 DAY_START = datetime(2026, 5, 4, 0, 0, tzinfo=timezone.utc)
 
@@ -35,11 +35,11 @@ def build_session(config, clock=None, drift=0.004, vol=0.012, seed=1, bars=1000)
                                  drift=drift * 4, vol=vol * 2, seed=seed + i,
                                  start=start, freq_hours=4)
 
-    exchange = FakeExchange(frames, clock=clock, htf=htf)
+    router = FakeRouter(frames, clock=clock, htf=htf)
     journal = Journal(config)
     state = journal.load_state()
     broker = PaperBroker(config, cash=state.cash, positions=state.positions)
-    session = DailySession(config, exchange, broker, journal, state, clock=clock)
+    session = DailySession(config, router, broker, journal, state, clock=clock)
     return session, journal, broker, clock
 
 

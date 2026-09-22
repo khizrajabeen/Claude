@@ -53,6 +53,9 @@ class Position:
     bars_held: int = 0
     strategy: str = ""
     entry_reason: str = ""
+    asset_class: str = "crypto_spot"
+    venue: str = ""
+    timeframe: str = ""
     tags: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -120,6 +123,9 @@ class Trade:
     closed_on_day: str = ""
     strategy: str = ""
     entry_reason: str = ""
+    asset_class: str = "crypto_spot"
+    venue: str = ""
+    timeframe: str = ""
     mae_r: float = 0.0  # worst excursion, in R
     mfe_r: float = 0.0  # best excursion, in R
 
@@ -148,7 +154,8 @@ class Trade:
             if k in ("opened_at", "closed_at"):
                 out[k] = v
             elif k in ("id", "symbol", "side", "exit_reason", "opened_on_day",
-                       "closed_on_day", "strategy", "entry_reason"):
+                       "closed_on_day", "strategy", "entry_reason",
+                       "asset_class", "venue", "timeframe"):
                 out[k] = "" if v is None else str(v)
             else:
                 out[k] = float(v) if v not in (None, "") else 0.0

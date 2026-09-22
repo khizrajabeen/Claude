@@ -184,6 +184,64 @@ class FakeExchange:
         return None
 
 
+class FakeRouter:
+    """A DataRouter over synthetic frames, keyed by instrument symbol.
+
+    The session and briefing only ever see the router interface, so this is
+    the single seam a test needs to control every market — crypto or equity —
+    without a network call.
+    """
+
+    def __init__(self, frames: dict[str, pd.DataFrame], clock=None,
+                 htf: dict | None = None, volume: float = 50_000_000.0,
+                 funding: dict | None = None):
+        self.exchange = FakeExchange(frames, clock=clock, htf=htf, volume=volume)
+        self.frames = frames
+        self.funding = funding or {}
+        self.calls = self.exchange.calls
+
+    # ── Router interface ──────────────────────────────────────
+
+    def provider_for(self, instrument):
+        return self.exchange if instrument.symbol in self.frames else None
+
+    def bars(self, instrument, timeframe=None, limit=500):
+        tf = timeframe or instrument.timeframe
+        return self.exchange.fetch_ohlcv(instrument.symbol, tf, limit=limit)
+
+    def price(self, instrument):
+        try:
+            return self.exchange.get_current_price(instrument.symbol)
+        except (LookupError, KeyError):
+            return None
+
+    def prices(self, instruments):
+        out = {}
+        for instrument in instruments:
+            price = self.price(instrument)
+            if price is not None:
+                out[instrument.symbol] = price
+        return out
+
+    def quote_volume(self, instrument):
+        return self.exchange.quote_volume_24h(instrument.symbol)
+
+    def spread_bps(self, instrument):
+        return self.exchange.spread_bps(instrument.symbol)
+
+    def order_book(self, instrument, depth: int = 20):
+        try:
+            return self.exchange.fetch_order_book(instrument.symbol, limit=depth)
+        except (LookupError, KeyError):
+            return None
+
+    def funding_rate(self, instrument):
+        return self.funding.get(instrument.symbol)
+
+    def market_limits(self, instrument):
+        return self.exchange.market_limits(instrument.symbol)
+
+
 def build_context(symbols=("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"),
                   bars=600, drifts=None, vol=0.012, seed=0, funding=None,
                   htf_trends=None, day="2026-05-04", **read_overrides):

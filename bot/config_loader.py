@@ -40,8 +40,14 @@ def load_config(config_path: str = "config.yaml") -> dict:
     return config
 
 
+def _asset_class_names() -> set[str]:
+    from bot.markets.instrument import AssetClass
+    return {member.value for member in AssetClass}
+
+
 def validate_config(config: dict) -> None:
     """Fail loudly at startup rather than mid-session."""
+    _ASSET_CLASSES = _asset_class_names()
     for section in REQUIRED_SECTIONS:
         if section not in config:
             raise ValueError(f"Missing required config section: '{section}'")
@@ -49,12 +55,28 @@ def validate_config(config: dict) -> None:
     if not config["exchange"].get("name"):
         raise ValueError("exchange.name is required")
 
-    symbols = config["data"].get("symbols")
-    if not symbols:
-        raise ValueError("data.symbols must list at least one pair")
+    # Either style of universe is acceptable: an explicit instrument list
+    # spanning asset classes, or the legacy bare symbol list (crypto spot).
+    symbols = config["data"].get("symbols") or []
+    instruments = config["data"].get("instruments") or []
+    if not symbols and not instruments:
+        raise ValueError(
+            "data.instruments or data.symbols must list at least one market"
+        )
     for symbol in symbols:
         if "/" not in symbol:
             raise ValueError(f"data.symbols entry '{symbol}' must look like BASE/QUOTE")
+    for spec in instruments:
+        name = spec if isinstance(spec, str) else spec.get("symbol")
+        if not name:
+            raise ValueError("every data.instruments entry needs a symbol")
+        if isinstance(spec, dict) and spec.get("asset_class"):
+            klass = str(spec["asset_class"])
+            if klass not in _ASSET_CLASSES:
+                raise ValueError(
+                    f"data.instruments entry '{name}' has unknown asset_class "
+                    f"'{klass}'; expected one of {sorted(_ASSET_CLASSES)}"
+                )
 
     if not config["data"].get("timeframe"):
         raise ValueError("data.timeframe is required")

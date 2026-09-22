@@ -128,6 +128,9 @@ class PaperBroker:
         daily_vol_bps: float | None = None,
         strategy: str = "",
         entry_reason: str = "",
+        asset_class: str = "crypto_spot",
+        venue: str = "",
+        timeframe: str = "",
         tags: dict | None = None,
     ) -> Position:
         """Open a position, charging fees and reserving margin."""
@@ -185,6 +188,9 @@ class PaperBroker:
             opened_on_day=day,
             strategy=strategy,
             entry_reason=entry_reason,
+            asset_class=asset_class,
+            venue=venue,
+            timeframe=timeframe,
             tags=tags or {},
         )
         self.positions.append(position)
@@ -263,6 +269,9 @@ class PaperBroker:
             closed_on_day=day,
             strategy=position.strategy,
             entry_reason=position.entry_reason,
+            asset_class=position.asset_class,
+            venue=position.venue,
+            timeframe=position.timeframe,
             mae_r=round(mae_r, 4),
             mfe_r=round(mfe_r, 4),
         )

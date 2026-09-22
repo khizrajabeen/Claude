@@ -267,19 +267,39 @@ class ExchangeClient:
             return None
 
     def quote_volume_24h(self, symbol: str) -> float | None:
-        """24h volume in quote currency — the liquidity filter and the
-        market-impact model both need it."""
+        """24h traded value in quote currency.
+
+        Derivatives venues report `baseVolume` in *contracts*, not in the
+        base asset, and leave `quoteVolume` empty. OKX's BTC perp contract
+        is 0.01 BTC, so taking baseVolume at face value overstates turnover
+        a hundredfold — which does not merely look wrong, it waves a
+        genuinely thin market straight through the liquidity filter. The
+        contract size is applied wherever the venue publishes one.
+        """
         try:
             ticker = self.fetch_ticker(symbol)
-            qv = ticker.get("quoteVolume")
-            if qv:
-                return float(qv)
-            base_vol, last = ticker.get("baseVolume"), ticker.get("last")
-            if base_vol and last:
-                return float(base_vol) * float(last)
         except Exception as e:
             logger.debug("Volume unavailable for %s: %s", symbol, e)
-        return None
+            return None
+
+        reported = ticker.get("quoteVolume")
+        if reported:
+            return float(reported)
+
+        base_volume = ticker.get("baseVolume")
+        last = ticker.get("last") or ticker.get("close")
+        if not base_volume or not last:
+            return None
+
+        contract_size = 1.0
+        try:
+            market = self.load_markets().get(symbol) or {}
+            if market.get("contract"):
+                contract_size = float(market.get("contractSize") or 1.0)
+        except Exception:
+            pass
+
+        return float(base_volume) * contract_size * float(last)
 
     # ── Orders ────────────────────────────────────────────────
 

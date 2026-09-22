@@ -76,6 +76,9 @@ class PlannedTrade:
     reason: str = ""
     caps: list = field(default_factory=list)
     strategy: str = ""
+    asset_class: str = "crypto_spot"
+    venue: str = ""
+    timeframe: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -329,6 +332,8 @@ class DayPlanner:
                 atr=order.atr, r_distance=order.r_distance,
                 components=candidate.components, reason=candidate.reason,
                 caps=order.caps_applied, strategy=self._dominant(view),
+                asset_class=read.asset_class, venue=read.venue,
+                timeframe=read.timeframe,
             ))
             book.append(_ProvisionalPosition(plan.trades[-1]))
 
@@ -340,14 +345,18 @@ class DayPlanner:
     def _round_trip_bps(self, read: SymbolRead) -> float:
         """Modelled cost of opening and closing one position, in bps.
 
-        Uses the same fee, spread and slippage numbers the paper broker
-        charges, so the gate and the fill agree.
+        Taken from the instrument itself, because the number differs by an
+        order of magnitude across asset classes: a crypto taker round trip
+        is ~17bps while a liquid US equity is ~6bps. Charging the crypto
+        figure to a stock would veto trades that comfortably clear their
+        real costs.
         """
-        paper = self.config.get("paper", {})
-        fee = float(paper.get("fee_taker_bps", 5.5)) * 2
-        slippage = float(paper.get("slippage_bps", 3.0)) * 2
-        spread = float(read.spread_bps or 0.0)
-        return fee + slippage + spread
+        base = float(read.round_trip_bps) if read.round_trip_bps else None
+        if base is None:
+            paper = self.config.get("paper", {})
+            base = (float(paper.get("fee_taker_bps", 5.5))
+                    + float(paper.get("slippage_bps", 3.0))) * 2
+        return base + float(read.spread_bps or 0.0)
 
     @staticmethod
     def _dominant(view: CombinedView) -> str:

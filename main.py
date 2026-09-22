@@ -77,10 +77,12 @@ def build_context(config, args, read_only: bool = False):
     args.read_only = read_only
     from bot.daily.journal import Journal
     from bot.daily.session import Clock, DailySession, SimulatedClock
-    from bot.exchange import ExchangeClient
+    from bot.data import DataRouter
+    from bot.markets import build_universe
     from bot.trading.broker import PaperBroker
 
-    exchange = ExchangeClient(config)
+    universe = build_universe(config)
+    router = DataRouter(config)
     journal = Journal(config)
     if not args.read_only:
         journal.acquire()
@@ -98,15 +100,17 @@ def build_context(config, args, read_only: bool = False):
         )
     else:
         clock = Clock()
-    session = DailySession(config, exchange, broker, journal, state, clock=clock)
-    return exchange, journal, state, broker, session
+    session = DailySession(
+        config, router, broker, journal, state, clock=clock, universe=universe,
+    )
+    return router, journal, state, broker, session
 
 
 # ── Modes ────────────────────────────────────────────────────
 
 def mode_briefing(config, logger, args):
     from bot.daily.schedule import build_schedule
-    exchange, journal, state, broker, session = build_context(config, args, read_only=True)
+    router, journal, state, broker, session = build_context(config, args, read_only=True)
     schedule = build_schedule(config, session.clock.now())
     briefing, _ = session.briefing_builder.build(
         symbols=session.symbols,
@@ -125,7 +129,7 @@ def mode_briefing(config, logger, args):
 
 def mode_plan(config, logger, args):
     from bot.daily.schedule import build_schedule
-    exchange, journal, state, broker, session = build_context(config, args, read_only=True)
+    router, journal, state, broker, session = build_context(config, args, read_only=True)
     schedule = build_schedule(config, session.clock.now())
     session._begin_day(str(schedule.day))
     briefing, plan = session.open_day(schedule)
@@ -137,7 +141,7 @@ def mode_plan(config, logger, args):
 
 
 def mode_day(config, logger, args):
-    exchange, journal, state, broker, session = build_context(config, args)
+    router, journal, state, broker, session = build_context(config, args)
     _install_shutdown(session, logger)
     try:
         result = session.run_day()
@@ -149,7 +153,7 @@ def mode_day(config, logger, args):
 
 
 def mode_run(config, logger, args):
-    exchange, journal, state, broker, session = build_context(config, args)
+    router, journal, state, broker, session = build_context(config, args)
     _install_shutdown(session, logger)
     try:
         results = session.run_forever(max_days=args.days)

@@ -85,22 +85,27 @@ class DailySession:
     def __init__(
         self,
         config: dict,
-        exchange,
+        router,
         broker: PaperBroker,
         journal: Journal,
         state: BotState,
         clock: Clock | SimulatedClock | None = None,
         price_source: Callable[[str, datetime], dict] | None = None,
+        universe: list | None = None,
     ):
+        from bot.markets import build_universe
+
         self.config = config
-        self.exchange = exchange
+        self.router = router
+        self.universe = universe if universe is not None else build_universe(config)
+        self.by_symbol = {i.symbol: i for i in self.universe}
         self.broker = broker
         self.journal = journal
         self.state = state
         self.clock = clock or Clock()
 
         self.risk = RiskBudget(config)
-        self.briefing_builder = BriefingBuilder(config, exchange)
+        self.briefing_builder = BriefingBuilder(config, router, universe=self.universe)
         self.strategies = build_strategies(config)
         self.allocator = StrategyAllocator(config)
         self.autopilot = AutoPilot(config)
@@ -116,7 +121,7 @@ class DailySession:
         self.allow_late_start = bool(session.get("allow_late_start", True))
         self._first_day = True
 
-        self.symbols = list(config.get("data", {}).get("symbols", []))
+        self.symbols = [i.symbol for i in self.universe]
         self.timeframe = config.get("data", {}).get("timeframe", "1h")
 
         # Injectable so the backtester can feed historical bars through the
@@ -371,6 +376,9 @@ class DailySession:
                     spread_bps=self._spread(planned.symbol),
                     daily_vol_bps=self._daily_vol_bps(planned.symbol),
                     strategy=planned.strategy or "blend",
+                    asset_class=planned.asset_class,
+                    venue=planned.venue,
+                    timeframe=planned.timeframe,
                     entry_reason=planned.reason,
                     tags={"edge": planned.edge, "planned_entry": planned.entry_price},
                 )
@@ -717,11 +725,16 @@ class DailySession:
 
         prices: dict[str, float] = {}
         for symbol in symbols:
+            instrument = self.by_symbol.get(symbol)
+            if instrument is None or not instrument.is_open(now):
+                continue
             try:
-                resolved = self.exchange.resolve_symbol(symbol) or symbol
-                prices[symbol] = self.exchange.get_current_price(resolved)
+                price = self.router.price(instrument)
             except Exception as e:
                 logger.debug("Price unavailable for %s: %s", symbol, e)
+                continue
+            if price:
+                prices[symbol] = float(price)
         return prices
 
     def _bars(self, symbol: str, limit: int = 120):
@@ -738,9 +751,15 @@ class DailySession:
         if hit and hit[0] == now:
             return hit[1]
 
+        instrument = self.by_symbol.get(symbol)
+        if instrument is None:
+            return None
+        read = getattr(self, "_briefing_reads", {}).get(symbol)
+        timeframe = read.timeframe if read else instrument.timeframe
         try:
-            resolved = self.exchange.resolve_symbol(symbol) or symbol
-            df = self.exchange.fetch_ohlcv(resolved, self.timeframe, limit=limit)
+            df = self.router.bars(instrument, timeframe, limit)
+            if df is not None and df.empty:
+                df = None
         except Exception as e:
             logger.debug("Bars unavailable for %s: %s", symbol, e)
             df = None
@@ -806,9 +825,11 @@ class DailySession:
         for symbol, read in briefing.symbols.items():
             if not read.tradable:
                 continue
+            instrument = self.by_symbol.get(symbol)
+            if instrument is None:
+                continue
             try:
-                resolved = self.exchange.resolve_symbol(symbol) or symbol
-                self._market_limits[symbol] = self.exchange.market_limits(resolved)
+                self._market_limits[symbol] = self.router.market_limits(instrument)
             except Exception:
                 self._market_limits[symbol] = {}
 

@@ -32,7 +32,8 @@ TRADE_COLUMNS = [
     "id", "symbol", "side", "entry_price", "exit_price", "quantity", "leverage",
     "opened_at", "closed_at", "holding_minutes", "pnl", "pnl_pct", "r_multiple",
     "fees", "funding", "slippage_cost", "risk_usd", "exit_reason",
-    "opened_on_day", "closed_on_day", "strategy", "entry_reason", "mae_r", "mfe_r",
+    "opened_on_day", "closed_on_day", "strategy", "entry_reason",
+    "asset_class", "venue", "timeframe", "mae_r", "mfe_r",
 ]
 
 DAY_COLUMNS = [

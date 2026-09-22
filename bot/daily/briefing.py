@@ -25,6 +25,7 @@ import pandas as pd
 from bot.analysis import indicators as ind
 from bot.analysis.news_sentiment import NewsSentimentAnalyzer
 from bot.analysis.regime import MarketRegime, RegimeDetector
+from bot.markets.timeframes import bars_per_day, choose_timeframe, fits_in_session
 
 logger = logging.getLogger("trading_bot")
 
@@ -63,6 +64,16 @@ class SymbolRead:
     bars: int = 0
     tradable: bool = True
     skip_reason: str = ""
+    # Multi-asset context: which market this is, when it is open, and what
+    # timeframe it was read on. The strategies do not care, but the session
+    # and the P&L attribution do.
+    asset_class: str = "crypto_spot"
+    venue: str = ""
+    timeframe: str = "1h"
+    timeframe_reason: str = ""
+    market_open: bool = True
+    minutes_to_close: float | None = None
+    round_trip_bps: float = 0.0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -101,16 +112,20 @@ class Briefing:
 class BriefingBuilder:
     """Assembles the morning briefing."""
 
-    def __init__(self, config: dict, exchange, news: NewsSentimentAnalyzer | None = None):
+    def __init__(self, config: dict, router, news: NewsSentimentAnalyzer | None = None,
+                 universe: list | None = None):
         self.config = config
-        self.exchange = exchange
+        self.router = router
         self.news = news if news is not None else NewsSentimentAnalyzer(config)
         self.regime_detector = RegimeDetector(config)
 
+        from bot.markets import build_universe
+        self.universe = universe if universe is not None else build_universe(config)
+        self.by_symbol = {i.symbol: i for i in self.universe}
+
         data = config.get("data", {})
-        self.timeframe = data.get("timeframe", "1h")
-        self.htf = data.get("higher_timeframe", "4h")
         self.history_bars = int(data.get("history_bars", 500))
+        self.adaptive_timeframes = bool(data.get("adaptive_timeframes", True))
         self.atr_period = int(config.get("stops", {}).get("atr_period", 14))
 
         filters = config.get("filters", {})
@@ -124,7 +139,7 @@ class BriefingBuilder:
 
     def build(
         self,
-        symbols: list[str],
+        symbols: list[str] | None,
         day: str,
         equity: float,
         cash: float,
@@ -160,14 +175,37 @@ class BriefingBuilder:
             yesterday=yesterday,
         )
 
+        # Read only the markets that are actually open. An equity is not
+        # "tradable but unattractive" at 03:00 UTC — it is shut, and
+        # planning around a price no venue is quoting is how a backtest
+        # ends up with fills nobody could have got.
+        requested = set(symbols) if symbols else None
+        instruments = [i for i in self.universe
+                       if requested is None or i.symbol in requested]
+
         frames: dict[str, pd.DataFrame] = {}
-        for symbol in symbols:
+        for instrument in instruments:
+            symbol = instrument.symbol
+            if not instrument.is_open(now):
+                next_open = instrument.calendar.next_open(now)
+                briefing.symbols[symbol] = SymbolRead(
+                    symbol=symbol, tradable=False,
+                    skip_reason=f"{instrument.calendar.name} shut until "
+                                f"{next_open:%a %H:%M} UTC",
+                    asset_class=instrument.asset_class.value,
+                    venue=instrument.venue, market_open=False,
+                    round_trip_bps=instrument.round_trip_bps,
+                )
+                continue
             try:
-                read, df = self._read_symbol(symbol, now)
+                read, df = self._read_symbol(instrument, now)
             except Exception as e:
                 logger.warning("Briefing failed for %s: %s", symbol, e)
                 briefing.symbols[symbol] = SymbolRead(
-                    symbol=symbol, tradable=False, skip_reason=f"error: {e}"[:120]
+                    symbol=symbol, tradable=False, skip_reason=f"error: {e}"[:120],
+                    asset_class=instrument.asset_class.value,
+                    venue=instrument.venue,
+                    round_trip_bps=instrument.round_trip_bps,
                 )
                 continue
             briefing.symbols[symbol] = read
@@ -201,14 +239,48 @@ class BriefingBuilder:
 
     # ── Per-symbol read ───────────────────────────────────────
 
-    def _read_symbol(self, symbol: str, now: datetime) -> tuple[SymbolRead, pd.DataFrame | None]:
-        resolved = self.exchange.resolve_symbol(symbol)
-        if resolved is None:
-            return SymbolRead(symbol=symbol, tradable=False,
-                              skip_reason="not listed on exchange"), None
+    def _read_symbol(self, instrument, now: datetime
+                     ) -> tuple[SymbolRead, pd.DataFrame | None]:
+        symbol = instrument.symbol
+        read = SymbolRead(
+            symbol=symbol,
+            asset_class=instrument.asset_class.value,
+            venue=instrument.venue,
+            round_trip_bps=instrument.round_trip_bps,
+            market_open=True,
+            minutes_to_close=instrument.calendar.minutes_until_close(now),
+        )
 
-        df = self._history(resolved, self.timeframe, self.history_bars)
-        read = SymbolRead(symbol=symbol, bars=len(df))
+        # Pick the timeframe from the instrument's own volatility, measured
+        # on its configured bar, then re-read on the chosen one. A second
+        # fetch on a fast market is worth not trading a 15-minute signal off
+        # a 4-hour picture.
+        timeframe = instrument.timeframe
+        higher = instrument.higher_timeframe
+        reason = "configured"
+        df = self.router.bars(instrument, timeframe, self.history_bars)
+
+        if self.adaptive_timeframes and not df.empty and len(df) > self.atr_period * 2:
+            probe_price = float(df["close"].iloc[-1])
+            probe_atr = ind.last_value(ind.atr(df, self.atr_period))
+            atr_pct = probe_atr / probe_price * 100 if probe_price else None
+            timeframe, higher, reason = choose_timeframe(instrument, atr_pct, now)
+            if timeframe != instrument.timeframe:
+                df = self.router.bars(instrument, timeframe, self.history_bars)
+
+        read.timeframe = timeframe
+        read.timeframe_reason = reason
+        read.bars = len(df)
+
+        if df.empty:
+            read.tradable = False
+            read.skip_reason = "no data from provider"
+            return read, df
+
+        if not fits_in_session(instrument, timeframe, now):
+            read.tradable = False
+            read.skip_reason = f"too close to the {instrument.calendar.name} close"
+            return read, df
 
         if len(df) < self.min_bars:
             read.tradable = False
@@ -222,7 +294,7 @@ class BriefingBuilder:
         read.atr = ind.last_value(atr_series)
         read.atr_pct = read.atr / read.price * 100 if read.price else 0.0
         read.annualized_vol = ind.last_value(
-            ind.realized_vol(close, 24, self.timeframe), default=0.6
+            ind.realized_vol(close, 24, timeframe), default=0.6
         )
 
         adx_s, plus_di, minus_di = ind.adx(df, 14)
@@ -236,16 +308,16 @@ class BriefingBuilder:
         read.ema_fast = ind.last_value(ind.ema(close, 21), read.price)
         read.ema_slow = ind.last_value(ind.ema(close, 55), read.price)
 
-        # Overnight move: how far price travelled since the previous session
-        # open, which frames whether a signal is early or already extended.
-        bars_per_day = max(1, int(86_400 / ind.TIMEFRAME_SECONDS.get(self.timeframe, 3600)))
-        if len(close) > bars_per_day:
-            ref = float(close.iloc[-bars_per_day - 1])
+        # Move since the previous session, which frames whether a signal is
+        # early or already extended. One bar for a daily instrument, a full
+        # day's worth for an intraday one.
+        lookback = max(1, bars_per_day(timeframe))
+        if len(close) > lookback:
+            ref = float(close.iloc[-lookback - 1])
             read.overnight_return_pct = (read.price - ref) / ref * 100 if ref else 0.0
 
-        # Higher timeframe context.
         try:
-            htf_df = self._history(resolved, self.htf, 200)
+            htf_df = self.router.bars(instrument, higher, 200)
             if len(htf_df) >= 60:
                 fast = ind.last_value(ind.ema(htf_df["close"], 21))
                 slow = ind.last_value(ind.ema(htf_df["close"], 55))
@@ -260,21 +332,19 @@ class BriefingBuilder:
             else str(regime["regime"])
         read.regime_confidence = float(regime["confidence"])
 
-        read.quote_volume_24h = self.exchange.quote_volume_24h(resolved) or 0.0
-        read.funding_rate = self.exchange.fetch_funding_rate(resolved) or 0.0
+        read.quote_volume_24h = self.router.quote_volume(instrument) or 0.0
+        read.funding_rate = self.router.funding_rate(instrument) or 0.0
 
         # One order book read gives both the spread and the resting-liquidity
-        # imbalance, so this costs a single call rather than two.
-        try:
-            book = ind.orderbook_imbalance(
-                self.exchange.fetch_order_book(resolved, limit=self.book_depth),
-                levels=self.book_levels,
-            )
-            read.book_imbalance = book["imbalance"]
-            read.spread_bps = book["spread_bps"]
-        except Exception as e:
-            logger.debug("Order book unavailable for %s: %s", symbol, e)
-            read.spread_bps = self.exchange.spread_bps(resolved) or 0.0
+        # imbalance. Venues that publish no book (equities here) fall back to
+        # whatever spread the provider can report.
+        book = self.router.order_book(instrument, self.book_depth)
+        if book:
+            measured = ind.orderbook_imbalance(book, levels=self.book_levels)
+            read.book_imbalance = measured["imbalance"]
+            read.spread_bps = measured["spread_bps"]
+        else:
+            read.spread_bps = self.router.spread_bps(instrument) or 0.0
 
         if self.config.get("news", {}).get("enabled", True):
             sent = self.news.sentiment_for(symbol, 24, now)
@@ -286,20 +356,12 @@ class BriefingBuilder:
         self._apply_filters(read)
 
         logger.info(
-            "  %-10s %12.4f | ATR %5.2f%% | ADX %5.1f | RSI %5.1f | %-13s | "
-            "news %+.2f (%d) | %s",
-            symbol, read.price, read.atr_pct, read.adx, read.rsi, read.regime,
-            read.news_score, read.news_articles,
+            "  %-14s %-11s %12.4f | %-3s | ATR %5.2f%% | ADX %5.1f | %-13s | %s",
+            symbol, read.asset_class, read.price, read.timeframe,
+            read.atr_pct, read.adx, read.regime,
             "ok" if read.tradable else read.skip_reason,
         )
         return read, df
-
-    def _history(self, symbol: str, timeframe: str, bars: int):
-        """Fetch `bars` candles, paging when the venue caps a single call."""
-        pager = getattr(self.exchange, "fetch_ohlcv_paged", None)
-        if pager is not None:
-            return pager(symbol, timeframe, bars)
-        return self.exchange.fetch_ohlcv(symbol, timeframe, limit=bars)
 
     def _apply_filters(self, read: SymbolRead) -> None:
         """Liquidity and volatility gates — a signal in an untradeable market

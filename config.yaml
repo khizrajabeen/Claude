@@ -17,19 +17,49 @@ exchange:
 
 # ── Universe and data ────────────────────────────────────────
 data:
-  symbols:
-    - "BTC/USDT"
-    - "ETH/USDT"
-    - "SOL/USDT"
-    - "XRP/USDT"
-    - "ADA/USDT"
-    - "LINK/USDT"
-  timeframe: "1h"          # the decision timeframe
-  higher_timeframe: "4h"   # trend filter
+  # One universe, four asset classes. Each instrument carries its own
+  # calendar, cost model and timeframe ladder, so a Nasdaq stock and a
+  # Bitcoin perp can sit in the same book without either being a special
+  # case. Perps are the leveraged, always-on, shortable leg; spot is the
+  # unlevered one; equities and ETFs only trade when their session is open.
+  instruments:
+    # ── Crypto perpetual futures (24/7, fundable, shortable) ──
+    - {symbol: "BTC/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
+    - {symbol: "ETH/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
+    - {symbol: "SOL/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
+    # ── Crypto spot (24/7, unlevered) ──
+    - {symbol: "BTC/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "ETH/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "SOL/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "XRP/USDT", asset_class: "crypto_spot", venue: "okx"}
+    - {symbol: "LINK/USDT", asset_class: "crypto_spot", venue: "okx"}
+    # ── US equities (session-bound, daily bars) ──
+    - {symbol: "NVDA", asset_class: "equity", venue: "nasdaq"}
+    - {symbol: "AAPL", asset_class: "equity", venue: "nasdaq"}
+    - {symbol: "MSFT", asset_class: "equity", venue: "nasdaq"}
+    - {symbol: "TSLA", asset_class: "equity", venue: "nasdaq"}
+    - {symbol: "AMD",  asset_class: "equity", venue: "nasdaq"}
+    - {symbol: "COIN", asset_class: "equity", venue: "nasdaq"}
+    # ── ETFs (the index leg: cheaper, slower, lower beta) ──
+    - {symbol: "SPY", asset_class: "etf", venue: "nasdaq"}
+    - {symbol: "QQQ", asset_class: "etf", venue: "nasdaq"}
+    - {symbol: "GLD", asset_class: "etf", venue: "nasdaq"}
+  timeframe: "1h"          # fallback when an instrument names none
+  higher_timeframe: "4h"   # fallback trend filter
   history_bars: 900        # must cover the longest strategy lookback
   orderbook_depth: 20
   orderbook_levels: 10
   train_days: 180
+  # The bot picks its own decision timeframe each day per instrument from
+  # realised volatility and how much session is left. A quiet tape gets a
+  # slower frame (fewer, better trades); a wild one gets a faster frame so
+  # the stop is not a day wide. Turning this off pins everything to
+  # data.timeframe above.
+  adaptive_timeframes: true
+  equity:
+    cache_hours: 6         # Nasdaq's endpoint is daily; re-asking is waste
+    max_retries: 3
+    throttle_seconds: 0.5
 
 # ── The trading day ──────────────────────────────────────────
 # Crypto never closes, so the "day" is a convention anchored to the UTC
