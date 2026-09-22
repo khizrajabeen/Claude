@@ -1,26 +1,50 @@
 """Strategy registry.
 
-Two families, kept because they earned their place on measured results
-rather than on reputation:
+The roster was finalised on a solo bench — each strategy run alone over
+the same 90 days of crypto history, on one shared download, so the only
+thing differing between runs was the strategy:
 
-  **selective** — `clenow`, `turtle`, `holygrail`. Published trend systems
-  that trade rarely and were the only group to survive an out-of-sample
-  split, ranking first in both halves of a 300-day test.
+    strategy      return%  trades  expect R  maxDD%   win%     PF
+    clenow         +14.91      39    +0.581    1.33   69.2   5.58
+    turtle         +10.77      69    +0.255    1.29   60.9   2.09
+    lorentzian      +3.80      50    -0.002    4.02   48.0   1.37
+    supertrend      -1.17     214    -0.070    5.58   42.1   1.01
+    nwenvelope      -3.23      19    -0.308    3.25   31.6   0.20
+    holygrail       -3.26      55    -0.206    5.14   30.9   0.76
+    smc             -6.45     162    -0.321    9.40   30.9   0.65
 
+**Enabled by default**: `clenow`, `turtle`, `lorentzian`.
+
+The two published trend systems carry the book, and do it at roughly a
+fifth of the drawdown the full roster suffered. The four dropped ones
+traded about 450 times between them to lose money; `smc` and `supertrend`
+alone accounted for 376 of those trades, which is the same lesson every
+measurement in this project has returned — trading less is the only
+durable edge found so far.
+
+`lorentzian` is kept on sufferance. Its return is positive but its
+expectancy is -0.002R, meaning the gain came from a handful of large
+winners rather than from an edge per trade. It earns its place as a
+different kind of driver sitting next to two correlated trend systems,
+and the autopilot benches it automatically if it deteriorates.
+
+Everything dropped stays in the registry and keeps its tests. They are
+still reachable by name in config and still have bench variants, because
+"we measured it and it lost money" is a fact about one 90-day window on
+one universe, not a proof — and deleting the code would make that
+finding unrepeatable.
+
+Six earlier strategies were removed outright after measuring poorly
+across repeated benches: a house trend model, cross-sectional momentum, a
+Donchian breakout, short-term reversion, funding carry and dual momentum.
+
+  **selective** — `clenow`, `turtle`, `holygrail`. Published trend systems.
   **lux** — `supertrend`, `smc`, `nwenvelope`, `lorentzian`. Indicator-style
-  signals of the kind LuxAlgo and its peers publish, implemented
-  mechanically so the measurement decides rather than the marketing.
-
-  **news** — `news`. Per-company sentiment, for equities. A US stock
-  prints one bar a day and gets one entry slot per session; the chart
-  simply does not say enough for a technical system to act on, so for
-  stocks the story is the signal and the chart is the filter.
-
-Six earlier strategies were removed after measuring poorly across repeated
-benches: a house trend model, cross-sectional momentum, a Donchian
-breakout, short-term reversion, funding carry and dual momentum. Their
-removal is recorded here rather than silently, because "we tried it and it
-did not work" is information the next person needs.
+    signals of the kind LuxAlgo and its peers publish, implemented
+    mechanically so the measurement decides rather than the marketing.
+  **news** — `news`. Per-company sentiment for equities. Not in the default
+    roster because the equity leg is off; it costs nothing to re-enable
+    alongside the instruments.
 """
 
 from __future__ import annotations
@@ -62,7 +86,11 @@ LUX = ["supertrend", "smc", "nwenvelope", "lorentzian"]
 # nine trades — there were barely any setups to have an opinion about.
 NEWS = ["news"]
 
-DEFAULT_ENABLED = SELECTIVE + LUX + NEWS
+# What actually gets run. See the module docstring for the bench that
+# chose it.
+PROFITABLE = ["clenow", "turtle", "lorentzian"]
+
+DEFAULT_ENABLED = PROFITABLE
 
 
 def build_strategies(config: dict) -> list[BaseStrategy]:
@@ -90,6 +118,6 @@ __all__ = [
     "TurtleStrategy", "ClenowTrend", "HolyGrailPullback",
     "SuperTrendAI", "SmartMoneyConcepts", "NadarayaWatsonEnvelope",
     "LorentzianClassifier", "NewsDriven",
-    "REGISTRY", "DEFAULT_ENABLED", "SELECTIVE", "LUX", "NEWS",
+    "REGISTRY", "DEFAULT_ENABLED", "PROFITABLE", "SELECTIVE", "LUX", "NEWS",
     "build_strategies",
 ]

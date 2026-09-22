@@ -47,17 +47,27 @@ data:
     - {symbol: "AVAX/USDT", asset_class: "crypto_spot", venue: "okx"}
     - {symbol: "FIL/USDT", asset_class: "crypto_spot", venue: "okx"}
     - {symbol: "BCH/USDT", asset_class: "crypto_spot", venue: "okx"}
-    # ── US equities (session-bound, daily bars) ──
-    - {symbol: "NVDA", asset_class: "equity", venue: "nasdaq"}
-    - {symbol: "AAPL", asset_class: "equity", venue: "nasdaq"}
-    - {symbol: "MSFT", asset_class: "equity", venue: "nasdaq"}
-    - {symbol: "TSLA", asset_class: "equity", venue: "nasdaq"}
-    - {symbol: "AMD",  asset_class: "equity", venue: "nasdaq"}
-    - {symbol: "COIN", asset_class: "equity", venue: "nasdaq"}
-    # ── ETFs (the index leg: cheaper, slower, lower beta) ──
-    - {symbol: "SPY", asset_class: "etf", venue: "nasdaq"}
-    - {symbol: "QQQ", asset_class: "etf", venue: "nasdaq"}
-    - {symbol: "GLD", asset_class: "etf", venue: "nasdaq"}
+    # ── US equities and ETFs — off ──
+    # Removed from the traded universe, not from the code. Over 90 days
+    # the equity leg lost $21 across 9 trades and the ETF leg $72 across
+    # 5, and it cannot be measured properly anyway: the deepest strategy
+    # wants 724 bars, which on a daily series is three years against a
+    # feed that serves about 1,150 days — roughly a hundred replayable
+    # days once warm-up is paid for.
+    #
+    # Everything needed to turn them back on is still here: the
+    # calendars, the session-aware entry slots, the news strategy and the
+    # Alpaca connector (which serves minute bars and fixes the history
+    # problem). Uncomment these and add "news" to the roster above.
+    # - {symbol: "NVDA", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "AAPL", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "MSFT", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "TSLA", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "AMD",  asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "COIN", asset_class: "equity", venue: "alpaca"}
+    # - {symbol: "SPY", asset_class: "etf", venue: "alpaca"}
+    # - {symbol: "QQQ", asset_class: "etf", venue: "alpaca"}
+    # - {symbol: "GLD", asset_class: "etf", venue: "alpaca"}
   timeframe: "1h"          # fallback when an instrument names none
   higher_timeframe: "4h"   # fallback trend filter
   history_bars: 900        # must cover the longest strategy lookback
@@ -264,18 +274,32 @@ sizing:
 # model, cross-sectional momentum, a Donchian breakout, short-term
 # reversion, funding carry and dual momentum.
 strategies:
+  # Finalised on a solo bench: each strategy run alone over the same
+  # 90 days of crypto history, 18 instruments, one shared download.
+  #
+  #   strategy      return%  trades  expect R  maxDD%   win%     PF
+  #   clenow         +14.91      39    +0.581    1.33   69.2   5.58
+  #   turtle         +10.77      69    +0.255    1.29   60.9   2.09
+  #   lorentzian      +3.80      50    -0.002    4.02   48.0   1.37
+  #   supertrend      -1.17     214    -0.070    5.58   42.1   1.01
+  #   nwenvelope      -3.23      19    -0.308    3.25   31.6   0.20
+  #   holygrail       -3.26      55    -0.206    5.14   30.9   0.76
+  #   smc             -6.45     162    -0.321    9.40   30.9   0.65
+  #
+  # The two published trend systems carry the book and do it at a third
+  # of the drawdown the full roster suffered (-0.66% at 6.99% DD). The
+  # four dropped ones traded 450 times between them to lose money; smc
+  # and supertrend alone accounted for 376 of those trades.
+  #
+  # lorentzian is kept on sufferance: its return is positive but its
+  # expectancy is -0.002R, which means the gain came from a handful of
+  # large winners rather than from an edge per trade. It earns its place
+  # as a different kind of driver next to two correlated trend systems,
+  # and the autopilot will bench it if it deteriorates.
   enabled:
-    # selective — survived the out-of-sample split
     - clenow       # Clenow: EMA50/100 filter + 100-bar extreme, 3 ATR stop
     - turtle       # Dennis & Eckhardt 1983: 20/55 Donchian, N sizing, 2N stop
-    - holygrail    # Raschke & Connors: ADX>30, pullback to the 20 EMA
-    # lux — indicator-style, measured not trusted
-    - supertrend   # SuperTrend factors clustered by realised performance
-    - smc          # structure breaks, liquidity sweeps, fair value gaps
-    - nwenvelope   # Nadaraya-Watson envelope (non-repainting endpoint form)
     - lorentzian   # kNN over historical market states, Lorentzian distance
-    # news — the wire, not the chart; equities and ETFs only
-    - news         # per-company sentiment, coverage-weighted and trend-gated
 
   news:
     asset_classes: ["equity", "etf"]   # crypto's tape is fast enough already

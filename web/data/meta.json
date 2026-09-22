@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-09-22T06:31:55+00:00",
+  "as_of": "2026-09-22T10:58:16+00:00",
   "current_day": null,
   "days_recorded": 90,
   "last_day": "2026-08-21",
@@ -19,12 +19,7 @@
   "strategies": [
     "clenow",
     "turtle",
-    "holygrail",
-    "supertrend",
-    "smc",
-    "nwenvelope",
-    "lorentzian",
-    "news"
+    "lorentzian"
   ],
   "universe": {
     "crypto_perp": [
@@ -48,19 +43,6 @@
       "AVAX/USDT",
       "FIL/USDT",
       "BCH/USDT"
-    ],
-    "equity": [
-      "NVDA",
-      "AAPL",
-      "MSFT",
-      "TSLA",
-      "AMD",
-      "COIN"
-    ],
-    "etf": [
-      "SPY",
-      "QQQ",
-      "GLD"
     ]
   }
 }
