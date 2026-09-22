@@ -30,136 +30,57 @@ from bot.utils.backtester import DailyReplay
 logger = logging.getLogger("trading_bot")
 
 
-HOUSE = ["trend", "xsmom", "breakout", "reversion", "carry"]
-PUBLISHED = ["turtle", "clenow", "holygrail", "dualmom"]
 SELECTIVE = ["clenow", "turtle", "holygrail"]
-LUXALGO = ["supertrend", "smc", "nwenvelope"]
-EVERYTHING = HOUSE + PUBLISHED + LUXALGO
+LUX = ["supertrend", "smc", "nwenvelope", "lorentzian"]
+EVERYTHING = SELECTIVE + LUX
 
 _NO_VOL_TARGET = {"enabled": False}
 _PARITY = {"weighting": "inverse_vol", "correlation_haircut": True}
 _OFF = {"enabled": False}
 
+
+def _solo(name: str, label: str) -> dict:
+    """One strategy on its own, with the portfolio layers out of the way."""
+    return {
+        "label": label,
+        "overrides": {"strategies": {"enabled": [name]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    }
+
+
+def _group(names: list[str], label: str, autopilot: bool = False) -> dict:
+    """A family, risk-weighted and volatility-targeted."""
+    return {
+        "label": label,
+        "overrides": {"strategies": {"enabled": list(names)},
+                      "portfolio": _PARITY, "vol_target": {"enabled": True},
+                      "autopilot": {"enabled": True} if autopilot else _OFF},
+    }
+
+
 VARIANTS: dict[str, dict] = {
-    "single": {
-        "label": "trend only, flat exposure",
-        "overrides": {
-            "strategies": {"enabled": ["trend"]},
-            "vol_target": {"enabled": False},
-        },
-    },
-    "multi-equal": {
-        "label": "5 strategies, equal weights",
-        "overrides": {
-            "strategies": {"enabled": HOUSE},
-            "portfolio": {"weighting": "equal", "correlation_haircut": False},
-            "vol_target": _NO_VOL_TARGET,
-            "autopilot": _OFF,
-        },
-    },
-    "multi-parity": {
-        "label": "5 strategies, inverse-vol + correlation haircut",
-        "overrides": {
-            "strategies": {"enabled": HOUSE},
-            "portfolio": _PARITY,
-            "vol_target": _NO_VOL_TARGET,
-            "autopilot": _OFF,
-        },
-    },
-    "full": {
-        "label": "risk parity + volatility targeting",
-        "overrides": {
-            "strategies": {"enabled": HOUSE},
-            "portfolio": _PARITY,
-            "vol_target": {"enabled": True},
-            "autopilot": _OFF,
-        },
-    },
-    # Each published system alone, to its own stated rules.
-    "turtle": {
-        "label": "Turtle only (Dennis & Eckhardt)",
-        "overrides": {"strategies": {"enabled": ["turtle"]},
-                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
-    },
-    "clenow": {
-        "label": "Clenow trend only",
-        "overrides": {"strategies": {"enabled": ["clenow"]},
-                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
-    },
-    "holygrail": {
-        "label": "Holy Grail pullback only (Raschke)",
-        "overrides": {"strategies": {"enabled": ["holygrail"]},
-                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
-    },
-    "dualmom": {
-        "label": "Dual momentum only (Antonacci)",
-        "overrides": {"strategies": {"enabled": ["dualmom"]},
-                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
-    },
-    "published": {
-        "label": "all four published systems, risk parity",
-        "overrides": {"strategies": {"enabled": PUBLISHED},
-                      "portfolio": _PARITY, "vol_target": {"enabled": True},
-                      "autopilot": _OFF},
-    },
-    "everything": {
-        "label": "all nine strategies, risk parity + vol target",
-        "overrides": {"strategies": {"enabled": EVERYTHING},
-                      "portfolio": _PARITY, "vol_target": {"enabled": True},
-                      "autopilot": _OFF},
-    },
-    "autopilot": {
-        "label": "everything, autopilot manages the roster",
-        "overrides": {"strategies": {"enabled": EVERYTHING},
-                      "portfolio": _PARITY, "vol_target": {"enabled": True},
-                      "autopilot": {"enabled": True}},
-    },
-    # The three published systems that looked best on the first bench.
-    # Chosen *from* that sample, so in-sample numbers here mean nothing —
-    # only the out-of-sample half does.
-    "selective": {
-        "label": "clenow + turtle + holygrail (picked on an earlier sample)",
-        "overrides": {"strategies": {"enabled": SELECTIVE},
-                      "portfolio": _PARITY, "vol_target": {"enabled": True},
-                      "autopilot": _OFF},
-    },
-    # LuxAlgo-style indicators.
-    "supertrend": {
-        "label": "SuperTrend AI clustering only",
-        "overrides": {"strategies": {"enabled": ["supertrend"]},
-                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
-    },
-    "smc": {
-        "label": "Smart Money Concepts only",
-        "overrides": {"strategies": {"enabled": ["smc"]},
-                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
-    },
-    "nwenvelope": {
-        "label": "Nadaraya-Watson envelope only (non-repainting)",
-        "overrides": {"strategies": {"enabled": ["nwenvelope"]},
-                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
-    },
-    "luxalgo": {
-        "label": "all three LuxAlgo-style, risk parity",
-        "overrides": {"strategies": {"enabled": LUXALGO},
-                      "portfolio": _PARITY, "vol_target": {"enabled": True},
-                      "autopilot": _OFF},
-    },
-    "selective+lux": {
-        "label": "the selective three plus the LuxAlgo three",
-        "overrides": {"strategies": {"enabled": SELECTIVE + LUXALGO},
-                      "portfolio": _PARITY, "vol_target": {"enabled": True},
-                      "autopilot": _OFF},
-    },
+    # Each strategy alone, so a family's result can be attributed.
+    "clenow": _solo("clenow", "Clenow trend only"),
+    "turtle": _solo("turtle", "Turtle only (Dennis & Eckhardt)"),
+    "holygrail": _solo("holygrail", "Holy Grail pullback only (Raschke)"),
+    "supertrend": _solo("supertrend", "SuperTrend AI clustering only"),
+    "smc": _solo("smc", "Smart Money Concepts only"),
+    "nwenvelope": _solo("nwenvelope", "Nadaraya-Watson envelope only"),
+    "lorentzian": _solo("lorentzian", "Lorentzian kNN only"),
+    # Families.
+    "selective": _group(SELECTIVE, "the three published systems, risk parity"),
+    "lux": _group(LUX, "the four indicator-style signals, risk parity"),
+    "everything": _group(EVERYTHING, "all seven, risk parity + vol target"),
+    "autopilot": _group(EVERYTHING, "all seven, autopilot manages the roster",
+                        autopilot=True),
 }
 
-# The cumulative ladder, for attributing each layer.
-LADDER = ["single", "multi-equal", "multi-parity", "full"]
-# The head-to-head: house strategies against the published ones.
-HEAD_TO_HEAD = ["full", "published", "everything", "autopilot"]
-# Everything worth testing out of sample.
-CANDIDATES = ["full", "selective", "luxalgo", "selective+lux", "autopilot"]
-GROUPS = {"ladder": LADDER, "head-to-head": HEAD_TO_HEAD, "candidates": CANDIDATES}
+# Every strategy on its own, for attribution.
+SOLO = ["clenow", "turtle", "holygrail", "supertrend", "smc", "nwenvelope",
+        "lorentzian"]
+# The families worth testing out of sample.
+CANDIDATES = ["selective", "lux", "everything", "autopilot"]
+GROUPS = {"solo": SOLO, "candidates": CANDIDATES}
 
 
 class VariantBench:

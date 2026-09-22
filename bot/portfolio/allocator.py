@@ -40,6 +40,7 @@ class CombinedView:
     contributors: dict = field(default_factory=dict)   # strategy -> signed score
     agreement: float = 0.0               # -1 fully opposed, +1 unanimous
     coverage: float = 0.0                # share of strategy weight with a view
+    contrarian_share: float = 0.0        # how much of the view is a fade
     reasons: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -49,6 +50,7 @@ class CombinedView:
             "conviction": round(self.conviction, 4),
             "agreement": round(self.agreement, 4),
             "coverage": round(self.coverage, 4),
+            "contrarian_share": round(self.contrarian_share, 4),
             "contributors": {k: round(v, 4) for k, v in self.contributors.items()},
             "reasons": self.reasons,
         }
@@ -192,6 +194,7 @@ class StrategyAllocator:
             net = 0.0
             gross = 0.0
             present_weight = 0.0
+            contrarian_weight = 0.0
             for name, signal in per_strategy.items():
                 weight = weights.get(name, 0.0)
                 if weight <= 0:
@@ -201,6 +204,8 @@ class StrategyAllocator:
                 net += contribution
                 gross += weight * signal.strength
                 present_weight += weight
+                if signal.contrarian:
+                    contrarian_weight += weight * signal.strength
                 reasons.append(f"{name}: {signal.reason}")
 
             if gross <= 0 or present_weight <= 0:
@@ -247,6 +252,7 @@ class StrategyAllocator:
                 contributors=contributors,
                 agreement=agreement,
                 coverage=round(coverage, 4),
+                contrarian_share=round(contrarian_weight / gross, 4) if gross > 0 else 0.0,
                 reasons=reasons,
             )
 

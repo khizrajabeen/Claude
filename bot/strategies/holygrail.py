@@ -26,6 +26,7 @@ class HolyGrailPullback(BaseStrategy):
     """Buy the pullback to the 20 EMA inside a strong trend."""
 
     name = "holygrail"
+    stance = "confirmation"
 
     def __init__(self, config: dict):
         super().__init__(config)

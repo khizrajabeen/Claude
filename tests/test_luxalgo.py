@@ -220,9 +220,9 @@ def test_nw_envelope_ignores_a_move_far_beyond_the_band(config):
 # ── Registry ─────────────────────────────────────────────────
 
 def test_luxalgo_strategies_are_registered(config):
-    from bot.strategies import LUXALGO, REGISTRY
+    from bot.strategies import LUX, REGISTRY
 
-    for name in LUXALGO:
+    for name in LUX:
         assert name in REGISTRY
         strategy = REGISTRY[name](config)
         assert strategy.name == name
@@ -232,8 +232,6 @@ def test_luxalgo_strategies_are_registered(config):
 def test_all_strategies_still_emit_well_formed_signals(config):
     from bot.strategies import build_strategies
 
-    config["strategies"]["enabled"] = list(config["strategies"]["enabled"]) + \
-        ["supertrend", "smc", "nwenvelope"]
     ctx = build_context(symbols=["A/USDT", "B/USDT", "C/USDT", "D/USDT"],
                         bars=800, drifts=[0.005, 0.001, -0.001, -0.005],
                         vol=0.011, seed=85)
@@ -242,3 +240,101 @@ def test_all_strategies_still_emit_well_formed_signals(config):
             assert signal.direction in (1, -1)
             assert 0 < signal.strength <= 1.0
             assert signal.reason
+
+
+# ── Lorentzian classification ────────────────────────────────
+
+def test_lorentzian_distance_compresses_outliers():
+    """The whole reason for the log: under Euclidean distance a single
+    volatility spike decides who counts as a neighbour."""
+    from bot.analysis.indicators import lorentzian_distance
+
+    current = np.array([0.5, 0.5, 0.5])
+    history = np.array([
+        [0.6, 0.6, 0.6],   # close on every axis
+        [0.5, 0.5, 9.9],   # identical but for one wild axis
+    ])
+    distances = lorentzian_distance(current, history)
+    euclidean = np.sqrt(((history - current) ** 2).sum(axis=1))
+
+    # Under Euclidean the outlier is ~15x further; under Lorentzian ~8x.
+    assert distances[1] / distances[0] < euclidean[1] / euclidean[0]
+
+
+def test_normalise_uses_only_a_trailing_window():
+    """Rescaling against the whole series lets a future minimum set
+    today's value."""
+    from bot.analysis.indicators import normalise
+
+    series = make_ohlcv(bars=600, seed=86)["close"]
+    full = normalise(series, window=200)
+    partial = normalise(series.iloc[:-80], window=200)
+
+    overlap = partial.index[-100:]
+    both = pd.concat([full.loc[overlap], partial.loc[overlap]], axis=1).dropna()
+    assert len(both) > 50
+    assert float((both.iloc[:, 0] - both.iloc[:, 1]).abs().max()) < 1e-12
+
+
+def test_lorentzian_neighbours_vote_on_resolved_outcomes(config):
+    """A neighbour may not vote on a future it could not yet have seen."""
+    from bot.strategies.lorentzian import LorentzianClassifier
+
+    strategy = LorentzianClassifier(config)
+    ctx = build_context(symbols=["A/USDT"], bars=1000, drifts=[0.004],
+                        vol=0.011, seed=87, htf_trends=[1])
+    df = ctx.frames["A/USDT"]
+    features = strategy._features(df)
+    assert features is not None
+
+    result = strategy._classify(df, features)
+    if result is None:
+        pytest.skip("not enough resolved history in this sample")
+    votes, total, _ = result
+    assert total <= strategy.neighbours
+    assert abs(votes) <= total
+
+
+def test_lorentzian_stays_silent_when_neighbours_disagree(config):
+    """A split neighbourhood is information, not a coin flip to resolve."""
+    from bot.strategies.lorentzian import LorentzianClassifier
+
+    config["strategies"]["lorentzian"] = {"min_vote_ratio": 0.99}
+    ctx = build_context(symbols=["A/USDT", "B/USDT"], bars=1000,
+                        drifts=[0.0, 0.0], vol=0.012, seed=88)
+    assert LorentzianClassifier(config).generate(ctx) == []
+
+
+def test_lorentzian_regime_filter_blocks_counter_trend_votes(config):
+    from bot.strategies.lorentzian import LorentzianClassifier
+
+    config["strategies"]["lorentzian"] = {"adx_floor": 0.0, "min_vote_ratio": 0.5}
+    strategy = LorentzianClassifier(config)
+    ctx = build_context(symbols=["A/USDT"], bars=1000, drifts=[0.004],
+                        seed=89, htf_trends=[1])
+    read = ctx.reads["A/USDT"]
+    df = ctx.frames["A/USDT"]
+
+    assert strategy._filters(df, read, side=-1) == "regime"
+    assert strategy._filters(df, read, side=1) != "regime"
+
+
+def test_lorentzian_reports_its_vote(config):
+    from bot.strategies.lorentzian import LorentzianClassifier
+
+    ctx = build_context(symbols=["A/USDT", "B/USDT", "C/USDT", "D/USDT"],
+                        bars=1000, drifts=[0.004, 0.001, -0.001, -0.004],
+                        vol=0.011, seed=90, htf_trends=[1, 1, -1, -1])
+    for signal in LorentzianClassifier(config).generate(ctx):
+        assert 0 < signal.meta["vote_ratio"] <= 1.0
+        assert signal.meta["neighbours"] > 0
+        assert "of the closest historical states" in signal.reason
+
+
+def test_wave_trend_is_bounded_and_finite():
+    from bot.analysis.indicators import wave_trend
+
+    df = make_ohlcv(bars=500, seed=91)
+    wt = wave_trend(df).dropna()
+    assert len(wt) > 400
+    assert np.isfinite(wt).all()

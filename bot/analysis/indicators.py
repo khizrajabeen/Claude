@@ -277,3 +277,61 @@ def fair_value_gaps(df: pd.DataFrame, min_atr: float = 0.25
     bottom[bearish & significant] = high[bearish & significant]
 
     return direction, top, bottom
+
+
+def cci(df: pd.DataFrame, period: int = 20) -> pd.Series:
+    """Commodity Channel Index.
+
+    Mean absolute deviation is approximated by the standard deviation times
+    sqrt(2/pi) — the exact version needs a Python callback per window and is
+    roughly fifty times slower for a difference that does not survive the
+    next normalisation step.
+    """
+    typical = (df["high"] + df["low"] + df["close"]) / 3
+    mean = typical.rolling(period).mean()
+    deviation = typical.rolling(period).std() * np.sqrt(2 / np.pi)
+    return (typical - mean) / (0.015 * deviation.replace(0, np.nan))
+
+
+def wave_trend(df: pd.DataFrame, channel: int = 10, average: int = 11) -> pd.Series:
+    """WaveTrend oscillator — the LazyBear formulation.
+
+    An EMA of how far the typical price sits from its own EMA, scaled by
+    the average absolute deviation. Used as a feature by several published
+    classifiers, including Lorentzian Classification.
+    """
+    typical = (df["high"] + df["low"] + df["close"]) / 3
+    esa = typical.ewm(span=channel, adjust=False).mean()
+    deviation = (typical - esa).abs().ewm(span=channel, adjust=False).mean()
+    # The 0.015 scaling is Lambert's, carried over from CCI.
+    ci = (typical - esa) / (0.015 * deviation.replace(0, np.nan))
+    return ci.ewm(span=average, adjust=False).mean()
+
+
+def normalise(series: pd.Series, window: int = 200,
+              lower: float = 0.0, upper: float = 1.0) -> pd.Series:
+    """Rescale a series into [lower, upper] using a *trailing* window.
+
+    Rescaling against the whole series would leak: the minimum three months
+    from now would be setting today's value. This uses only bars already
+    printed, which is the difference between a feature and a peek.
+    """
+    rolling_min = series.rolling(window, min_periods=window // 4).min()
+    rolling_max = series.rolling(window, min_periods=window // 4).max()
+    span = (rolling_max - rolling_min).replace(0, np.nan)
+    scaled = (series - rolling_min) / span
+    return scaled.clip(0, 1) * (upper - lower) + lower
+
+
+def lorentzian_distance(current: np.ndarray, history: np.ndarray) -> np.ndarray:
+    """Distance from one feature vector to many, under the Lorentzian metric.
+
+        d = sum(log(1 + |x_i - y_i|))
+
+    The logarithm is the whole point. Euclidean distance lets one wildly
+    different feature dominate, which in markets means a single volatility
+    spike decides who counts as a neighbour. Compressing each dimension
+    keeps outliers from swamping the comparison — the same reason the
+    metric is used where space is warped.
+    """
+    return np.log1p(np.abs(history - current)).sum(axis=1)

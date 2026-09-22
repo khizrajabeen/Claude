@@ -26,7 +26,7 @@ data:
     - "LINK/USDT"
   timeframe: "1h"          # the decision timeframe
   higher_timeframe: "4h"   # trend filter
-  history_bars: 800        # must cover the longest strategy lookback
+  history_bars: 900        # must cover the longest strategy lookback
   orderbook_depth: 20
   orderbook_levels: 10
   train_days: 180
@@ -64,6 +64,7 @@ risk:
   cooldown_after_losses: 2
   cooldown_minutes: 120
   min_edge_cost_ratio: 3.0         # expected move must be 3x the round trip
+  contrarian_risk_factor: 0.7      # fades get less size than confirmations
 
 # ── Stops, targets and trailing ──────────────────────────────
 stops:
@@ -87,26 +88,25 @@ sizing:
   kelly_min_trades: 30             # ... once there is a real sample
 
 # ── Strategies ───────────────────────────────────────────────
-# Each is a separate return driver. Combining weakly correlated drivers is
-# what shrinks drawdown — far more than improving any single signal.
+# Two families. `selective` are published trend systems that trade rarely
+# and were the only group to survive an out-of-sample split. `lux` are
+# indicator-style signals of the kind LuxAlgo and its peers publish,
+# implemented mechanically so the measurement decides.
+#
+# Six earlier strategies were removed after measuring poorly: a house trend
+# model, cross-sectional momentum, a Donchian breakout, short-term
+# reversion, funding carry and dual momentum.
 strategies:
   enabled:
-    # Built here
-    - trend        # time-series momentum, the CTA workhorse
-    - xsmom        # cross-sectional momentum, ~market neutral
-    - breakout     # Donchian channel break out of compression
-    - reversion    # short-term reversal, the hedge against trend whipsaw
-    - carry        # perpetual funding, only where funding exists
-    # Published systems, implemented to their stated rules
-    - turtle       # Dennis & Eckhardt 1983: 20/55 Donchian, N sizing, 2N stop
+    # selective — survived the out-of-sample split
     - clenow       # Clenow: EMA50/100 filter + 100-bar extreme, 3 ATR stop
+    - turtle       # Dennis & Eckhardt 1983: 20/55 Donchian, N sizing, 2N stop
     - holygrail    # Raschke & Connors: ADX>30, pullback to the 20 EMA
-    - dualmom      # Antonacci: relative strength gated by absolute momentum
-    # LuxAlgo-style indicators. Implemented in full and measured; they made
-    # out-of-sample results worse, so they ship off. Enable to re-measure.
-    # - supertrend # SuperTrend factors clustered by realised performance
-    # - smc        # structure breaks, liquidity sweeps, fair value gaps
-    # - nwenvelope # Nadaraya-Watson envelope (non-repainting endpoint form)
+    # lux — indicator-style, measured not trusted
+    - supertrend   # SuperTrend factors clustered by realised performance
+    - smc          # structure breaks, liquidity sweeps, fair value gaps
+    - nwenvelope   # Nadaraya-Watson envelope (non-repainting endpoint form)
+    - lorentzian   # kNN over historical market states, Lorentzian distance
 
   turtle:
     entry_s1: 20
@@ -123,7 +123,7 @@ strategies:
     slow_ema: 100
     breakout_bars: 100
     atr_period: 20
-    stop_atr: 3.0                  # wider than the house 2 ATR, by design
+    stop_atr: 3.0
 
   holygrail:
     adx_period: 14
@@ -132,42 +132,34 @@ strategies:
     touch_atr: 0.5                 # how close to the EMA counts as a touch
     swing_lookback: 20
 
-  dualmom:
-    lookback_bars: 336             # ~2 weeks on 1h
-    top_n: 2
-    hurdle_annual_pct: 4.0         # the crypto stand-in for the T-bill leg
-    allow_shorts: false
+  supertrend:
+    atr_period: 10
+    min_factor: 1.0
+    max_factor: 5.0
+    factor_step: 0.5
+    performance_window: 200        # how far back each factor is scored
 
-  trend:
-    horizons: [24, 72, 336]        # bars: ~1d / 3d / 2w on 1h
-    horizon_weights: [0.25, 0.40, 0.35]
-    vol_window: 72
-    adx_floor: 18.0
+  smc:
+    swing_length: 10
+    sweep_lookback: 30
+    sweep_reversal_atr: 0.5
+    dealing_range_bars: 60
+    use_fvg: true
 
-  xsmom:
-    lookback_bars: 168
-    skip_bars: 12                  # 12-1 style: skip the reversal window
-    quantile: 0.34                 # top/bottom third
-    min_universe: 4
-    vol_adjust: true
+  nwenvelope:
+    bandwidth: 8.0
+    window: 200
+    multiplier: 3.0
+    max_adx: 35.0                  # never fade a strong trend
 
-  breakout:
-    channel_bars: 55
-    compression_window: 120
-    require_compression: true
-    max_extension_atr: 1.5
-
-  reversion:
-    zscore_window: 24
-    entry_z: 1.6
-    max_adx: 32.0                  # never fade a strong trend
-
-  carry:
-    entry_bps: 1.0                 # per 8h settlement, ~11%/yr
-    extreme_bps: 5.0
-    max_bps: 15.0
-    # Funding has compressed since 2024 and a disciplined rule now rarely
-    # fires. That is correct behaviour, not a broken strategy.
+  lorentzian:
+    neighbours: 8
+    horizon: 4                     # bars ahead each neighbour votes on
+    spacing: 4                     # so neighbours are not one afternoon
+    history_bars: 500
+    normalise_window: 200          # trailing, never whole-series
+    min_vote_ratio: 0.6
+    adx_floor: 20.0
 
 # ── Autopilot ────────────────────────────────────────────────
 # The roster manages itself: strategies that earn a materially negative
@@ -188,8 +180,8 @@ portfolio:
   correlation_haircut: true        # shrink strategies that duplicate others
   max_strategy_weight: 0.40
   min_strategy_weight: 0.05
-  max_weights:
-    carry: 0.15                    # low daily vol, fat tail — cap it
+  # max_weights:                   # per-strategy caps, if one needs one
+  #   smc: 0.20
   lookback_days: 60
   min_history_days: 10
   min_agreement: 0.0               # raise to require strategy consensus

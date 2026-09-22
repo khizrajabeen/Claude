@@ -115,10 +115,18 @@ class SmartMoneyConcepts(BaseStrategy):
             raw = float(np.mean(list(components.values())))
             score = float(np.clip(raw, -1.0, 1.0))
 
+            # A structure break rides the move; a sweep reversal or a
+            # premium/discount fade opposes it. Which dominated decides how
+            # the risk layer treats the trade.
+            confirming = abs(components.get("structure", 0.0))
+            opposing = abs(components.get("sweep", 0.0)) + abs(components.get("zone", 0.0))
+            kind = "confirmation" if confirming >= opposing else "contrarian"
+
             signal = self.signal(
                 symbol, score,
                 reason="SMC: " + "; ".join(notes),
                 horizon_bars=self.swing_length * 3,
+                kind=kind,
                 **{k: round(v, 3) for k, v in components.items()},
             )
             if signal:

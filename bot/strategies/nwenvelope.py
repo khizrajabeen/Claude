@@ -33,6 +33,7 @@ class NadarayaWatsonEnvelope(BaseStrategy):
     """Fade closes beyond a kernel-regression envelope."""
 
     name = "nwenvelope"
+    stance = "contrarian"
 
     def __init__(self, config: dict):
         super().__init__(config)

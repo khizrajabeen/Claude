@@ -18,7 +18,7 @@ def config(tmp_path):
             "symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
             "timeframe": "1h",
             "higher_timeframe": "4h",
-            "history_bars": 600,
+            "history_bars": 900,
         },
         "session": {
             "day_open": "00:00",
@@ -44,6 +44,7 @@ def config(tmp_path):
             "cooldown_after_losses": 2,
             "cooldown_minutes": 120,
             "min_edge_cost_ratio": 3.0,
+            "contrarian_risk_factor": 0.7,
         },
         "stops": {
             "atr_period": 14, "atr_stop_mult": 2.0, "target_r_multiple": 2.0,
@@ -64,17 +65,19 @@ def config(tmp_path):
             "min_atr_pct": 0.15, "max_atr_pct": 12.0, "min_bars": 120,
         },
         "strategies": {
-            "enabled": ["trend", "xsmom", "breakout", "reversion", "carry"],
-            "trend": {"horizons": [24, 72, 336], "vol_window": 72},
-            "xsmom": {"lookback_bars": 168, "skip_bars": 12, "min_universe": 3},
-            "breakout": {"channel_bars": 55, "compression_window": 120},
-            "reversion": {"zscore_window": 24, "entry_z": 1.6},
-            "carry": {"entry_bps": 1.0},
+            "enabled": ["clenow", "turtle", "holygrail",
+                        "supertrend", "smc", "nwenvelope", "lorentzian"],
+            "clenow": {"fast_ema": 50, "slow_ema": 100, "breakout_bars": 100},
+            "turtle": {"entry_s1": 20, "entry_s2": 55, "n_period": 20},
+            "holygrail": {"adx_floor": 30.0, "ema_period": 20},
+            "supertrend": {"atr_period": 10, "performance_window": 200},
+            "smc": {"swing_length": 10, "dealing_range_bars": 60},
+            "nwenvelope": {"bandwidth": 8.0, "window": 200},
+            "lorentzian": {"neighbours": 8, "horizon": 4, "history_bars": 500},
         },
         "portfolio": {
             "weighting": "inverse_vol", "correlation_haircut": True,
             "max_strategy_weight": 0.40, "min_strategy_weight": 0.05,
-            "max_weights": {"carry": 0.15},
             "lookback_days": 60, "min_history_days": 10,
         },
         "vol_target": {

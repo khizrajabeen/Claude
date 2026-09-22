@@ -1,7 +1,21 @@
 """Strategy registry.
 
-Each entry is a distinct return driver. Adding one here and enabling it in
-config is all it takes for the allocator to start funding it.
+Two families, kept because they earned their place on measured results
+rather than on reputation:
+
+  **selective** — `clenow`, `turtle`, `holygrail`. Published trend systems
+  that trade rarely and were the only group to survive an out-of-sample
+  split, ranking first in both halves of a 300-day test.
+
+  **lux** — `supertrend`, `smc`, `nwenvelope`, `lorentzian`. Indicator-style
+  signals of the kind LuxAlgo and its peers publish, implemented
+  mechanically so the measurement decides rather than the marketing.
+
+Six earlier strategies were removed after measuring poorly across repeated
+benches: a house trend model, cross-sectional momentum, a Donchian
+breakout, short-term reversion, funding carry and dual momentum. Their
+removal is recorded here rather than silently, because "we tried it and it
+did not work" is information the next person needs.
 """
 
 from __future__ import annotations
@@ -9,52 +23,34 @@ from __future__ import annotations
 import logging
 
 from bot.strategies.base import BaseStrategy, MarketContext, Strategy, StrategySignal
-from bot.strategies.breakout import BreakoutStrategy
-from bot.strategies.carry import CarryStrategy
 from bot.strategies.clenow import ClenowTrend
-from bot.strategies.dualmom import DualMomentum
 from bot.strategies.holygrail import HolyGrailPullback
+from bot.strategies.lorentzian import LorentzianClassifier
 from bot.strategies.nwenvelope import NadarayaWatsonEnvelope
-from bot.strategies.reversion import ReversionStrategy
 from bot.strategies.smc import SmartMoneyConcepts
 from bot.strategies.supertrend_ai import SuperTrendAI
-from bot.strategies.trend import TrendStrategy
 from bot.strategies.turtle import TurtleStrategy
-from bot.strategies.xsmom import CrossSectionalMomentum
 
 logger = logging.getLogger("trading_bot")
 
 REGISTRY: dict[str, type[BaseStrategy]] = {
-    # Built here
-    TrendStrategy.name: TrendStrategy,
-    CrossSectionalMomentum.name: CrossSectionalMomentum,
-    BreakoutStrategy.name: BreakoutStrategy,
-    ReversionStrategy.name: ReversionStrategy,
-    CarryStrategy.name: CarryStrategy,
-    # Published systems, implemented to their stated rules so the
-    # comparison is against the real thing rather than a paraphrase.
+    # Published systems, implemented to their stated rules.
     TurtleStrategy.name: TurtleStrategy,          # Dennis & Eckhardt, 1983
     ClenowTrend.name: ClenowTrend,                # Clenow, Following the Trend
     HolyGrailPullback.name: HolyGrailPullback,    # Raschke & Connors, Street Smarts
-    DualMomentum.name: DualMomentum,              # Antonacci, Dual Momentum Investing
-    # LuxAlgo-style indicators, implemented mechanically and measured
-    # rather than trusted — see each module for what the evidence says.
+    # Indicator-style signals, measured rather than trusted.
     SuperTrendAI.name: SuperTrendAI,              # clustered SuperTrend factors
     SmartMoneyConcepts.name: SmartMoneyConcepts,  # structure, sweeps, imbalances
     NadarayaWatsonEnvelope.name: NadarayaWatsonEnvelope,  # kernel-regression fade
+    LorentzianClassifier.name: LorentzianClassifier,      # kNN on market state
 }
 
-DEFAULT_ENABLED = [
-    "trend", "xsmom", "breakout", "reversion", "carry",
-    "turtle", "clenow", "holygrail", "dualmom",
-    "supertrend", "smc", "nwenvelope",
-]
-
-# The three published systems that showed positive expectancy on the first
-# 150-day bench. Selected *from* that sample, so they need out-of-sample
-# testing before the selection means anything — see the bench's OOS mode.
+# The three published systems that survived the out-of-sample split.
 SELECTIVE = ["clenow", "turtle", "holygrail"]
-LUXALGO = ["supertrend", "smc", "nwenvelope"]
+# Indicator-style signals in the LuxAlgo mould.
+LUX = ["supertrend", "smc", "nwenvelope", "lorentzian"]
+
+DEFAULT_ENABLED = SELECTIVE + LUX
 
 
 def build_strategies(config: dict) -> list[BaseStrategy]:
@@ -79,10 +75,8 @@ def build_strategies(config: dict) -> list[BaseStrategy]:
 
 __all__ = [
     "BaseStrategy", "MarketContext", "Strategy", "StrategySignal",
-    "BreakoutStrategy", "CarryStrategy", "ReversionStrategy",
-    "TrendStrategy", "CrossSectionalMomentum",
-    "TurtleStrategy", "ClenowTrend", "HolyGrailPullback", "DualMomentum",
+    "TurtleStrategy", "ClenowTrend", "HolyGrailPullback",
     "SuperTrendAI", "SmartMoneyConcepts", "NadarayaWatsonEnvelope",
-    "SELECTIVE", "LUXALGO",
-    "REGISTRY", "DEFAULT_ENABLED", "build_strategies",
+    "LorentzianClassifier",
+    "REGISTRY", "DEFAULT_ENABLED", "SELECTIVE", "LUX", "build_strategies",
 ]

@@ -51,17 +51,27 @@ class StrategySignal:
     strength: float         # 0..1 conviction, comparable across strategies
     reason: str = ""
     horizon_bars: int = 0
+    # "confirmation" rides the prevailing move; "contrarian" fades it.
+    # The distinction is not cosmetic: a fade has less lag but far more
+    # exposure to a large adverse move, because the thing it is betting
+    # against is exactly the thing that is currently working. The risk
+    # layer sizes the two differently.
+    kind: str = "confirmation"
     meta: dict = field(default_factory=dict)
 
     @property
     def signed(self) -> float:
         return self.direction * self.strength
 
+    @property
+    def contrarian(self) -> bool:
+        return self.kind == "contrarian"
+
     def to_dict(self) -> dict:
         return {
             "strategy": self.strategy, "symbol": self.symbol,
             "direction": self.direction, "strength": round(self.strength, 4),
-            "reason": self.reason, "meta": self.meta,
+            "kind": self.kind, "reason": self.reason, "meta": self.meta,
         }
 
 
@@ -83,6 +93,9 @@ class BaseStrategy:
     # Strategies that can hold both sides at once are marked so the
     # allocator does not treat a hedged pair as crowding.
     market_neutral: bool = False
+    # Whether this strategy rides moves or fades them. Trend and breakout
+    # systems confirm; envelope fades and sweep reversals oppose.
+    stance: str = "confirmation"
 
     def __init__(self, config: dict):
         self.config = config
@@ -106,7 +119,8 @@ class BaseStrategy:
     # ── helpers ───────────────────────────────────────────────
 
     def signal(self, symbol: str, score: float, reason: str = "",
-               horizon_bars: int = 0, **meta) -> StrategySignal | None:
+               horizon_bars: int = 0, kind: str | None = None,
+               **meta) -> StrategySignal | None:
         """Build a signal from a signed score, or None if it is too weak.
 
         Scores arrive in roughly [-1, 1]; strength is the magnitude, so a
@@ -123,6 +137,7 @@ class BaseStrategy:
             strength=strength,
             reason=reason,
             horizon_bars=horizon_bars,
+            kind=kind or self.stance,
             meta=meta,
         )
 

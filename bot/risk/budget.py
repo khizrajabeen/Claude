@@ -140,6 +140,19 @@ class RiskBudget:
             logger.debug("Risk/trade %.3f%% (base %.3f%%) %s", final, base, applied)
         return final
 
+    def contrarian_haircut(self, contrarian_share: float) -> float:
+        """Risk multiplier for a view that is fading the move.
+
+        A fade enters earlier than a confirmation signal and is right more
+        often about the turn, but it is betting against whatever is
+        currently working — so when it is wrong, it is wrong into a move
+        that is still running. Same dollar risk at the stop, but the stop
+        is likelier to gap through it, so the position is cut.
+        """
+        share = max(0.0, min(1.0, float(contrarian_share)))
+        floor = float(self.risk.get("contrarian_risk_factor", 0.7))
+        return 1.0 - (1.0 - floor) * share
+
     def size_order(
         self,
         symbol: str,

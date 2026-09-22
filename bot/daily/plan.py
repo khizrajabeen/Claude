@@ -234,6 +234,7 @@ class DayPlanner:
                 components={
                     "strategies": {k: round(v, 4) for k, v in view.contributors.items()},
                     "agreement": round(view.agreement, 4),
+                    "contrarian_share": round(view.contrarian_share, 4),
                     "news": round(read.news_tilt, 4),
                     "book": round(read.book_imbalance, 4),
                     "market_tone": round(tone, 4),
@@ -278,6 +279,7 @@ class DayPlanner:
 
             limits = market_limits.get(candidate.symbol, {})
             size_mult = REGIME_SIZE.get(read.regime, 0.8)
+            size_mult *= self.risk.contrarian_haircut(view.contrarian_share)
             order = self.risk.size_order(
                 symbol=candidate.symbol,
                 side=candidate.side,

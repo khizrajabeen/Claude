@@ -22,7 +22,7 @@ from tests.conftest import FakeExchange, make_ohlcv
 DAY_START = datetime(2026, 5, 4, 0, 0, tzinfo=timezone.utc)
 
 
-def build_session(config, clock=None, drift=0.004, vol=0.012, seed=1, bars=600):
+def build_session(config, clock=None, drift=0.004, vol=0.012, seed=1, bars=1000):
     """A session wired to synthetic markets and a simulated clock."""
     clock = clock or SimulatedClock(DAY_START)
     start = DAY_START - timedelta(hours=bars - 40)
@@ -262,7 +262,7 @@ def test_management_reads_fresh_bars_not_the_briefing_snapshot(config):
 
 
 def test_run_forever_respects_the_day_limit(config):
-    session, journal, broker, clock = build_session(config, bars=900)
+    session, journal, broker, clock = build_session(config, bars=1400)
     results = session.run_forever(max_days=3)
 
     assert len(results) == 3
