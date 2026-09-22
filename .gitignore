@@ -19,9 +19,10 @@ config.local.yaml
 state/
 state.*/
 models/
-data/
-# ...but the dashboard's published state is meant to be committed: it is
-# what GitHub Pages serves. Without this the publish step writes files
-# that git silently ignores and the dashboard stays empty forever.
-!web/data/
-!web/data/*.json
+# Cached market data. Anchored with a leading slash: a bare `data/`
+# matches a directory of that name at ANY depth, which silently swallowed
+# both `bot/data/` (the whole provider layer — the repository would not
+# import) and `web/data/` (the dashboard's published state). Neither was
+# visible locally, because the files were there; only CI saw the repo as
+# it actually was.
+/data/
