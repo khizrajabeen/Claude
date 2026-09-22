@@ -50,9 +50,22 @@ jobs:
           fi
           echo "No credential-shaped strings found in web/."
 
+      # `enablement: true` turns Pages on for the repository if it is not
+      # already, so this works from a clean repo without a visit to the
+      # settings page. If the token is not permitted to do that, the step
+      # fails with an empty environment URL — which is what "Evaluated
+      # environment url:" with nothing after it means, and is not
+      # obviously about Pages at all.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      - name: Where it went
+        run: |
+          echo "Dashboard: ${{ steps.deploy.outputs.page_url }}"
+          echo "Portfolio: ${{ steps.deploy.outputs.page_url }}dashboard.html"
