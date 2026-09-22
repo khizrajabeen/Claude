@@ -32,7 +32,9 @@ logger = logging.getLogger("trading_bot")
 
 HOUSE = ["trend", "xsmom", "breakout", "reversion", "carry"]
 PUBLISHED = ["turtle", "clenow", "holygrail", "dualmom"]
-EVERYTHING = HOUSE + PUBLISHED
+SELECTIVE = ["clenow", "turtle", "holygrail"]
+LUXALGO = ["supertrend", "smc", "nwenvelope"]
+EVERYTHING = HOUSE + PUBLISHED + LUXALGO
 
 _NO_VOL_TARGET = {"enabled": False}
 _PARITY = {"weighting": "inverse_vol", "correlation_haircut": True}
@@ -107,10 +109,47 @@ VARIANTS: dict[str, dict] = {
                       "autopilot": _OFF},
     },
     "autopilot": {
-        "label": "all nine, autopilot manages the roster",
+        "label": "everything, autopilot manages the roster",
         "overrides": {"strategies": {"enabled": EVERYTHING},
                       "portfolio": _PARITY, "vol_target": {"enabled": True},
                       "autopilot": {"enabled": True}},
+    },
+    # The three published systems that looked best on the first bench.
+    # Chosen *from* that sample, so in-sample numbers here mean nothing —
+    # only the out-of-sample half does.
+    "selective": {
+        "label": "clenow + turtle + holygrail (picked on an earlier sample)",
+        "overrides": {"strategies": {"enabled": SELECTIVE},
+                      "portfolio": _PARITY, "vol_target": {"enabled": True},
+                      "autopilot": _OFF},
+    },
+    # LuxAlgo-style indicators.
+    "supertrend": {
+        "label": "SuperTrend AI clustering only",
+        "overrides": {"strategies": {"enabled": ["supertrend"]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    },
+    "smc": {
+        "label": "Smart Money Concepts only",
+        "overrides": {"strategies": {"enabled": ["smc"]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    },
+    "nwenvelope": {
+        "label": "Nadaraya-Watson envelope only (non-repainting)",
+        "overrides": {"strategies": {"enabled": ["nwenvelope"]},
+                      "vol_target": _NO_VOL_TARGET, "autopilot": _OFF},
+    },
+    "luxalgo": {
+        "label": "all three LuxAlgo-style, risk parity",
+        "overrides": {"strategies": {"enabled": LUXALGO},
+                      "portfolio": _PARITY, "vol_target": {"enabled": True},
+                      "autopilot": _OFF},
+    },
+    "selective+lux": {
+        "label": "the selective three plus the LuxAlgo three",
+        "overrides": {"strategies": {"enabled": SELECTIVE + LUXALGO},
+                      "portfolio": _PARITY, "vol_target": {"enabled": True},
+                      "autopilot": _OFF},
     },
 }
 
@@ -118,6 +157,9 @@ VARIANTS: dict[str, dict] = {
 LADDER = ["single", "multi-equal", "multi-parity", "full"]
 # The head-to-head: house strategies against the published ones.
 HEAD_TO_HEAD = ["full", "published", "everything", "autopilot"]
+# Everything worth testing out of sample.
+CANDIDATES = ["full", "selective", "luxalgo", "selective+lux", "autopilot"]
+GROUPS = {"ladder": LADDER, "head-to-head": HEAD_TO_HEAD, "candidates": CANDIDATES}
 
 
 class VariantBench:
@@ -126,11 +168,129 @@ class VariantBench:
     def __init__(self, config: dict):
         self.config = config
 
+    def run_split(self, days: int = 300, variants: list[str] | None = None,
+                  split: float = 0.5) -> dict:
+        """Run each variant on an early half and a later half separately.
+
+        This is the only honest way to judge a roster that was *chosen* by
+        looking at results. `selective` exists because clenow, turtle and
+        holygrail led an earlier bench; repeating that bench would just
+        confirm the choice that was made from it. Splitting the history
+        answers the question that matters — does the pick survive on data
+        it was not picked on?
+
+        In-sample numbers here are reported for contrast and should be
+        ignored when judging any variant that was selected.
+        """
+        base = DailyReplay(self.config)
+        frames = base._download(days)
+        if not frames:
+            return {"error": "no data", "in_sample": {}, "out_of_sample": {}}
+
+        early, late = _split_frames(frames, split)
+        if not early or not late:
+            return {"error": "not enough history to split", "in_sample": {},
+                    "out_of_sample": {}}
+
+        half_days = max(1, int(days * split)), max(1, int(days * (1 - split)))
+
+        logger.info("═" * 78)
+        logger.info("  OUT-OF-SAMPLE BENCH — %d days split %.0f/%.0f",
+                    days, split * 100, (1 - split) * 100)
+        logger.info("  A variant picked on one half proves nothing on that half.")
+        logger.info("═" * 78)
+
+        results = {}
+        for label, subset, subset_days in (("in_sample", early, half_days[0]),
+                                           ("out_of_sample", late, half_days[1])):
+            logger.info("─" * 78)
+            logger.info("  %s half", label.replace("_", " ").upper())
+            logger.info("─" * 78)
+            results[label] = self._run_variants(
+                names=self._names(variants), frames=subset, days=subset_days,
+                limits=base._limits(), tag=label, exchange=getattr(base, "_exchange", None),
+            )
+
+        self._log_split(results)
+        return {"days": days, "split": split, **results}
+
+    def _names(self, variants: list[str] | None) -> list[str]:
+        if variants and len(variants) == 1 and variants[0] in GROUPS:
+            return list(GROUPS[variants[0]])
+        return variants or list(VARIANTS)
+
+    def _run_variants(self, names: list[str], frames: dict, days: int,
+                      limits: dict, tag: str = "", exchange=None) -> dict:
+        """Replay every named variant over one set of frames."""
+        results: dict[str, dict] = {}
+        for name in names:
+            spec = VARIANTS[name]
+            variant_config = _merge(self.config, spec["overrides"])
+            suffix = f"{tag}/{name}" if tag else name
+            variant_config.setdefault("journal", {})["replay_dir"] = \
+                f"{self.config.get('journal', {}).get('dir', 'state')}/bench/{suffix}"
+
+            replay = DailyReplay(variant_config)
+            replay._exchange = exchange
+            try:
+                report = replay.run(days=days, frames=frames)
+            except Exception as e:
+                logger.error("  Variant %s failed: %s", name, e, exc_info=True)
+                results[name] = {"error": str(e)[:200], "label": spec["label"]}
+                continue
+            report["label"] = spec["label"]
+            results[name] = report
+        return results
+
+    def _log_split(self, results: dict) -> None:
+        """Side-by-side, with the out-of-sample column the only one that counts."""
+        in_sample = results.get("in_sample", {})
+        out_sample = results.get("out_of_sample", {})
+
+        logger.info("═" * 78)
+        logger.info("  IN-SAMPLE vs OUT-OF-SAMPLE")
+        logger.info("═" * 78)
+        logger.info("  %-16s %18s %24s", "variant", "in-sample", "OUT-OF-SAMPLE")
+        logger.info("  %-16s %8s %9s %11s %7s %6s",
+                    "", "return%", "trades", "return%", "trades", "t")
+        logger.info("  " + "-" * 74)
+
+        for name in in_sample:
+            first = in_sample.get(name, {})
+            second = out_sample.get(name, {})
+            if "error" in first or "error" in second:
+                logger.info("  %-16s  failed", name)
+                continue
+            a = first.get("trades", {})
+            b = second.get("trades", {})
+            logger.info(
+                "  %-16s %8.2f %9d %11.2f %7d %6.2f",
+                name, first.get("total_return_pct", 0.0), a.get("total_trades", 0),
+                second.get("total_return_pct", 0.0), b.get("total_trades", 0),
+                b.get("t_stat", 0.0),
+            )
+
+        logger.info("  " + "-" * 74)
+        survivors = [
+            name for name in out_sample
+            if "error" not in out_sample[name]
+            and out_sample[name].get("total_return_pct", 0) > 0
+            and in_sample.get(name, {}).get("total_return_pct", 0) > 0
+        ]
+        if survivors:
+            logger.info("  Positive in both halves: %s", ", ".join(survivors))
+            logger.info("  That is consistency, not proof — check the t column.")
+        else:
+            logger.info(
+                "  No variant is positive in both halves. Anything that looked "
+                "good in one is not repeating in the other, which is what "
+                "picking winners from a sample usually produces."
+            )
+        logger.info("═" * 78)
+
     def run(self, days: int = 90, variants: list[str] | None = None) -> dict:
-        if variants == ["ladder"]:
-            names = list(LADDER)
-        elif variants == ["head-to-head"]:
-            names = list(HEAD_TO_HEAD)
+        if variants and len(variants) == 1 and variants[0] in GROUPS:
+            names = list(GROUPS[variants[0]])
         else:
             names = variants or list(VARIANTS)
         unknown = [n for n in names if n not in VARIANTS]
@@ -252,6 +412,44 @@ class VariantBench:
             "never the size — and read the t column before either."
         )
         logger.info("═" * 78)
+
+
+def _split_frames(frames: dict, split: float) -> tuple[dict, dict]:
+    """Cut every symbol's history at the same moment in time.
+
+    Splitting each symbol at its own row count would put the halves on
+    different calendars, so the two runs would not be comparable — one
+    variant would be judged on a bull month and another on a crash.
+    """
+    all_indexes = [
+        df.index
+        for timeframes in frames.values()
+        for df in timeframes.values()
+        if df is not None and not df.empty
+    ]
+    if not all_indexes:
+        return {}, {}
+
+    # The window every symbol has in common, cut at the same instant.
+    start = max(index[0] for index in all_indexes)
+    end = min(index[-1] for index in all_indexes)
+    if end <= start:
+        return {}, {}
+    cut = start + (end - start) * split
+
+    early: dict = {}
+    late: dict = {}
+    for symbol, timeframes in frames.items():
+        early_tf, late_tf = {}, {}
+        for timeframe, df in timeframes.items():
+            if df is None or df.empty:
+                continue
+            early_tf[timeframe] = df.loc[df.index <= cut]
+            late_tf[timeframe] = df.loc[df.index > cut]
+        if early_tf and late_tf and all(len(d) for d in late_tf.values()):
+            early[symbol] = early_tf
+            late[symbol] = late_tf
+    return early, late
 
 
 def _merge(base: dict, overrides: dict) -> dict:

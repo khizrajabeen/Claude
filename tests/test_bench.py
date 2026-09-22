@@ -120,3 +120,85 @@ def test_vol_targeting_changes_exposure_between_variants(config):
     wild = [0.04, -0.05, 0.06, -0.04, 0.05, -0.06, 0.04, -0.05, 0.05, -0.04]
     assert VolatilityTargeter(off).decide(wild).scale == 1.0
     assert VolatilityTargeter(on).decide(wild).scale < 1.0
+
+
+# ── Out-of-sample splitting ──────────────────────────────────
+
+def test_split_cuts_every_symbol_at_the_same_moment(frames):
+    """Splitting each symbol at its own row count would put the halves on
+    different calendars, so the two runs would not be comparable."""
+    from bot.utils.bench import _split_frames
+
+    early, late = _split_frames(frames, 0.5)
+    assert set(early) == set(late) == set(frames)
+
+    early_ends = {df.index[-1] for tf in early.values() for df in tf.values()}
+    late_starts = {df.index[0] for tf in late.values() for df in tf.values()}
+    # Every symbol's early half ends before every symbol's late half starts.
+    assert max(early_ends) < min(late_starts)
+
+
+def test_split_halves_do_not_overlap(frames):
+    from bot.utils.bench import _split_frames
+
+    early, late = _split_frames(frames, 0.5)
+    for symbol in frames:
+        for timeframe in frames[symbol]:
+            a = set(early[symbol][timeframe].index)
+            b = set(late[symbol][timeframe].index)
+            assert not (a & b), "a bar appeared in both halves"
+
+
+def test_split_respects_the_requested_fraction(frames):
+    from bot.utils.bench import _split_frames
+
+    early, late = _split_frames(frames, 0.75)
+    a = len(early["BTC/USDT"]["1h"])
+    b = len(late["BTC/USDT"]["1h"])
+    assert a > b, "a 75/25 split should leave more history in the first half"
+
+
+def test_oos_run_reports_both_halves(config, frames, monkeypatch):
+    config["data"]["symbols"] = list(frames)
+    monkeypatch.setattr("bot.utils.backtester.DailyReplay._download",
+                        lambda self, days: frames)
+    monkeypatch.setattr("bot.utils.backtester.DailyReplay._limits", lambda self: {})
+
+    report = VariantBench(config).run_split(days=20, variants=["single", "selective"],
+                                            split=0.5)
+    assert set(report["in_sample"]) == {"single", "selective"}
+    assert set(report["out_of_sample"]) == {"single", "selective"}
+    for half in ("in_sample", "out_of_sample"):
+        for name, result in report[half].items():
+            assert "error" not in result, f"{half}/{name}: {result.get('error')}"
+
+
+def test_oos_halves_keep_separate_records(config, frames, monkeypatch):
+    """The two halves must not write over each other's journals."""
+    config["data"]["symbols"] = list(frames)
+    monkeypatch.setattr("bot.utils.backtester.DailyReplay._download",
+                        lambda self, days: frames)
+    monkeypatch.setattr("bot.utils.backtester.DailyReplay._limits", lambda self: {})
+
+    report = VariantBench(config).run_split(days=16, variants=["single"], split=0.5)
+    first = report["in_sample"]["single"]["journal_dir"]
+    second = report["out_of_sample"]["single"]["journal_dir"]
+    assert first != second
+
+
+def test_the_selective_variant_is_the_three_that_won_earlier():
+    """It exists to be tested out of sample, so its membership is fixed."""
+    from bot.strategies import SELECTIVE
+
+    assert set(VARIANTS["selective"]["overrides"]["strategies"]["enabled"]) \
+        == set(SELECTIVE) == {"clenow", "turtle", "holygrail"}
+    assert "picked" in VARIANTS["selective"]["label"]
+
+
+def test_variant_groups_resolve(config):
+    from bot.utils.bench import GROUPS, VariantBench
+
+    bench = VariantBench(config)
+    for group, expected in GROUPS.items():
+        assert bench._names([group]) == expected
+    assert bench._names(["single", "full"]) == ["single", "full"]

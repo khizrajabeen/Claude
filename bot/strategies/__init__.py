@@ -14,7 +14,10 @@ from bot.strategies.carry import CarryStrategy
 from bot.strategies.clenow import ClenowTrend
 from bot.strategies.dualmom import DualMomentum
 from bot.strategies.holygrail import HolyGrailPullback
+from bot.strategies.nwenvelope import NadarayaWatsonEnvelope
 from bot.strategies.reversion import ReversionStrategy
+from bot.strategies.smc import SmartMoneyConcepts
+from bot.strategies.supertrend_ai import SuperTrendAI
 from bot.strategies.trend import TrendStrategy
 from bot.strategies.turtle import TurtleStrategy
 from bot.strategies.xsmom import CrossSectionalMomentum
@@ -34,12 +37,24 @@ REGISTRY: dict[str, type[BaseStrategy]] = {
     ClenowTrend.name: ClenowTrend,                # Clenow, Following the Trend
     HolyGrailPullback.name: HolyGrailPullback,    # Raschke & Connors, Street Smarts
     DualMomentum.name: DualMomentum,              # Antonacci, Dual Momentum Investing
+    # LuxAlgo-style indicators, implemented mechanically and measured
+    # rather than trusted — see each module for what the evidence says.
+    SuperTrendAI.name: SuperTrendAI,              # clustered SuperTrend factors
+    SmartMoneyConcepts.name: SmartMoneyConcepts,  # structure, sweeps, imbalances
+    NadarayaWatsonEnvelope.name: NadarayaWatsonEnvelope,  # kernel-regression fade
 }
 
 DEFAULT_ENABLED = [
     "trend", "xsmom", "breakout", "reversion", "carry",
     "turtle", "clenow", "holygrail", "dualmom",
+    "supertrend", "smc", "nwenvelope",
 ]
+
+# The three published systems that showed positive expectancy on the first
+# 150-day bench. Selected *from* that sample, so they need out-of-sample
+# testing before the selection means anything — see the bench's OOS mode.
+SELECTIVE = ["clenow", "turtle", "holygrail"]
+LUXALGO = ["supertrend", "smc", "nwenvelope"]
 
 
 def build_strategies(config: dict) -> list[BaseStrategy]:
@@ -67,5 +82,7 @@ __all__ = [
     "BreakoutStrategy", "CarryStrategy", "ReversionStrategy",
     "TrendStrategy", "CrossSectionalMomentum",
     "TurtleStrategy", "ClenowTrend", "HolyGrailPullback", "DualMomentum",
+    "SuperTrendAI", "SmartMoneyConcepts", "NadarayaWatsonEnvelope",
+    "SELECTIVE", "LUXALGO",
     "REGISTRY", "DEFAULT_ENABLED", "build_strategies",
 ]

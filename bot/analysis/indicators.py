@@ -134,3 +134,146 @@ def orderbook_imbalance(orderbook: dict, levels: int = 10) -> dict:
         "bid_depth": round(bid_depth, 2),
         "ask_depth": round(ask_depth, 2),
     }
+
+
+# ── Structure primitives ─────────────────────────────────────
+
+def swing_points(df: pd.DataFrame, length: int = 10) -> tuple[pd.Series, pd.Series]:
+    """Confirmed swing highs and lows.
+
+    A bar is a swing high when it is the highest of the `length` bars either
+    side of it. Confirmation therefore arrives `length` bars *late*, and the
+    series is shifted to reflect that: a swing point you could not have
+    known about yet is look-ahead bias, and it is the single most common
+    way structure-based indicators flatter themselves.
+    """
+    highs = df["high"]
+    lows = df["low"]
+
+    is_high = highs == highs.rolling(length * 2 + 1, center=True).max()
+    is_low = lows == lows.rolling(length * 2 + 1, center=True).min()
+
+    # Shift forward by `length`: the point is only knowable once the right
+    # shoulder has printed.
+    swing_high = highs.where(is_high).shift(length)
+    swing_low = lows.where(is_low).shift(length)
+    return swing_high.ffill(), swing_low.ffill()
+
+
+def supertrend(df: pd.DataFrame, period: int = 10, factor: float = 3.0
+               ) -> tuple[pd.Series, pd.Series]:
+    """SuperTrend trailing stop. Returns (line, direction).
+
+    Direction is +1 when price is above the stop (long) and -1 below. The
+    band only ever ratchets in the direction of the trend, which is what
+    makes it a trailing stop rather than a channel.
+    """
+    atr_series = atr(df, period)
+    hl2 = (df["high"] + df["low"]) / 2
+    upper = hl2 + factor * atr_series
+    lower = hl2 - factor * atr_series
+
+    close = df["close"].to_numpy(dtype=float)
+    upper_arr = upper.to_numpy(dtype=float)
+    lower_arr = lower.to_numpy(dtype=float)
+
+    line = np.full(len(df), np.nan)
+    direction = np.zeros(len(df), dtype=int)
+
+    prev_line = np.nan
+    prev_dir = 1
+    for i in range(len(df)):
+        up, low, price = upper_arr[i], lower_arr[i], close[i]
+        if not np.isfinite(up) or not np.isfinite(low):
+            continue
+
+        if np.isnan(prev_line):
+            prev_line, prev_dir = low, 1
+        elif prev_dir == 1:
+            # Rising stop: never let it fall back.
+            low = max(low, prev_line)
+            if price < low:
+                prev_dir, prev_line = -1, up
+            else:
+                prev_line = low
+        else:
+            up = min(up, prev_line)
+            if price > up:
+                prev_dir, prev_line = 1, low
+            else:
+                prev_line = up
+
+        line[i] = prev_line
+        direction[i] = prev_dir
+
+    return (pd.Series(line, index=df.index),
+            pd.Series(direction, index=df.index))
+
+
+def gaussian_kernel_regression(series: pd.Series, bandwidth: float = 8.0,
+                               window: int = 200) -> pd.Series:
+    """Endpoint Nadaraya-Watson estimate — the non-repainting form.
+
+    The usual implementation smooths across the whole window and is
+    recalculated every bar, so the fit at any past point keeps changing as
+    new data arrives. That repaints: a backtest reading it is using
+    information from the future.
+
+    This evaluates the kernel only at the *last* bar of each window, using
+    weights over bars already printed. The line is choppier than the
+    repainting version. It is also the only one that could have been traded.
+    """
+    values = series.to_numpy(dtype=float)
+    n = len(values)
+    out = np.full(n, np.nan)
+
+    offsets = np.arange(window)
+    weights = np.exp(-(offsets ** 2) / (2 * bandwidth ** 2))
+    weight_sum = weights.sum()
+    if weight_sum <= 0:
+        return pd.Series(out, index=series.index)
+
+    for i in range(window - 1, n):
+        # offsets[0] is the current bar, and weight falls with age.
+        segment = values[i - window + 1 : i + 1][::-1]
+        out[i] = float(np.dot(segment, weights) / weight_sum)
+
+    return pd.Series(out, index=series.index)
+
+
+def fair_value_gaps(df: pd.DataFrame, min_atr: float = 0.25
+                    ) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """Three-bar imbalances where price skipped a range.
+
+    A bullish gap is where bar i-2's high sits below bar i's low: no trading
+    happened in between. Returns (direction, top, bottom), aligned to the
+    bar on which the gap becomes visible.
+    """
+    high, low = df["high"], df["low"]
+    atr_series = atr(df, 14)
+
+    prev_high = high.shift(2)
+    prev_low = low.shift(2)
+
+    bullish = low > prev_high
+    bearish = high < prev_low
+
+    size = pd.Series(np.nan, index=df.index)
+    size[bullish] = (low - prev_high)[bullish]
+    size[bearish] = (prev_low - high)[bearish]
+
+    # Ignore gaps too small to matter relative to the asset's own range.
+    significant = size >= (atr_series * min_atr)
+
+    direction = pd.Series(0, index=df.index, dtype=int)
+    direction[bullish & significant] = 1
+    direction[bearish & significant] = -1
+
+    top = pd.Series(np.nan, index=df.index)
+    bottom = pd.Series(np.nan, index=df.index)
+    top[bullish & significant] = low[bullish & significant]
+    bottom[bullish & significant] = prev_high[bullish & significant]
+    top[bearish & significant] = prev_low[bearish & significant]
+    bottom[bearish & significant] = high[bearish & significant]
+
+    return direction, top, bottom

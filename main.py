@@ -14,6 +14,7 @@ writes the day to disk so the next one starts from a real record.
     python main.py replay --days 30     # replay the cycle over history
     python main.py compare              # bake-off across ML models
   python main.py bench --days 90      # compare strategy/portfolio variants
+  python main.py bench --oos --days 300 --variants candidates
     python main.py report               # records so far
     python main.py news                 # current sentiment
     python main.py live                 # real money (asks first)
@@ -59,7 +60,13 @@ Examples:
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     parser.add_argument("--yes", action="store_true", help="Skip the live-trading prompt")
     parser.add_argument("--models", help="Comma-separated models for 'compare'")
-    parser.add_argument("--variants", help="Comma-separated variants for 'bench'")
+    parser.add_argument("--variants",
+                        help="Variants for 'bench', or a group: ladder, "
+                             "head-to-head, candidates")
+    parser.add_argument("--oos", action="store_true",
+                        help="Split history and report in-sample vs out-of-sample")
+    parser.add_argument("--split", type=float, default=0.5,
+                        help="Fraction of history used as the in-sample half")
     parser.add_argument("--reset", action="store_true",
                         help="Start from a clean journal (archives the old one)")
     return parser.parse_args(argv)
@@ -289,7 +296,12 @@ def mode_bench(config, logger, args):
     from bot.utils.bench import VariantBench
 
     variants = args.variants.split(",") if args.variants else None
-    report = VariantBench(config).run(days=args.days or 90, variants=variants)
+    bench = VariantBench(config)
+    if args.oos:
+        report = bench.run_split(days=args.days or 300, variants=variants,
+                                 split=args.split)
+    else:
+        report = bench.run(days=args.days or 90, variants=variants)
     if args.json:
         print(json.dumps(report, indent=2, default=str))
     return report
