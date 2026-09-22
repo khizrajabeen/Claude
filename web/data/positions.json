@@ -1,0 +1,36 @@
+{
+  "as_of": "2026-09-22T06:31:55+00:00",
+  "positions": [
+    {
+      "asset_class": "etf",
+      "entry_price": 415.3858044,
+      "leverage": 1.0,
+      "opened_at": "2026-08-20T14:00:00+00:00",
+      "opened_on_day": "2026-08-20",
+      "quantity": 2.0,
+      "risk_usd": 29.83,
+      "side": "long",
+      "stop_price": 400.47005613,
+      "strategy": "turtle",
+      "symbol": "GLD",
+      "take_profit": 445.21730094,
+      "units": 1
+    },
+    {
+      "asset_class": "crypto_perp",
+      "entry_price": 91.22967772,
+      "leverage": 1.0,
+      "opened_at": "2026-08-21T20:00:00+00:00",
+      "opened_on_day": "2026-08-21",
+      "quantity": 17.42,
+      "risk_usd": 43.22,
+      "side": "long",
+      "stop_price": 91.30266146,
+      "strategy": "lorentzian",
+      "symbol": "SOL/USDT:USDT",
+      "take_profit": 96.19186667,
+      "units": 1
+    }
+  ],
+  "schema": 1
+}

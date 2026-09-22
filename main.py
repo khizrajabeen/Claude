@@ -48,8 +48,8 @@ Examples:
     parser.add_argument(
         "mode",
         choices=["run", "day", "briefing", "plan", "replay", "report", "pnl",
-                 "screen", "news", "live", "train", "compare", "bench",
-                 "backtest"],
+                 "screen", "publish", "news", "live", "train", "compare",
+                 "bench", "backtest"],
         help="What to do",
     )
     parser.add_argument("--config", default="config.yaml", help="Config file")
@@ -70,6 +70,9 @@ Examples:
                         help="Fraction of history used as the in-sample half")
     parser.add_argument("--months", type=float,
                         help="Window for 'pnl', in months (default 3)")
+    parser.add_argument("--out", help="Output directory for 'publish'")
+    parser.add_argument("--screen", action="store_true",
+                        help="Include a live market screen in 'publish'")
     parser.add_argument("--replay-journal", action="store_true",
                         help="Report on the replay's records, not the live ones")
     parser.add_argument("--reset", action="store_true",
@@ -177,6 +180,30 @@ def mode_replay(config, logger, args):
     if args.json:
         print(json.dumps(results, indent=2, default=str))
     return results
+
+
+def mode_publish(config, logger, args):
+    """Write the dashboard's data files from the journal."""
+    from bot.daily.journal import Journal
+    from bot.utils.publish import Publisher
+
+    if args.replay_journal:
+        from bot.utils.backtester import _replay_config
+        source = _replay_config(config)
+    else:
+        source = config
+
+    screen = None
+    if args.screen:
+        from bot.exchange import ExchangeClient
+        from bot.markets.screener import CoinScreener
+        screen = CoinScreener(config, exchange=ExchangeClient(config)).scan()
+
+    publisher = Publisher(config, out_dir=args.out)
+    written = publisher.publish(journal=Journal(source), screen=screen)
+    for name in sorted(written):
+        logger.info("  %s", publisher.dir / name)
+    return written
 
 
 def mode_screen(config, logger, args):
@@ -473,6 +500,7 @@ def main(argv=None):
         "report": mode_report,
         "pnl": mode_pnl,
         "screen": mode_screen,
+        "publish": mode_publish,
         "news": mode_news,
         "live": mode_live,
         "train": mode_train,

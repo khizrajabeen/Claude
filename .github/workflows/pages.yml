@@ -1,0 +1,51 @@
+# Publishes the dashboard to GitHub Pages.
+#
+# Pages serves static files. It cannot run the bot — that lives on a
+# machine you control (see deploy/README.md), which publishes its JSON
+# into web/data and pushes. This workflow only ships what is already in
+# the repository.
+name: Deploy dashboard
+
+on:
+  push:
+    branches: [main, claude/happy-brown-j5y8bv]
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and let a newer push win rather than queueing
+# behind a stale one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if credentials were ever committed
+        run: |
+          # The dashboard is public. A key in web/ would be public too.
+          if grep -rIlE '(sk-ant-|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})' web/ 2>/dev/null; then
+            echo "::error::Something that looks like an API key is in web/ — refusing to publish."
+            exit 1
+          fi
+          echo "No credential-shaped strings found in web/."
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deploy
+        uses: actions/deploy-pages@v4

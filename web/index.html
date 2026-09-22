@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian — Autonomous Trading</title>
+<meta name="description" content="A daily-cycle trading bot that reads the news, screens the market, sizes by risk and reports what it actually did.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/app.css">
+</head>
+<body>
+<div class="aurora"></div>
+
+<header class="nav">
+  <div class="wrap" style="display:flex;align-items:center;gap:22px">
+    <a class="brand" href="./index.html"><span class="mark">◈</span> Meridian</a>
+    <nav>
+      <a href="./index.html" aria-current="page">Overview</a>
+      <a href="./dashboard.html">Dashboard</a>
+      <a href="./settings.html">Settings</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="btn sm" data-toggle-theme title="Switch theme">◐</button>
+    <a class="btn sm primary" href="./dashboard.html">Open Dashboard →</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <span class="pill"><span class="dot"></span> Paper trading · crypto spot &amp; perpetuals</span>
+    <h1>Trade the plan,<br><span class="grad">not the impulse</span></h1>
+    <p class="lede">
+      A daily-cycle bot that reads the news, screens four hundred markets,
+      sizes every position by risk rather than by conviction, and writes
+      down exactly what it did — including the parts that lost money.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="./dashboard.html">Open Dashboard →</a>
+      <a class="btn ghost" href="https://github.com/khizrajabeen/Claude" target="_blank" rel="noopener">View the code</a>
+    </div>
+
+    <div class="stat-row" id="live-stats">
+      <div class="card stat"><div class="label">Portfolio value</div>
+        <div class="value mono" id="s-equity">—</div>
+        <div class="delta muted" id="s-equity-d">loading…</div></div>
+      <div class="card stat"><div class="label">Total return</div>
+        <div class="value mono" id="s-return">—</div>
+        <div class="delta muted" id="s-return-d">since inception</div></div>
+      <div class="card stat"><div class="label">Max drawdown</div>
+        <div class="value mono" id="s-dd">—</div>
+        <div class="delta muted">peak to trough</div></div>
+      <div class="card stat"><div class="label">Closed trades</div>
+        <div class="value mono" id="s-trades">—</div>
+        <div class="delta muted" id="s-trades-d">win rate</div></div>
+    </div>
+    <p class="small muted" style="margin-top:14px" id="s-asof"></p>
+  </section>
+
+  <div class="marquee">
+    <span>OKX</span><span>KRAKEN</span><span>COINBASE</span><span>KUCOIN</span>
+    <span>ALPACA</span><span>NASDAQ</span>
+  </div>
+
+  <section class="section-head">
+    <h2>What it actually does</h2>
+    <p>Every claim here is something the code does and the record can be checked against.</p>
+  </section>
+
+  <section class="features">
+    <div class="card feature">
+      <div class="ico">◎</div>
+      <h4>Screens before it trades</h4>
+      <p>Ranks every active market on the venue by 24-hour turnover, flags
+      listings too young to have measurable history, and attaches per-coin
+      news — so the day starts from what is liquid and moving, not from a
+      list written months ago.</p>
+    </div>
+    <div class="card feature">
+      <div class="ico">⚖</div>
+      <h4>Sizes by risk, not by feel</h4>
+      <p>Every position is sized so a stop-out costs the same fraction of
+      the account. Portfolio heat, correlation and net beta are capped per
+      risk factor, and beta is measured from the tape rather than
+      assumed.</p>
+    </div>
+    <div class="card feature">
+      <div class="ico">↗</div>
+      <h4>Presses winners, books profit</h4>
+      <p>Adds units to positions that are working, each risking less than
+      the last, and sells slices at set multiples of risk so a trend does
+      not hand its gains back while the trailing stop catches up.</p>
+    </div>
+    <div class="card feature">
+      <div class="ico">📰</div>
+      <h4>Reads the wire</h4>
+      <p>Per-instrument sentiment from editorial and exchange feeds,
+      weighted by coverage and recency. A single excitable headline cannot
+      open a position, and good news in a downtrend is refused.</p>
+    </div>
+    <div class="card feature">
+      <div class="ico">🛑</div>
+      <h4>Knows when to stop</h4>
+      <p>A daily loss limit, a drawdown halt, a cooldown after losing
+      streaks and a hard cap on new positions per day. The bot is allowed
+      to decide it should not trade today.</p>
+    </div>
+    <div class="card feature">
+      <div class="ico">🔍</div>
+      <h4>Reports against itself</h4>
+      <p>Every expectancy carries its standard error and the sample it
+      would need to be real. Results that are not statistically
+      distinguishable from zero are labelled as such rather than
+      advertised.</p>
+    </div>
+  </section>
+
+  <section class="card pad-lg" style="margin:40px 0">
+    <h3>Honest about what this is</h3>
+    <p style="color:var(--ink-2);font-size:14.5px;line-height:1.75;max-width:78ch">
+      This runs on paper by default. The performance shown on this page is
+      a simulation over historical bars, with modelled fees, slippage and
+      funding — not a live account. Backtests flatter: they fill at prices
+      nobody queued for, they know which markets survived, and a single
+      run cannot separate an edge from a lucky path. Numbers here are
+      reported with their error bars for that reason. Nothing on this page
+      is financial advice, and trading carries the risk of losing
+      everything committed to it.
+    </p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>◈ Meridian</span>
+  <span class="muted">Paper trading · no advice · your keys stay in your browser</span>
+  <span class="spacer" style="flex:1"></span>
+  <a class="muted" href="./dashboard.html">Dashboard</a>
+  <a class="muted" href="./settings.html">Settings</a>
+</footer>
+
+<script type="module">
+import { load, fmt, sign, setText, initTheme } from "./assets/app.js";
+
+initTheme();
+
+load("portfolio").then((p) => {
+  setText("s-equity", fmt.money(p.equity));
+  setText("s-equity-d",
+    `${fmt.pct(p.daily_return_pct)} today`, sign(p.daily_return_pct));
+  setText("s-return", fmt.pct(p.total_return_pct), sign(p.total_return_pct));
+  setText("s-dd", `${fmt.num(p.max_drawdown_pct)}%`);
+  setText("s-trades", String(p.trades));
+  setText("s-trades-d", `${fmt.num(p.win_rate, 1)}% win rate`);
+  document.getElementById("s-asof").textContent =
+    `Updated ${fmt.ago(p.as_of)} · starting balance ${fmt.money(p.starting_equity)}`;
+}).catch(() => {
+  document.getElementById("s-asof").textContent =
+    "No published results yet — run `python main.py publish` to fill this in.";
+});
+</script>
+</body>
+</html>

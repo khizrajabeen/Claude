@@ -1,0 +1,54 @@
+{
+  "as_of": "2026-09-22T06:31:55+00:00",
+  "schema": 1,
+  "strategies": {
+    "clenow": {
+      "avg_r": 0.594,
+      "pnl": 249.72,
+      "r_sum": 5.9396326223821205,
+      "trades": 10,
+      "win_rate": 60.0,
+      "wins": 6
+    },
+    "holygrail": {
+      "avg_r": -0.2982,
+      "pnl": -199.15,
+      "r_sum": -7.752746365506729,
+      "trades": 26,
+      "win_rate": 23.08,
+      "wins": 6
+    },
+    "lorentzian": {
+      "avg_r": -0.0005,
+      "pnl": 54.85,
+      "r_sum": -0.012490627206249938,
+      "trades": 24,
+      "win_rate": 33.33,
+      "wins": 8
+    },
+    "smc": {
+      "avg_r": -0.1774,
+      "pnl": -72.2,
+      "r_sum": -5.321710125027953,
+      "trades": 30,
+      "win_rate": 33.33,
+      "wins": 10
+    },
+    "supertrend": {
+      "avg_r": -0.1784,
+      "pnl": -139.66,
+      "r_sum": -9.810133101964187,
+      "trades": 55,
+      "win_rate": 34.55,
+      "wins": 19
+    },
+    "turtle": {
+      "avg_r": 0.3199,
+      "pnl": 118.6,
+      "r_sum": 13.437052171275537,
+      "trades": 42,
+      "win_rate": 57.14,
+      "wins": 24
+    }
+  }
+}

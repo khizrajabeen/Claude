@@ -1,0 +1,22 @@
+{
+  "as_of": "2026-09-22T06:31:55+00:00",
+  "cash": 7466.63,
+  "currency": "USD",
+  "daily_pnl": 293.26,
+  "daily_return_pct": 2.693,
+  "equity": 9934.01,
+  "expectancy_r": -0.019,
+  "fees": 248.47,
+  "halted_reason": "",
+  "max_drawdown_pct": 6.989,
+  "month_return_pct": 3.593,
+  "open_positions": 2,
+  "peak_equity": 10410.2,
+  "profit_factor": 1.01,
+  "schema": 1,
+  "sharpe_daily": 0.06,
+  "starting_equity": 10000.0,
+  "total_return_pct": -0.66,
+  "trades": 187,
+  "win_rate": 39.0
+}

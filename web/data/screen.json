@@ -1,0 +1,6469 @@
+{
+  "as_of": "2026-09-22T06:31:55+00:00",
+  "markets": [
+    {
+      "age_days": 2061.9,
+      "base": "BTC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.41,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 1031901244.02,
+      "rank": 1,
+      "symbol": "BTC/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ETH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.23,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 651793675.17,
+      "rank": 2,
+      "symbol": "ETH/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "DOGE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 11.91,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 219378808.18,
+      "rank": 3,
+      "symbol": "DOGE/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "SOL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 191521943.25,
+      "rank": 4,
+      "symbol": "SOL/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "XRP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.7,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 145237093.95,
+      "rank": 5,
+      "symbol": "XRP/USDT"
+    },
+    {
+      "age_days": 1239.9,
+      "base": "PEPE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 25.52,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 84769858.16,
+      "rank": 6,
+      "symbol": "PEPE/USDT"
+    },
+    {
+      "age_days": 1237.8,
+      "base": "SUI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.54,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 72310814.46,
+      "rank": 7,
+      "symbol": "SUI/USDT"
+    },
+    {
+      "age_days": 301.8,
+      "base": "ZEC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.16,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 58447978.05,
+      "rank": 8,
+      "symbol": "ZEC/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "UNI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.92,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 55692890.42,
+      "rank": 9,
+      "symbol": "UNI/USDT"
+    },
+    {
+      "age_days": 321.7,
+      "base": "HYPE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.75,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 47032198.52,
+      "rank": 10,
+      "symbol": "HYPE/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "NEAR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.28,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 45547707.4,
+      "rank": 11,
+      "symbol": "NEAR/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "OKB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.4,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 30403942.52,
+      "rank": 12,
+      "symbol": "OKB/USDT"
+    },
+    {
+      "age_days": 611.1,
+      "base": "TRUMP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.24,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 25191793.02,
+      "rank": 13,
+      "symbol": "TRUMP/USDT"
+    },
+    {
+      "age_days": 1278.7,
+      "base": "ARB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.1,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 23456837.58,
+      "rank": 14,
+      "symbol": "ARB/USDT"
+    },
+    {
+      "age_days": 1155.9,
+      "base": "WLD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.44,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 23183342.35,
+      "rank": 15,
+      "symbol": "WLD/USDT"
+    },
+    {
+      "age_days": 83.8,
+      "base": "TAO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 18.03,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "listed 84d ago, needs 90d of history"
+      ],
+      "quote_volume": 21384726.74,
+      "rank": 16,
+      "symbol": "TAO/USDT"
+    },
+    {
+      "age_days": 784.9,
+      "base": "ONDO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.83,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 21107310.05,
+      "rank": 17,
+      "symbol": "ONDO/USDT"
+    },
+    {
+      "age_days": 1371.7,
+      "base": "BNB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.69,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 20333210.95,
+      "rank": 18,
+      "symbol": "BNB/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "LTC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.68,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 19326888.04,
+      "rank": 19,
+      "symbol": "LTC/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "AVAX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -4.4,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 17661127.3,
+      "rank": 20,
+      "symbol": "AVAX/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ADA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.36,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 17573119.01,
+      "rank": 21,
+      "symbol": "ADA/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "FIL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.99,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 16848140.13,
+      "rank": 22,
+      "symbol": "FIL/USDT"
+    },
+    {
+      "age_days": 370.0,
+      "base": "ENA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.14,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 16141869.47,
+      "rank": 23,
+      "symbol": "ENA/USDT"
+    },
+    {
+      "age_days": 467.7,
+      "base": "USDG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 15857854.0,
+      "rank": 24,
+      "symbol": "USDG/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "XLM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.12,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 15675603.43,
+      "rank": 25,
+      "symbol": "XLM/USDT"
+    },
+    {
+      "age_days": 643.7,
+      "base": "PENGU",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 10.95,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 13528395.43,
+      "rank": 26,
+      "symbol": "PENGU/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "LINK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.25,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 13453973.36,
+      "rank": 27,
+      "symbol": "LINK/USDT"
+    },
+    {
+      "age_days": 1526.1,
+      "base": "XAUT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.67,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 13098313.49,
+      "rank": 28,
+      "symbol": "XAUT/USDT"
+    },
+    {
+      "age_days": 231.7,
+      "base": "ZAMA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.81,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 11529448.25,
+      "rank": 29,
+      "symbol": "ZAMA/USDT"
+    },
+    {
+      "age_days": 249.6,
+      "base": "LIT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -5.82,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 11441989.09,
+      "rank": 30,
+      "symbol": "LIT/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "BCH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 11006435.74,
+      "rank": 31,
+      "symbol": "BCH/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XCRCL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.33,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 10986598.7,
+      "rank": 32,
+      "symbol": "XCRCL/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "AAVE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.65,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [],
+      "quote_volume": 10698581.97,
+      "rank": 33,
+      "symbol": "AAVE/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XMSTR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.69,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$10.0M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 9965744.9,
+      "rank": 34,
+      "symbol": "XMSTR/USDT"
+    },
+    {
+      "age_days": 944.7,
+      "base": "STRK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -11.12,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$9.8M turnover below $10M"
+      ],
+      "quote_volume": 9822375.62,
+      "rank": 35,
+      "symbol": "STRK/USDT"
+    },
+    {
+      "age_days": 431.0,
+      "base": "PUMP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.62,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$9.5M turnover below $10M"
+      ],
+      "quote_volume": 9489881.59,
+      "rank": 36,
+      "symbol": "PUMP/USDT"
+    },
+    {
+      "age_days": 6.7,
+      "base": "VVV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -5.06,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$8.9M turnover below $10M",
+        "listed 7d ago, needs 90d of history"
+      ],
+      "quote_volume": 8879975.76,
+      "rank": 37,
+      "symbol": "VVV/USDT"
+    },
+    {
+      "age_days": 361.7,
+      "base": "XPL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.29,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$8.9M turnover below $10M"
+      ],
+      "quote_volume": 8856066.69,
+      "rank": 38,
+      "symbol": "XPL/USDT"
+    },
+    {
+      "age_days": 6.7,
+      "base": "PONS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.14,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$8.2M turnover below $10M",
+        "listed 7d ago, needs 90d of history"
+      ],
+      "quote_volume": 8151913.57,
+      "rank": 39,
+      "symbol": "PONS/USDT"
+    },
+    {
+      "age_days": 1963.1,
+      "base": "SHIB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.87,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$7.9M turnover below $10M"
+      ],
+      "quote_volume": 7925839.78,
+      "rank": 40,
+      "symbol": "SHIB/USDT"
+    },
+    {
+      "age_days": 889.9,
+      "base": "WIF",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 20.17,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$7.9M turnover below $10M"
+      ],
+      "quote_volume": 7924650.36,
+      "rank": 41,
+      "symbol": "WIF/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "HBAR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.52,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$7.5M turnover below $10M"
+      ],
+      "quote_volume": 7468265.99,
+      "rank": 42,
+      "symbol": "HBAR/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "TRX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.65,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$6.7M turnover below $10M"
+      ],
+      "quote_volume": 6658089.4,
+      "rank": 43,
+      "symbol": "TRX/USDT"
+    },
+    {
+      "age_days": 988.0,
+      "base": "BONK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 18.28,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$6.2M turnover below $10M"
+      ],
+      "quote_volume": 6159462.02,
+      "rank": 44,
+      "symbol": "BONK/USDT"
+    },
+    {
+      "age_days": 312.0,
+      "base": "SEI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.04,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$6.1M turnover below $10M"
+      ],
+      "quote_volume": 6108664.21,
+      "rank": 45,
+      "symbol": "SEI/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "DOT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.89,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$6.0M turnover below $10M"
+      ],
+      "quote_volume": 6021424.89,
+      "rank": 46,
+      "symbol": "DOT/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XSNDK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.85,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$6.0M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 5969265.95,
+      "rank": 47,
+      "symbol": "XSNDK/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XSOXL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.16,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$6.0M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 5965305.7,
+      "rank": 48,
+      "symbol": "XSOXL/USDT"
+    },
+    {
+      "age_days": 2069.1,
+      "base": "CRV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.77,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.8M turnover below $10M"
+      ],
+      "quote_volume": 5777412.64,
+      "rank": 49,
+      "symbol": "CRV/USDT"
+    },
+    {
+      "age_days": 96.9,
+      "base": "GRAM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.28,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.7M turnover below $10M"
+      ],
+      "quote_volume": 5716640.41,
+      "rank": 50,
+      "symbol": "GRAM/USDT"
+    },
+    {
+      "age_days": 964.1,
+      "base": "ZETA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -10.9,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.7M turnover below $10M"
+      ],
+      "quote_volume": 5681704.7,
+      "rank": 51,
+      "symbol": "ZETA/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ETC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.49,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.7M turnover below $10M"
+      ],
+      "quote_volume": 5653696.6,
+      "rank": 52,
+      "symbol": "ETC/USDT"
+    },
+    {
+      "age_days": 1220.8,
+      "base": "ORDI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.24,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.5M turnover below $10M"
+      ],
+      "quote_volume": 5478378.25,
+      "rank": 53,
+      "symbol": "ORDI/USDT"
+    },
+    {
+      "age_days": 1434.9,
+      "base": "APT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.42,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.4M turnover below $10M"
+      ],
+      "quote_volume": 5370924.09,
+      "rank": 54,
+      "symbol": "APT/USDT"
+    },
+    {
+      "age_days": 1032.9,
+      "base": "FET",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.45,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.2M turnover below $10M"
+      ],
+      "quote_volume": 5238378.79,
+      "rank": 55,
+      "symbol": "FET/USDT"
+    },
+    {
+      "age_days": 340.0,
+      "base": "ASTER",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.12,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.2M turnover below $10M"
+      ],
+      "quote_volume": 5210912.66,
+      "rank": 56,
+      "symbol": "ASTER/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "PHA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 15.05,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.1M turnover below $10M"
+      ],
+      "quote_volume": 5128867.91,
+      "rank": 57,
+      "symbol": "PHA/USDT"
+    },
+    {
+      "age_days": 81.8,
+      "base": "DATA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 10.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$5.0M turnover below $10M",
+        "listed 82d ago, needs 90d of history"
+      ],
+      "quote_volume": 4951951.36,
+      "rank": 58,
+      "symbol": "DATA/USDT"
+    },
+    {
+      "age_days": 182.8,
+      "base": "MON",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.28,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$4.9M turnover below $10M"
+      ],
+      "quote_volume": 4902043.77,
+      "rank": 59,
+      "symbol": "MON/USDT"
+    },
+    {
+      "age_days": 1733.2,
+      "base": "AR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -12.58,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$4.6M turnover below $10M"
+      ],
+      "quote_volume": 4561321.12,
+      "rank": 60,
+      "symbol": "AR/USDT"
+    },
+    {
+      "age_days": 1960.9,
+      "base": "ICP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.34,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$4.5M turnover below $10M"
+      ],
+      "quote_volume": 4547836.82,
+      "rank": 61,
+      "symbol": "ICP/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XINTC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.68,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$4.2M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 4223047.62,
+      "rank": 62,
+      "symbol": "XINTC/USDT"
+    },
+    {
+      "age_days": 578.9,
+      "base": "PI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.53,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$4.2M turnover below $10M"
+      ],
+      "quote_volume": 4193281.88,
+      "rank": 63,
+      "symbol": "PI/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XSPCX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.17,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$4.1M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 4108936.96,
+      "rank": 64,
+      "symbol": "XSPCX/USDT"
+    },
+    {
+      "age_days": 917.8,
+      "base": "ETHFI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -6.01,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$4.1M turnover below $10M"
+      ],
+      "quote_volume": 4083897.42,
+      "rank": 65,
+      "symbol": "ETHFI/USDT"
+    },
+    {
+      "age_days": 1026.9,
+      "base": "INJ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.2,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.8M turnover below $10M"
+      ],
+      "quote_volume": 3766154.0,
+      "rank": 66,
+      "symbol": "INJ/USDT"
+    },
+    {
+      "age_days": 1740.0,
+      "base": "RAY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.31,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.7M turnover below $10M"
+      ],
+      "quote_volume": 3658305.19,
+      "rank": 67,
+      "symbol": "RAY/USDT"
+    },
+    {
+      "age_days": 1574.6,
+      "base": "OP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.88,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.7M turnover below $10M"
+      ],
+      "quote_volume": 3652103.67,
+      "rank": 68,
+      "symbol": "OP/USDT"
+    },
+    {
+      "age_days": 799.0,
+      "base": "RENDER",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.6M turnover below $10M"
+      ],
+      "quote_volume": 3643812.47,
+      "rank": 69,
+      "symbol": "RENDER/USDT"
+    },
+    {
+      "age_days": 385.7,
+      "base": "WLFI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.1,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.5M turnover below $10M"
+      ],
+      "quote_volume": 3520880.15,
+      "rank": 70,
+      "symbol": "WLFI/USDT"
+    },
+    {
+      "age_days": 299.8,
+      "base": "DASH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.3,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.3M turnover below $10M"
+      ],
+      "quote_volume": 3348836.07,
+      "rank": 71,
+      "symbol": "DASH/USDT"
+    },
+    {
+      "age_days": 1056.5,
+      "base": "TIA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.93,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.2M turnover below $10M"
+      ],
+      "quote_volume": 3167428.93,
+      "rank": 72,
+      "symbol": "TIA/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "CRO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.72,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.2M turnover below $10M"
+      ],
+      "quote_volume": 3153716.46,
+      "rank": 73,
+      "symbol": "CRO/USDT"
+    },
+    {
+      "age_days": 964.6,
+      "base": "JUP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -4.04,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.0M turnover below $10M"
+      ],
+      "quote_volume": 2998039.67,
+      "rank": 74,
+      "symbol": "JUP/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "LSK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -6.44,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$3.0M turnover below $10M"
+      ],
+      "quote_volume": 2977502.81,
+      "rank": 75,
+      "symbol": "LSK/USDT"
+    },
+    {
+      "age_days": 988.0,
+      "base": "JTO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.45,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.7M turnover below $10M"
+      ],
+      "quote_volume": 2667926.04,
+      "rank": 76,
+      "symbol": "JTO/USDT"
+    },
+    {
+      "age_days": 19.7,
+      "base": "CP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.49,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.6M turnover below $10M",
+        "listed 20d ago, needs 90d of history"
+      ],
+      "quote_volume": 2603191.28,
+      "rank": 77,
+      "symbol": "CP/USDT"
+    },
+    {
+      "age_days": 328.9,
+      "base": "VIRTUAL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.09,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.6M turnover below $10M"
+      ],
+      "quote_volume": 2568658.45,
+      "rank": 78,
+      "symbol": "VIRTUAL/USDT"
+    },
+    {
+      "age_days": 221.9,
+      "base": "CC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.43,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.5M turnover below $10M"
+      ],
+      "quote_volume": 2489515.37,
+      "rank": 79,
+      "symbol": "CC/USDT"
+    },
+    {
+      "age_days": 150.7,
+      "base": "GRASS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 19.4,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.5M turnover below $10M"
+      ],
+      "quote_volume": 2479800.84,
+      "rank": 80,
+      "symbol": "GRASS/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "BETH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.04,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.4M turnover below $10M"
+      ],
+      "quote_volume": 2395096.81,
+      "rank": 81,
+      "symbol": "BETH/USDT"
+    },
+    {
+      "age_days": 747.7,
+      "base": "POL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.94,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.3M turnover below $10M"
+      ],
+      "quote_volume": 2317051.44,
+      "rank": 82,
+      "symbol": "POL/USDT"
+    },
+    {
+      "age_days": 68.1,
+      "base": "XMU",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.19,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.3M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 2314149.64,
+      "rank": 83,
+      "symbol": "XMU/USDT"
+    },
+    {
+      "age_days": 1720.1,
+      "base": "ONE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 34.19,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.3M turnover below $10M"
+      ],
+      "quote_volume": 2291601.73,
+      "rank": 84,
+      "symbol": "ONE/USDT"
+    },
+    {
+      "age_days": 823.8,
+      "base": "ZRO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.59,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.2M turnover below $10M"
+      ],
+      "quote_volume": 2244800.26,
+      "rank": 85,
+      "symbol": "ZRO/USDT"
+    },
+    {
+      "age_days": 2027.8,
+      "base": "STX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.96,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.2M turnover below $10M"
+      ],
+      "quote_volume": 2193827.01,
+      "rank": 86,
+      "symbol": "STX/USDT"
+    },
+    {
+      "age_days": 56.8,
+      "base": "AEON",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 15.96,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.0M turnover below $10M",
+        "listed 57d ago, needs 90d of history"
+      ],
+      "quote_volume": 2039217.31,
+      "rank": 87,
+      "symbol": "AEON/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ALGO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.71,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.0M turnover below $10M"
+      ],
+      "quote_volume": 1997144.42,
+      "rank": 88,
+      "symbol": "ALGO/USDT"
+    },
+    {
+      "age_days": 1481.2,
+      "base": "LDO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -3.46,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.0M turnover below $10M"
+      ],
+      "quote_volume": 1983997.44,
+      "rank": 89,
+      "symbol": "LDO/USDT"
+    },
+    {
+      "age_days": 578.7,
+      "base": "KAITO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$2.0M turnover below $10M"
+      ],
+      "quote_volume": 1972806.83,
+      "rank": 90,
+      "symbol": "KAITO/USDT"
+    },
+    {
+      "age_days": 314.7,
+      "base": "ALLO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.74,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.9M turnover below $10M"
+      ],
+      "quote_volume": 1931921.57,
+      "rank": 91,
+      "symbol": "ALLO/USDT"
+    },
+    {
+      "age_days": 669.9,
+      "base": "MORPHO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -6.45,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.9M turnover below $10M"
+      ],
+      "quote_volume": 1886808.81,
+      "rank": 92,
+      "symbol": "MORPHO/USDT"
+    },
+    {
+      "age_days": 788.0,
+      "base": "G",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -6.35,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.8M turnover below $10M"
+      ],
+      "quote_volume": 1831508.09,
+      "rank": 93,
+      "symbol": "G/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XMRVL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.8M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 1817574.35,
+      "rank": 94,
+      "symbol": "XMRVL/USDT"
+    },
+    {
+      "age_days": 1322.0,
+      "base": "CORE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.4,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.8M turnover below $10M"
+      ],
+      "quote_volume": 1812500.34,
+      "rank": 95,
+      "symbol": "CORE/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XLITE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.22,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.8M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 1787820.71,
+      "rank": 96,
+      "symbol": "XLITE/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ICX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 187.76,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.8M turnover below $10M"
+      ],
+      "quote_volume": 1766082.99,
+      "rank": 97,
+      "symbol": "ICX/USDT"
+    },
+    {
+      "age_days": 150.8,
+      "base": "CHIP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.68,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.8M turnover below $10M"
+      ],
+      "quote_volume": 1760948.62,
+      "rank": 98,
+      "symbol": "CHIP/USDT"
+    },
+    {
+      "age_days": 725.0,
+      "base": "PENDLE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -8.64,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.8M turnover below $10M"
+      ],
+      "quote_volume": 1760510.78,
+      "rank": 99,
+      "symbol": "PENDLE/USDT"
+    },
+    {
+      "age_days": 1761.0,
+      "base": "PEOPLE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.34,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.7M turnover below $10M"
+      ],
+      "quote_volume": 1695925.19,
+      "rank": 100,
+      "symbol": "PEOPLE/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XSKHY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.03,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.7M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 1685724.56,
+      "rank": 101,
+      "symbol": "XSKHY/USDT"
+    },
+    {
+      "age_days": 145.6,
+      "base": "RLUSD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.03,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.7M turnover below $10M"
+      ],
+      "quote_volume": 1654715.83,
+      "rank": 102,
+      "symbol": "RLUSD/USDT"
+    },
+    {
+      "age_days": 40.0,
+      "base": "XNBIS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.98,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 1613492.12,
+      "rank": 103,
+      "symbol": "XNBIS/USDT"
+    },
+    {
+      "age_days": 1840.0,
+      "base": "DYDX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.04,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M"
+      ],
+      "quote_volume": 1610386.74,
+      "rank": 104,
+      "symbol": "DYDX/USDT"
+    },
+    {
+      "age_days": 2029.0,
+      "base": "CFX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.41,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M"
+      ],
+      "quote_volume": 1609875.77,
+      "rank": 105,
+      "symbol": "CFX/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XGOOGL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.29,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 1608162.34,
+      "rank": 106,
+      "symbol": "XGOOGL/USDT"
+    },
+    {
+      "age_days": 286.8,
+      "base": "NIGHT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.24,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M"
+      ],
+      "quote_volume": 1607640.87,
+      "rank": 107,
+      "symbol": "NIGHT/USDT"
+    },
+    {
+      "age_days": 144.8,
+      "base": "MEGA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.99,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M"
+      ],
+      "quote_volume": 1600874.12,
+      "rank": 108,
+      "symbol": "MEGA/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XMETA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.56,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 1591347.43,
+      "rank": 109,
+      "symbol": "XMETA/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XAMD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.43,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.6M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 1559796.6,
+      "rank": 110,
+      "symbol": "XAMD/USDT"
+    },
+    {
+      "age_days": 1939.8,
+      "base": "MINA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.25,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.5M turnover below $10M"
+      ],
+      "quote_volume": 1542285.12,
+      "rank": 111,
+      "symbol": "MINA/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XTSLA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.2,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.5M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 1456213.51,
+      "rank": 112,
+      "symbol": "XTSLA/USDT"
+    },
+    {
+      "age_days": 767.9,
+      "base": "BOME",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.51,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.4M turnover below $10M"
+      ],
+      "quote_volume": 1442421.55,
+      "rank": 113,
+      "symbol": "BOME/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "TRB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.15,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.4M turnover below $10M"
+      ],
+      "quote_volume": 1431126.09,
+      "rank": 114,
+      "symbol": "TRB/USDT"
+    },
+    {
+      "age_days": 721.0,
+      "base": "EIGEN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.15,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.4M turnover below $10M"
+      ],
+      "quote_volume": 1357777.68,
+      "rank": 115,
+      "symbol": "EIGEN/USDT"
+    },
+    {
+      "age_days": 675.8,
+      "base": "MOODENG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.57,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.3M turnover below $10M"
+      ],
+      "quote_volume": 1324195.62,
+      "rank": 116,
+      "symbol": "MOODENG/USDT"
+    },
+    {
+      "age_days": 60.9,
+      "base": "XHOOD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.92,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.3M turnover below $10M",
+        "listed 61d ago, needs 90d of history"
+      ],
+      "quote_volume": 1312446.26,
+      "rank": 117,
+      "symbol": "XHOOD/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ATOM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.62,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.3M turnover below $10M"
+      ],
+      "quote_volume": 1290195.61,
+      "rank": 118,
+      "symbol": "ATOM/USDT"
+    },
+    {
+      "age_days": 60.9,
+      "base": "XORCL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.63,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.3M turnover below $10M",
+        "listed 61d ago, needs 90d of history"
+      ],
+      "quote_volume": 1286728.1,
+      "rank": 119,
+      "symbol": "XORCL/USDT"
+    },
+    {
+      "age_days": 1376.0,
+      "base": "FLOKI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 11.7,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.3M turnover below $10M"
+      ],
+      "quote_volume": 1277154.28,
+      "rank": 120,
+      "symbol": "FLOKI/USDT"
+    },
+    {
+      "age_days": 1036.7,
+      "base": "PYTH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.65,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.2M turnover below $10M"
+      ],
+      "quote_volume": 1219977.56,
+      "rank": 121,
+      "symbol": "PYTH/USDT"
+    },
+    {
+      "age_days": 480.1,
+      "base": "KMNO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.6,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.2M turnover below $10M"
+      ],
+      "quote_volume": 1195709.5,
+      "rank": 122,
+      "symbol": "KMNO/USDT"
+    },
+    {
+      "age_days": 39.9,
+      "base": "XRKLB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.35,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.2M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 1189401.78,
+      "rank": 123,
+      "symbol": "XRKLB/USDT"
+    },
+    {
+      "age_days": 308.0,
+      "base": "ZEN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.32,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.2M turnover below $10M"
+      ],
+      "quote_volume": 1154580.85,
+      "rank": 124,
+      "symbol": "ZEN/USDT"
+    },
+    {
+      "age_days": 2002.9,
+      "base": "CELR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -4.2,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.1M turnover below $10M"
+      ],
+      "quote_volume": 1137581.12,
+      "rank": 125,
+      "symbol": "CELR/USDT"
+    },
+    {
+      "age_days": 60.2,
+      "base": "XCOIN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.92,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.1M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 1112153.38,
+      "rank": 126,
+      "symbol": "XCOIN/USDT"
+    },
+    {
+      "age_days": 138.8,
+      "base": "EDGE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.1M turnover below $10M"
+      ],
+      "quote_volume": 1110459.12,
+      "rank": 127,
+      "symbol": "EDGE/USDT"
+    },
+    {
+      "age_days": 1778.7,
+      "base": "ENS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.25,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.1M turnover below $10M"
+      ],
+      "quote_volume": 1106513.53,
+      "rank": 128,
+      "symbol": "ENS/USDT"
+    },
+    {
+      "age_days": 1755.9,
+      "base": "BICO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.33,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.1M turnover below $10M"
+      ],
+      "quote_volume": 1089888.03,
+      "rank": 129,
+      "symbol": "BICO/USDT"
+    },
+    {
+      "age_days": 825.9,
+      "base": "ZK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.21,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.1M turnover below $10M"
+      ],
+      "quote_volume": 1089636.98,
+      "rank": 130,
+      "symbol": "ZK/USDT"
+    },
+    {
+      "age_days": 39.9,
+      "base": "XARM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 11.53,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.1M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 1080720.76,
+      "rank": 131,
+      "symbol": "XARM/USDT"
+    },
+    {
+      "age_days": 237.8,
+      "base": "SENT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.17,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M"
+      ],
+      "quote_volume": 1030086.49,
+      "rank": 132,
+      "symbol": "SENT/USDT"
+    },
+    {
+      "age_days": 831.9,
+      "base": "ATH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.97,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M"
+      ],
+      "quote_volume": 1025410.87,
+      "rank": 133,
+      "symbol": "ATH/USDT"
+    },
+    {
+      "age_days": 649.9,
+      "base": "OKSOL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.65,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M"
+      ],
+      "quote_volume": 1002699.64,
+      "rank": 134,
+      "symbol": "OKSOL/USDT"
+    },
+    {
+      "age_days": 1649.9,
+      "base": "APE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.47,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M"
+      ],
+      "quote_volume": 983778.01,
+      "rank": 135,
+      "symbol": "APE/USDT"
+    },
+    {
+      "age_days": 60.1,
+      "base": "XDELL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.95,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 979420.73,
+      "rank": 136,
+      "symbol": "XDELL/USDT"
+    },
+    {
+      "age_days": 165.8,
+      "base": "OFC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.01,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M"
+      ],
+      "quote_volume": 967789.06,
+      "rank": 137,
+      "symbol": "OFC/USDT"
+    },
+    {
+      "age_days": 1776.0,
+      "base": "NFT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.87,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M"
+      ],
+      "quote_volume": 963380.77,
+      "rank": 138,
+      "symbol": "NFT/USDT"
+    },
+    {
+      "age_days": 59.9,
+      "base": "XBMNR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 957207.97,
+      "rank": 139,
+      "symbol": "XBMNR/USDT"
+    },
+    {
+      "age_days": 679.8,
+      "base": "PNUT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.17,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$1.0M turnover below $10M"
+      ],
+      "quote_volume": 950986.56,
+      "rank": 140,
+      "symbol": "PNUT/USDT"
+    },
+    {
+      "age_days": 1967.7,
+      "base": "XCH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 10.1,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.9M turnover below $10M"
+      ],
+      "quote_volume": 946866.37,
+      "rank": 141,
+      "symbol": "XCH/USDT"
+    },
+    {
+      "age_days": 175.9,
+      "base": "BASED",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.19,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.9M turnover below $10M"
+      ],
+      "quote_volume": 914570.96,
+      "rank": 142,
+      "symbol": "BASED/USDT"
+    },
+    {
+      "age_days": 53.7,
+      "base": "GRVT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.04,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.9M turnover below $10M",
+        "listed 54d ago, needs 90d of history"
+      ],
+      "quote_volume": 909956.04,
+      "rank": 143,
+      "symbol": "GRVT/USDT"
+    },
+    {
+      "age_days": 1008.9,
+      "base": "SATS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.34,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.9M turnover below $10M"
+      ],
+      "quote_volume": 874418.26,
+      "rank": 144,
+      "symbol": "SATS/USDT"
+    },
+    {
+      "age_days": 1467.6,
+      "base": "ETHW",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.36,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.9M turnover below $10M"
+      ],
+      "quote_volume": 870817.39,
+      "rank": 145,
+      "symbol": "ETHW/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "COMP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.21,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.9M turnover below $10M"
+      ],
+      "quote_volume": 868679.42,
+      "rank": 146,
+      "symbol": "COMP/USDT"
+    },
+    {
+      "age_days": 869.0,
+      "base": "ZENT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 10.46,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M"
+      ],
+      "quote_volume": 840651.78,
+      "rank": 147,
+      "symbol": "ZENT/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XAVGO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.28,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 814367.23,
+      "rank": 148,
+      "symbol": "XAVGO/USDT"
+    },
+    {
+      "age_days": 286.6,
+      "base": "WET",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.1,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M"
+      ],
+      "quote_volume": 806928.1,
+      "rank": 149,
+      "symbol": "WET/USDT"
+    },
+    {
+      "age_days": 901.8,
+      "base": "W",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.06,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M"
+      ],
+      "quote_volume": 797096.3,
+      "rank": 150,
+      "symbol": "W/USDT"
+    },
+    {
+      "age_days": 39.9,
+      "base": "XBE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.3,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 796914.72,
+      "rank": 151,
+      "symbol": "XBE/USDT"
+    },
+    {
+      "age_days": 1161.9,
+      "base": "STETH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.13,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M"
+      ],
+      "quote_volume": 792503.5,
+      "rank": 152,
+      "symbol": "STETH/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XNVDA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.26,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 792189.69,
+      "rank": 153,
+      "symbol": "XNVDA/USDT"
+    },
+    {
+      "age_days": 333.7,
+      "base": "MET",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.27,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.8M turnover below $10M"
+      ],
+      "quote_volume": 782683.23,
+      "rank": 154,
+      "symbol": "MET/USDT"
+    },
+    {
+      "age_days": 375.8,
+      "base": "SKY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -3.18,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 744109.14,
+      "rank": 155,
+      "symbol": "SKY/USDT"
+    },
+    {
+      "age_days": 349.7,
+      "base": "AVNT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.68,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 738323.29,
+      "rank": 156,
+      "symbol": "AVNT/USDT"
+    },
+    {
+      "age_days": 699.9,
+      "base": "NEIRO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.38,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 727909.96,
+      "rank": 157,
+      "symbol": "NEIRO/USDT"
+    },
+    {
+      "age_days": 32.0,
+      "base": "XGLW",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.65,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M",
+        "listed 32d ago, needs 90d of history"
+      ],
+      "quote_volume": 703689.15,
+      "rank": 158,
+      "symbol": "XGLW/USDT"
+    },
+    {
+      "age_days": 1895.9,
+      "base": "CFG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -4.5,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 685455.24,
+      "rank": 159,
+      "symbol": "CFG/USDT"
+    },
+    {
+      "age_days": 342.0,
+      "base": "PAXG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.52,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 684943.78,
+      "rank": 160,
+      "symbol": "PAXG/USDT"
+    },
+    {
+      "age_days": 609.0,
+      "base": "S",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.32,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 678828.22,
+      "rank": 161,
+      "symbol": "S/USDT"
+    },
+    {
+      "age_days": 1999.0,
+      "base": "LPT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.78,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 674703.3,
+      "rank": 162,
+      "symbol": "LPT/USDT"
+    },
+    {
+      "age_days": 1826.0,
+      "base": "GALA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.23,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 664924.68,
+      "rank": 163,
+      "symbol": "GALA/USDT"
+    },
+    {
+      "age_days": 461.9,
+      "base": "SPK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.89,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 653172.9,
+      "rank": 164,
+      "symbol": "SPK/USDT"
+    },
+    {
+      "age_days": 339.8,
+      "base": "DOOD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.71,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.7M turnover below $10M"
+      ],
+      "quote_volume": 652590.14,
+      "rank": 165,
+      "symbol": "DOOD/USDT"
+    },
+    {
+      "age_days": 481.7,
+      "base": "SOPH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -12.41,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M"
+      ],
+      "quote_volume": 647095.24,
+      "rank": 166,
+      "symbol": "SOPH/USDT"
+    },
+    {
+      "age_days": 95.7,
+      "base": "RE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.99,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M"
+      ],
+      "quote_volume": 637486.72,
+      "rank": 167,
+      "symbol": "RE/USDT"
+    },
+    {
+      "age_days": 73.8,
+      "base": "SLX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.09,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M",
+        "listed 74d ago, needs 90d of history"
+      ],
+      "quote_volume": 609109.12,
+      "rank": 168,
+      "symbol": "SLX/USDT"
+    },
+    {
+      "age_days": 2029.0,
+      "base": "CHZ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.59,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M"
+      ],
+      "quote_volume": 597000.44,
+      "rank": 169,
+      "symbol": "CHZ/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "IOTA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.13,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M"
+      ],
+      "quote_volume": 577918.2,
+      "rank": 170,
+      "symbol": "IOTA/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XQQQ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.18,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 566866.78,
+      "rank": 171,
+      "symbol": "XQQQ/USDT"
+    },
+    {
+      "age_days": 424.8,
+      "base": "ASP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -20.36,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M"
+      ],
+      "quote_volume": 556609.1,
+      "rank": 172,
+      "symbol": "ASP/USDT"
+    },
+    {
+      "age_days": 32.0,
+      "base": "XQCOM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.39,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M",
+        "listed 32d ago, needs 90d of history"
+      ],
+      "quote_volume": 555903.03,
+      "rank": 173,
+      "symbol": "XQCOM/USDT"
+    },
+    {
+      "age_days": 1009.0,
+      "base": "ACE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.42,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.6M turnover below $10M"
+      ],
+      "quote_volume": 553378.8,
+      "rank": 174,
+      "symbol": "ACE/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "THETA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.7,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 547758.98,
+      "rank": 175,
+      "symbol": "THETA/USDT"
+    },
+    {
+      "age_days": 122.9,
+      "base": "AI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.97,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 536910.87,
+      "rank": 176,
+      "symbol": "AI/USDT"
+    },
+    {
+      "age_days": 768.0,
+      "base": "ARKM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 11.18,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 536319.48,
+      "rank": 177,
+      "symbol": "ARKM/USDT"
+    },
+    {
+      "age_days": 1577.9,
+      "base": "LUNA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.56,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 527235.79,
+      "rank": 178,
+      "symbol": "LUNA/USDT"
+    },
+    {
+      "age_days": 1883.0,
+      "base": "AXS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.02,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 524953.37,
+      "rank": 179,
+      "symbol": "AXS/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "IOST",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.97,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 504251.21,
+      "rank": 180,
+      "symbol": "IOST/USDT"
+    },
+    {
+      "age_days": 339.8,
+      "base": "PROVE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.23,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 499887.5,
+      "rank": 181,
+      "symbol": "PROVE/USDT"
+    },
+    {
+      "age_days": 889.9,
+      "base": "MEW",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.78,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 489020.1,
+      "rank": 182,
+      "symbol": "MEW/USDT"
+    },
+    {
+      "age_days": 2035.6,
+      "base": "MASK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.33,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 475485.52,
+      "rank": 183,
+      "symbol": "MASK/USDT"
+    },
+    {
+      "age_days": 626.8,
+      "base": "BIO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.8,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 462017.82,
+      "rank": 184,
+      "symbol": "BIO/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "XTZ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.66,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 452712.95,
+      "rank": 185,
+      "symbol": "XTZ/USDT"
+    },
+    {
+      "age_days": 1300.9,
+      "base": "SSV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.22,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 452237.16,
+      "rank": 186,
+      "symbol": "SSV/USDT"
+    },
+    {
+      "age_days": 592.7,
+      "base": "BERA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.5M turnover below $10M"
+      ],
+      "quote_volume": 451893.0,
+      "rank": 187,
+      "symbol": "BERA/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XAAPL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.38,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 444858.16,
+      "rank": 188,
+      "symbol": "XAAPL/USDT"
+    },
+    {
+      "age_days": 1959.1,
+      "base": "LAT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -11.21,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 444513.44,
+      "rank": 189,
+      "symbol": "LAT/USDT"
+    },
+    {
+      "age_days": 888.9,
+      "base": "ZBCN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.43,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 437419.32,
+      "rank": 190,
+      "symbol": "ZBCN/USDT"
+    },
+    {
+      "age_days": 480.9,
+      "base": "A",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.96,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 436981.37,
+      "rank": 191,
+      "symbol": "A/USDT"
+    },
+    {
+      "age_days": 131.9,
+      "base": "PROS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.99,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 424670.18,
+      "rank": 192,
+      "symbol": "PROS/USDT"
+    },
+    {
+      "age_days": 885.9,
+      "base": "MERL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.11,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 422897.24,
+      "rank": 193,
+      "symbol": "MERL/USDT"
+    },
+    {
+      "age_days": 1218.9,
+      "base": "TURBO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.49,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 420270.84,
+      "rank": 194,
+      "symbol": "TURBO/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "SUSHI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.47,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 408310.77,
+      "rank": 195,
+      "symbol": "SUSHI/USDT"
+    },
+    {
+      "age_days": 1351.9,
+      "base": "FLR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.83,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 404396.15,
+      "rank": 196,
+      "symbol": "FLR/USDT"
+    },
+    {
+      "age_days": 1845.0,
+      "base": "AGLD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.28,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 398898.42,
+      "rank": 197,
+      "symbol": "AGLD/USDT"
+    },
+    {
+      "age_days": 13.9,
+      "base": "XSNXX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -3.67,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 392091.77,
+      "rank": 198,
+      "symbol": "XSNXX/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "MANA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 391943.87,
+      "rank": 199,
+      "symbol": "MANA/USDT"
+    },
+    {
+      "age_days": 529.8,
+      "base": "BABY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.82,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 377718.19,
+      "rank": 200,
+      "symbol": "BABY/USDT"
+    },
+    {
+      "age_days": 241.8,
+      "base": "SPACE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.01,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 374825.27,
+      "rank": 201,
+      "symbol": "SPACE/USDT"
+    },
+    {
+      "age_days": 500.9,
+      "base": "JITOSOL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.62,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 369278.45,
+      "rank": 202,
+      "symbol": "JITOSOL/USDT"
+    },
+    {
+      "age_days": 545.9,
+      "base": "NAVX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 23.5,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 360511.46,
+      "rank": 203,
+      "symbol": "NAVX/USDT"
+    },
+    {
+      "age_days": 2037.0,
+      "base": "FLOW",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.39,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 359740.81,
+      "rank": 204,
+      "symbol": "FLOW/USDT"
+    },
+    {
+      "age_days": 187.7,
+      "base": "KAT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.69,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 357522.68,
+      "rank": 205,
+      "symbol": "KAT/USDT"
+    },
+    {
+      "age_days": 39.9,
+      "base": "DOS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 356163.31,
+      "rank": 206,
+      "symbol": "DOS/USDT"
+    },
+    {
+      "age_days": 321.8,
+      "base": "MMT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.85,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 353963.13,
+      "rank": 207,
+      "symbol": "MMT/USDT"
+    },
+    {
+      "age_days": 767.9,
+      "base": "PIXEL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.28,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M"
+      ],
+      "quote_volume": 353299.79,
+      "rank": 208,
+      "symbol": "PIXEL/USDT"
+    },
+    {
+      "age_days": 60.1,
+      "base": "XIREN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.93,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.4M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 350732.57,
+      "rank": 209,
+      "symbol": "XIREN/USDT"
+    },
+    {
+      "age_days": 2013.9,
+      "base": "SAND",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.23,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 348142.28,
+      "rank": 210,
+      "symbol": "SAND/USDT"
+    },
+    {
+      "age_days": 349.7,
+      "base": "TOSHI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 11.78,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 346559.31,
+      "rank": 211,
+      "symbol": "TOSHI/USDT"
+    },
+    {
+      "age_days": 376.6,
+      "base": "LINEA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.64,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 344877.0,
+      "rank": 212,
+      "symbol": "LINEA/USDT"
+    },
+    {
+      "age_days": 690.9,
+      "base": "KAIA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.8,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 339146.55,
+      "rank": 213,
+      "symbol": "KAIA/USDT"
+    },
+    {
+      "age_days": 1053.9,
+      "base": "MEME",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.75,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 330442.11,
+      "rank": 214,
+      "symbol": "MEME/USDT"
+    },
+    {
+      "age_days": 648.9,
+      "base": "GOAT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.42,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 318820.65,
+      "rank": 215,
+      "symbol": "GOAT/USDT"
+    },
+    {
+      "age_days": 650.7,
+      "base": "ME",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.19,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 308160.55,
+      "rank": 216,
+      "symbol": "ME/USDT"
+    },
+    {
+      "age_days": 39.8,
+      "base": "XCRWV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.51,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 304673.45,
+      "rank": 217,
+      "symbol": "XCRWV/USDT"
+    },
+    {
+      "age_days": 59.9,
+      "base": "XPLTR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.9,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 303191.49,
+      "rank": 218,
+      "symbol": "XPLTR/USDT"
+    },
+    {
+      "age_days": 882.0,
+      "base": "SAFE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.38,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 302317.12,
+      "rank": 219,
+      "symbol": "SAFE/USDT"
+    },
+    {
+      "age_days": 827.0,
+      "base": "ZKJ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.1,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 300953.33,
+      "rank": 220,
+      "symbol": "ZKJ/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "CELO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.41,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 300406.65,
+      "rank": 221,
+      "symbol": "CELO/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "EGLD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.53,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 299920.21,
+      "rank": 222,
+      "symbol": "EGLD/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "STORJ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.12,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 298234.5,
+      "rank": 223,
+      "symbol": "STORJ/USDT"
+    },
+    {
+      "age_days": 39.0,
+      "base": "XCOHR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.27,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 291494.78,
+      "rank": 224,
+      "symbol": "XCOHR/USDT"
+    },
+    {
+      "age_days": 339.8,
+      "base": "ZORA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.97,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 289360.25,
+      "rank": 225,
+      "symbol": "ZORA/USDT"
+    },
+    {
+      "age_days": 1685.0,
+      "base": "METIS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.15,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 286981.0,
+      "rank": 226,
+      "symbol": "METIS/USDT"
+    },
+    {
+      "age_days": 651.8,
+      "base": "MOVE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.36,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 286510.47,
+      "rank": 227,
+      "symbol": "MOVE/USDT"
+    },
+    {
+      "age_days": 322.7,
+      "base": "KITE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.34,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 286238.86,
+      "rank": 228,
+      "symbol": "KITE/USDT"
+    },
+    {
+      "age_days": 622.8,
+      "base": "SONIC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 11.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 283339.85,
+      "rank": 229,
+      "symbol": "SONIC/USDT"
+    },
+    {
+      "age_days": 858.8,
+      "base": "NOT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.36,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 278112.3,
+      "rank": 230,
+      "symbol": "NOT/USDT"
+    },
+    {
+      "age_days": 2002.9,
+      "base": "SKL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.38,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 268861.62,
+      "rank": 231,
+      "symbol": "SKL/USDT"
+    },
+    {
+      "age_days": 88.8,
+      "base": "CARDS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.58,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M",
+        "listed 89d ago, needs 90d of history"
+      ],
+      "quote_volume": 268629.8,
+      "rank": 232,
+      "symbol": "CARDS/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ZIL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.05,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 268152.82,
+      "rank": 233,
+      "symbol": "ZIL/USDT"
+    },
+    {
+      "age_days": 200.9,
+      "base": "ROBO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.19,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 262216.21,
+      "rank": 234,
+      "symbol": "ROBO/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ONT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.5,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M"
+      ],
+      "quote_volume": 260028.7,
+      "rank": 235,
+      "symbol": "ONT/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XMSFT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.84,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 255773.74,
+      "rank": 236,
+      "symbol": "XMSFT/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XSPY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.06,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.3M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 251604.93,
+      "rank": 237,
+      "symbol": "XSPY/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "GRT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.16,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 247493.1,
+      "rank": 238,
+      "symbol": "GRT/USDT"
+    },
+    {
+      "age_days": 545.7,
+      "base": "PARTI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 246901.5,
+      "rank": 239,
+      "symbol": "PARTI/USDT"
+    },
+    {
+      "age_days": 1681.0,
+      "base": "MAGIC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.97,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 246202.0,
+      "rank": 240,
+      "symbol": "MAGIC/USDT"
+    },
+    {
+      "age_days": 896.6,
+      "base": "TNSR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.33,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 243433.39,
+      "rank": 241,
+      "symbol": "TNSR/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "NEO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.48,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 240180.87,
+      "rank": 242,
+      "symbol": "NEO/USDT"
+    },
+    {
+      "age_days": 756.8,
+      "base": "DOGS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.34,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 237595.19,
+      "rank": 243,
+      "symbol": "DOGS/USDT"
+    },
+    {
+      "age_days": 68.0,
+      "base": "XEWY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 235777.11,
+      "rank": 244,
+      "symbol": "XEWY/USDT"
+    },
+    {
+      "age_days": 39.9,
+      "base": "XCBRS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.6,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 226762.52,
+      "rank": 245,
+      "symbol": "XCBRS/USDT"
+    },
+    {
+      "age_days": 468.7,
+      "base": "RESOLV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.13,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 222966.26,
+      "rank": 246,
+      "symbol": "RESOLV/USDT"
+    },
+    {
+      "age_days": 452.8,
+      "base": "SAHARA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 222780.5,
+      "rank": 247,
+      "symbol": "SAHARA/USDT"
+    },
+    {
+      "age_days": 1316.0,
+      "base": "BLUR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.88,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 222737.75,
+      "rank": 248,
+      "symbol": "BLUR/USDT"
+    },
+    {
+      "age_days": 258.7,
+      "base": "BREV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.4,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 222090.87,
+      "rank": 249,
+      "symbol": "BREV/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "RSR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 221711.78,
+      "rank": 250,
+      "symbol": "RSR/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "API3",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.51,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 218143.84,
+      "rank": 251,
+      "symbol": "API3/USDT"
+    },
+    {
+      "age_days": 2023.9,
+      "base": "VELO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.59,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 213131.79,
+      "rank": 252,
+      "symbol": "VELO/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "1INCH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.24,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 212038.04,
+      "rank": 253,
+      "symbol": "1INCH/USDT"
+    },
+    {
+      "age_days": 55.1,
+      "base": "XAMAT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.22,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 209179.21,
+      "rank": 254,
+      "symbol": "XAMAT/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "SNX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.43,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 206865.9,
+      "rank": 255,
+      "symbol": "SNX/USDT"
+    },
+    {
+      "age_days": 38.8,
+      "base": "XSMCI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.86,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 198785.72,
+      "rank": 256,
+      "symbol": "XSMCI/USDT"
+    },
+    {
+      "age_days": 55.9,
+      "base": "XGME",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.33,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 56d ago, needs 90d of history"
+      ],
+      "quote_volume": 197303.98,
+      "rank": 257,
+      "symbol": "XGME/USDT"
+    },
+    {
+      "age_days": 529.7,
+      "base": "PROMPT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 196075.13,
+      "rank": 258,
+      "symbol": "PROMPT/USDT"
+    },
+    {
+      "age_days": 676.9,
+      "base": "ACT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.87,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 195301.63,
+      "rank": 259,
+      "symbol": "ACT/USDT"
+    },
+    {
+      "age_days": 1781.9,
+      "base": "IMX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.69,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 195221.69,
+      "rank": 260,
+      "symbol": "IMX/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XAMZN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.42,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 194503.96,
+      "rank": 261,
+      "symbol": "XAMZN/USDT"
+    },
+    {
+      "age_days": 483.7,
+      "base": "HUMA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.06,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 193866.25,
+      "rank": 262,
+      "symbol": "HUMA/USDT"
+    },
+    {
+      "age_days": 38.9,
+      "base": "XSHAZ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.24,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 192282.33,
+      "rank": 263,
+      "symbol": "XSHAZ/USDT"
+    },
+    {
+      "age_days": 1635.1,
+      "base": "GMT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.49,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 188732.08,
+      "rank": 264,
+      "symbol": "GMT/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "LRC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.55,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 182787.85,
+      "rank": 265,
+      "symbol": "LRC/USDT"
+    },
+    {
+      "age_days": 606.7,
+      "base": "ANIME",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.34,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 178982.45,
+      "rank": 266,
+      "symbol": "ANIME/USDT"
+    },
+    {
+      "age_days": 55.8,
+      "base": "XCRWD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.52,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 56d ago, needs 90d of history"
+      ],
+      "quote_volume": 177404.2,
+      "rank": 267,
+      "symbol": "XCRWD/USDT"
+    },
+    {
+      "age_days": 1742.0,
+      "base": "WOO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.06,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 175487.71,
+      "rank": 268,
+      "symbol": "WOO/USDT"
+    },
+    {
+      "age_days": 614.7,
+      "base": "AIXBT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.76,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 174450.58,
+      "rank": 269,
+      "symbol": "AIXBT/USDT"
+    },
+    {
+      "age_days": 725.8,
+      "base": "HMSTR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.07,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 173779.31,
+      "rank": 270,
+      "symbol": "HMSTR/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "SNT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.19,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 172960.4,
+      "rank": 271,
+      "symbol": "SNT/USDT"
+    },
+    {
+      "age_days": 32.8,
+      "base": "XWDC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.89,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 170805.31,
+      "rank": 272,
+      "symbol": "XWDC/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "YFI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.52,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 168398.0,
+      "rank": 273,
+      "symbol": "YFI/USDT"
+    },
+    {
+      "age_days": 1960.0,
+      "base": "CSPR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.51,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 168054.37,
+      "rank": 274,
+      "symbol": "CSPR/USDT"
+    },
+    {
+      "age_days": 1249.9,
+      "base": "ACH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.18,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 168024.49,
+      "rank": 275,
+      "symbol": "ACH/USDT"
+    },
+    {
+      "age_days": 1077.2,
+      "base": "BIGTIME",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.82,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 165548.19,
+      "rank": 276,
+      "symbol": "BIGTIME/USDT"
+    },
+    {
+      "age_days": 1869.0,
+      "base": "BABYDOGE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.82,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 158564.02,
+      "rank": 277,
+      "symbol": "BABYDOGE/USDT"
+    },
+    {
+      "age_days": 671.7,
+      "base": "OL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.43,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 157780.83,
+      "rank": 278,
+      "symbol": "OL/USDT"
+    },
+    {
+      "age_days": 1881.8,
+      "base": "YGG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.76,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.2M turnover below $10M"
+      ],
+      "quote_volume": 157039.71,
+      "rank": 279,
+      "symbol": "YGG/USDT"
+    },
+    {
+      "age_days": 249.7,
+      "base": "FOGO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.29,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 148195.23,
+      "rank": 280,
+      "symbol": "FOGO/USDT"
+    },
+    {
+      "age_days": 1230.8,
+      "base": "CETUS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.71,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 144884.07,
+      "rank": 281,
+      "symbol": "CETUS/USDT"
+    },
+    {
+      "age_days": 89.7,
+      "base": "NES",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.18,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 90d ago, needs 90d of history"
+      ],
+      "quote_volume": 144360.55,
+      "rank": 282,
+      "symbol": "NES/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "CTC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.93,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 137687.98,
+      "rank": 283,
+      "symbol": "CTC/USDT"
+    },
+    {
+      "age_days": 1993.9,
+      "base": "AUCTION",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.16,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 136519.02,
+      "rank": 284,
+      "symbol": "AUCTION/USDT"
+    },
+    {
+      "age_days": 34.0,
+      "base": "XXIAOMI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.6,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 135279.53,
+      "rank": 285,
+      "symbol": "XXIAOMI/USDT"
+    },
+    {
+      "age_days": 39.9,
+      "base": "XTQQQ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.58,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 133767.82,
+      "rank": 286,
+      "symbol": "XTQQQ/USDT"
+    },
+    {
+      "age_days": 311.9,
+      "base": "2Z",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.15,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 133742.92,
+      "rank": 287,
+      "symbol": "2Z/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "GAS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.23,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 132923.89,
+      "rank": 288,
+      "symbol": "GAS/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "BAT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 129044.83,
+      "rank": 289,
+      "symbol": "BAT/USDT"
+    },
+    {
+      "age_days": 731.9,
+      "base": "CATI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.96,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 126299.5,
+      "rank": 290,
+      "symbol": "CATI/USDT"
+    },
+    {
+      "age_days": 922.9,
+      "base": "AEVO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.16,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 124238.75,
+      "rank": 291,
+      "symbol": "AEVO/USDT"
+    },
+    {
+      "age_days": 1078.1,
+      "base": "ENJ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.29,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 123844.6,
+      "rank": 292,
+      "symbol": "ENJ/USDT"
+    },
+    {
+      "age_days": 1698.7,
+      "base": "RON",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.94,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 120178.87,
+      "rank": 293,
+      "symbol": "RON/USDT"
+    },
+    {
+      "age_days": 524.8,
+      "base": "WCT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.68,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 117780.8,
+      "rank": 294,
+      "symbol": "WCT/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "RVN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.21,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 111919.52,
+      "rank": 295,
+      "symbol": "RVN/USDT"
+    },
+    {
+      "age_days": 543.9,
+      "base": "FLUID",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.98,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 109808.34,
+      "rank": 296,
+      "symbol": "FLUID/USDT"
+    },
+    {
+      "age_days": 40.0,
+      "base": "XAAOI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.82,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 40d ago, needs 90d of history"
+      ],
+      "quote_volume": 108779.29,
+      "rank": 297,
+      "symbol": "XAAOI/USDT"
+    },
+    {
+      "age_days": 514.9,
+      "base": "LAYER",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.54,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 108053.54,
+      "rank": 298,
+      "symbol": "LAYER/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XTSM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.43,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 107558.84,
+      "rank": 299,
+      "symbol": "XTSM/USDT"
+    },
+    {
+      "age_days": 368.8,
+      "base": "BARD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.12,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 106574.15,
+      "rank": 300,
+      "symbol": "BARD/USDT"
+    },
+    {
+      "age_days": 38.9,
+      "base": "XAPP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 106440.84,
+      "rank": 301,
+      "symbol": "XAPP/USDT"
+    },
+    {
+      "age_days": 60.9,
+      "base": "XUSAR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.48,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 61d ago, needs 90d of history"
+      ],
+      "quote_volume": 105956.25,
+      "rank": 302,
+      "symbol": "XUSAR/USDT"
+    },
+    {
+      "age_days": 1249.9,
+      "base": "LQTY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.32,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 105202.02,
+      "rank": 303,
+      "symbol": "LQTY/USDT"
+    },
+    {
+      "age_days": 696.8,
+      "base": "CAT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 104486.06,
+      "rank": 304,
+      "symbol": "CAT/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "SWFTC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.72,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 102808.95,
+      "rank": 305,
+      "symbol": "SWFTC/USDT"
+    },
+    {
+      "age_days": 13.8,
+      "base": "XINTW",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 14.56,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 95717.19,
+      "rank": 306,
+      "symbol": "XINTW/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "QTUM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.03,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 94147.57,
+      "rank": 307,
+      "symbol": "QTUM/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "NMR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.15,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 91099.88,
+      "rank": 308,
+      "symbol": "NMR/USDT"
+    },
+    {
+      "age_days": 603.9,
+      "base": "VINE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.8,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 89311.37,
+      "rank": 309,
+      "symbol": "VINE/USDT"
+    },
+    {
+      "age_days": 384.8,
+      "base": "USD1",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.04,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 89300.82,
+      "rank": 310,
+      "symbol": "USD1/USDT"
+    },
+    {
+      "age_days": 117.9,
+      "base": "IRYS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.86,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 87393.3,
+      "rank": 311,
+      "symbol": "IRYS/USDT"
+    },
+    {
+      "age_days": 55.2,
+      "base": "XASML",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.52,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 87224.99,
+      "rank": 312,
+      "symbol": "XASML/USDT"
+    },
+    {
+      "age_days": 1755.0,
+      "base": "WIN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.75,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 86251.9,
+      "rank": 313,
+      "symbol": "WIN/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ZRX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.84,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 83086.38,
+      "rank": 314,
+      "symbol": "ZRX/USDT"
+    },
+    {
+      "age_days": 1761.0,
+      "base": "CVX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.69,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 82814.46,
+      "rank": 315,
+      "symbol": "CVX/USDT"
+    },
+    {
+      "age_days": 13.9,
+      "base": "XSOXS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -8.45,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 80280.47,
+      "rank": 316,
+      "symbol": "XSOXS/USDT"
+    },
+    {
+      "age_days": 59.9,
+      "base": "XASTS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.51,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 76778.29,
+      "rank": 317,
+      "symbol": "XASTS/USDT"
+    },
+    {
+      "age_days": 38.9,
+      "base": "XON",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.13,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 76710.88,
+      "rank": 318,
+      "symbol": "XON/USDT"
+    },
+    {
+      "age_days": 686.9,
+      "base": "SCR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.14,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 75245.92,
+      "rank": 319,
+      "symbol": "SCR/USDT"
+    },
+    {
+      "age_days": 900.7,
+      "base": "ZEUS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.33,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 73000.64,
+      "rank": 320,
+      "symbol": "ZEUS/USDT"
+    },
+    {
+      "age_days": 38.9,
+      "base": "XALAB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.61,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 72545.41,
+      "rank": 321,
+      "symbol": "XALAB/USDT"
+    },
+    {
+      "age_days": 1284.9,
+      "base": "VELODROME",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.54,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 72163.8,
+      "rank": 322,
+      "symbol": "VELODROME/USDT"
+    },
+    {
+      "age_days": 1099.0,
+      "base": "DORA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.87,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 70210.42,
+      "rank": 323,
+      "symbol": "DORA/USDT"
+    },
+    {
+      "age_days": 59.9,
+      "base": "XNFLX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.39,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 69283.83,
+      "rank": 324,
+      "symbol": "XNFLX/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "DGB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.94,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 67211.24,
+      "rank": 325,
+      "symbol": "DGB/USDT"
+    },
+    {
+      "age_days": 13.9,
+      "base": "XMVLL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 7.34,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 64769.99,
+      "rank": 326,
+      "symbol": "XMVLL/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "CVC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.5,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 61109.72,
+      "rank": 327,
+      "symbol": "CVC/USDT"
+    },
+    {
+      "age_days": 2040.8,
+      "base": "GLM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.87,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 59211.11,
+      "rank": 328,
+      "symbol": "GLM/USDT"
+    },
+    {
+      "age_days": 157.9,
+      "base": "USDS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.01,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 57203.39,
+      "rank": 329,
+      "symbol": "USDS/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ORBS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.18,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 55801.57,
+      "rank": 330,
+      "symbol": "ORBS/USDT"
+    },
+    {
+      "age_days": 55.9,
+      "base": "XHIMS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.41,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 56d ago, needs 90d of history"
+      ],
+      "quote_volume": 55555.99,
+      "rank": 331,
+      "symbol": "XHIMS/USDT"
+    },
+    {
+      "age_days": 54.9,
+      "base": "XGEV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.54,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 53272.43,
+      "rank": 332,
+      "symbol": "XGEV/USDT"
+    },
+    {
+      "age_days": 34.9,
+      "base": "XBOT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.35,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 35d ago, needs 90d of history"
+      ],
+      "quote_volume": 53226.97,
+      "rank": 333,
+      "symbol": "XBOT/USDT"
+    },
+    {
+      "age_days": 1300.9,
+      "base": "RPL",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.86,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 53178.74,
+      "rank": 334,
+      "symbol": "RPL/USDT"
+    },
+    {
+      "age_days": 60.9,
+      "base": "XIBM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.35,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 61d ago, needs 90d of history"
+      ],
+      "quote_volume": 53149.16,
+      "rank": 335,
+      "symbol": "XIBM/USDT"
+    },
+    {
+      "age_days": 1841.2,
+      "base": "ILV",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.59,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 52862.67,
+      "rank": 336,
+      "symbol": "ILV/USDT"
+    },
+    {
+      "age_days": 1651.9,
+      "base": "SD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 8.42,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 52652.3,
+      "rank": 337,
+      "symbol": "SD/USDT"
+    },
+    {
+      "age_days": 1684.1,
+      "base": "WAXP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.72,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 51737.71,
+      "rank": 338,
+      "symbol": "WAXP/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "KSM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.61,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 51471.63,
+      "rank": 339,
+      "symbol": "KSM/USDT"
+    },
+    {
+      "age_days": 13.9,
+      "base": "XDRAM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.99,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 51117.38,
+      "rank": 340,
+      "symbol": "XDRAM/USDT"
+    },
+    {
+      "age_days": 1713.1,
+      "base": "JOE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.36,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.1M turnover below $10M"
+      ],
+      "quote_volume": 50717.28,
+      "rank": 341,
+      "symbol": "JOE/USDT"
+    },
+    {
+      "age_days": 1708.9,
+      "base": "ASTR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.23,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 49685.29,
+      "rank": 342,
+      "symbol": "ASTR/USDT"
+    },
+    {
+      "age_days": 33.9,
+      "base": "XLRCX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.92,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 49577.54,
+      "rank": 343,
+      "symbol": "XLRCX/USDT"
+    },
+    {
+      "age_days": 34.9,
+      "base": "XDKNG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.14,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 35d ago, needs 90d of history"
+      ],
+      "quote_volume": 46412.29,
+      "rank": 344,
+      "symbol": "XDKNG/USDT"
+    },
+    {
+      "age_days": 269.8,
+      "base": "BRL1",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.67,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 45617.81,
+      "rank": 345,
+      "symbol": "BRL1/USDT"
+    },
+    {
+      "age_days": 33.9,
+      "base": "XKO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.68,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 45225.76,
+      "rank": 346,
+      "symbol": "XKO/USDT"
+    },
+    {
+      "age_days": 54.9,
+      "base": "XONDS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -2.18,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 45057.69,
+      "rank": 347,
+      "symbol": "XONDS/USDT"
+    },
+    {
+      "age_days": 54.9,
+      "base": "XTER",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.1,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 44670.06,
+      "rank": 348,
+      "symbol": "XTER/USDT"
+    },
+    {
+      "age_days": 1636.1,
+      "base": "T",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.75,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 43990.37,
+      "rank": 349,
+      "symbol": "T/USDT"
+    },
+    {
+      "age_days": 1356.0,
+      "base": "GMX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.45,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 42825.46,
+      "rank": 350,
+      "symbol": "GMX/USDT"
+    },
+    {
+      "age_days": 1877.1,
+      "base": "OMI",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.69,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 40993.32,
+      "rank": 351,
+      "symbol": "OMI/USDT"
+    },
+    {
+      "age_days": 341.8,
+      "base": "YB",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.9,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 40805.78,
+      "rank": 352,
+      "symbol": "YB/USDT"
+    },
+    {
+      "age_days": 55.1,
+      "base": "XADBE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.64,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 39382.54,
+      "rank": 353,
+      "symbol": "XADBE/USDT"
+    },
+    {
+      "age_days": 1552.0,
+      "base": "GALFT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.21,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 39314.79,
+      "rank": 354,
+      "symbol": "GALFT/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "UMA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.89,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 36361.49,
+      "rank": 355,
+      "symbol": "UMA/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "LEO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.93,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 35980.1,
+      "rank": 356,
+      "symbol": "LEO/USDT"
+    },
+    {
+      "age_days": 1460.0,
+      "base": "ARG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.66,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 33239.51,
+      "rank": 357,
+      "symbol": "ARG/USDT"
+    },
+    {
+      "age_days": 33.9,
+      "base": "XRDDT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.13,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 32672.31,
+      "rank": 358,
+      "symbol": "XRDDT/USDT"
+    },
+    {
+      "age_days": 34.8,
+      "base": "XCRM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.22,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 35d ago, needs 90d of history"
+      ],
+      "quote_volume": 32239.03,
+      "rank": 359,
+      "symbol": "XCRM/USDT"
+    },
+    {
+      "age_days": 33.8,
+      "base": "XCIEN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.14,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 32124.66,
+      "rank": 360,
+      "symbol": "XCIEN/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "BAND",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.14,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 31854.3,
+      "rank": 361,
+      "symbol": "BAND/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "ELF",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 31656.71,
+      "rank": 362,
+      "symbol": "ELF/USDT"
+    },
+    {
+      "age_days": 790.9,
+      "base": "DEGEN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.38,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 28534.63,
+      "rank": 363,
+      "symbol": "DEGEN/USDT"
+    },
+    {
+      "age_days": 14.0,
+      "base": "XKORU",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 6.32,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 27167.17,
+      "rank": 364,
+      "symbol": "XKORU/USDT"
+    },
+    {
+      "age_days": 31.9,
+      "base": "XSTRC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.05,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 32d ago, needs 90d of history"
+      ],
+      "quote_volume": 25664.78,
+      "rank": 365,
+      "symbol": "XSTRC/USDT"
+    },
+    {
+      "age_days": 39.0,
+      "base": "XBSP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.73,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 25373.04,
+      "rank": 366,
+      "symbol": "XBSP/USDT"
+    },
+    {
+      "age_days": 32.9,
+      "base": "XAPLD",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.39,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 25031.86,
+      "rank": 367,
+      "symbol": "XAPLD/USDT"
+    },
+    {
+      "age_days": 1460.0,
+      "base": "MENGO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.62,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 24368.3,
+      "rank": 368,
+      "symbol": "MENGO/USDT"
+    },
+    {
+      "age_days": 1460.0,
+      "base": "POR",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.24,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 23799.93,
+      "rank": 369,
+      "symbol": "POR/USDT"
+    },
+    {
+      "age_days": 32.9,
+      "base": "XISRG",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.96,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 22738.78,
+      "rank": 370,
+      "symbol": "XISRG/USDT"
+    },
+    {
+      "age_days": 38.9,
+      "base": "XTWLO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 9.53,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 39d ago, needs 90d of history"
+      ],
+      "quote_volume": 21501.56,
+      "rank": 371,
+      "symbol": "XTWLO/USDT"
+    },
+    {
+      "age_days": 14.0,
+      "base": "XSHEIN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.34,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 20549.46,
+      "rank": 372,
+      "symbol": "XSHEIN/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "KNC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.02,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 19331.16,
+      "rank": 373,
+      "symbol": "KNC/USDT"
+    },
+    {
+      "age_days": 1250.9,
+      "base": "ID",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 5.52,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 18860.76,
+      "rank": 374,
+      "symbol": "ID/USDT"
+    },
+    {
+      "age_days": 54.9,
+      "base": "XVRT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.96,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 18641.69,
+      "rank": 375,
+      "symbol": "XVRT/USDT"
+    },
+    {
+      "age_days": 703.9,
+      "base": "BANANA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.04,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 17163.02,
+      "rank": 376,
+      "symbol": "BANANA/USDT"
+    },
+    {
+      "age_days": 31.9,
+      "base": "XKLAC",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.01,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 32d ago, needs 90d of history"
+      ],
+      "quote_volume": 16777.54,
+      "rank": 377,
+      "symbol": "XKLAC/USDT"
+    },
+    {
+      "age_days": 1457.0,
+      "base": "CITY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.19,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 16512.7,
+      "rank": 378,
+      "symbol": "CITY/USDT"
+    },
+    {
+      "age_days": 34.9,
+      "base": "XSNOW",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.31,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 35d ago, needs 90d of history"
+      ],
+      "quote_volume": 15930.36,
+      "rank": 379,
+      "symbol": "XSNOW/USDT"
+    },
+    {
+      "age_days": 32.9,
+      "base": "XOKTA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 4.92,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 15712.08,
+      "rank": 380,
+      "symbol": "XOKTA/USDT"
+    },
+    {
+      "age_days": 32.9,
+      "base": "XRIVN",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.59,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 15413.48,
+      "rank": 381,
+      "symbol": "XRIVN/USDT"
+    },
+    {
+      "age_days": 34.9,
+      "base": "XNOW",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.67,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 35d ago, needs 90d of history"
+      ],
+      "quote_volume": 15203.07,
+      "rank": 382,
+      "symbol": "XNOW/USDT"
+    },
+    {
+      "age_days": 60.1,
+      "base": "XLLY",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.93,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 60d ago, needs 90d of history"
+      ],
+      "quote_volume": 14428.21,
+      "rank": 383,
+      "symbol": "XLLY/USDT"
+    },
+    {
+      "age_days": 34.0,
+      "base": "XPOPMART",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.21,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 14389.35,
+      "rank": 384,
+      "symbol": "XPOPMART/USDT"
+    },
+    {
+      "age_days": 31.9,
+      "base": "XROK",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.71,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 32d ago, needs 90d of history"
+      ],
+      "quote_volume": 14174.66,
+      "rank": 385,
+      "symbol": "XROK/USDT"
+    },
+    {
+      "age_days": 13.9,
+      "base": "XMUU",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.48,
+      "is_new": true,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 14d ago, needs 90d of history"
+      ],
+      "quote_volume": 14155.63,
+      "rank": 386,
+      "symbol": "XMUU/USDT"
+    },
+    {
+      "age_days": 33.9,
+      "base": "XSMH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.81,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 13441.69,
+      "rank": 387,
+      "symbol": "XSMH/USDT"
+    },
+    {
+      "age_days": 34.9,
+      "base": "XHPE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.89,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 35d ago, needs 90d of history"
+      ],
+      "quote_volume": 12436.78,
+      "rank": 388,
+      "symbol": "XHPE/USDT"
+    },
+    {
+      "age_days": 33.0,
+      "base": "XBX",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.44,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 10643.51,
+      "rank": 389,
+      "symbol": "XBX/USDT"
+    },
+    {
+      "age_days": 67.9,
+      "base": "XIWM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.16,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 68d ago, needs 90d of history"
+      ],
+      "quote_volume": 10329.13,
+      "rank": 390,
+      "symbol": "XIWM/USDT"
+    },
+    {
+      "age_days": 1860.0,
+      "base": "SLP",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 3.31,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 10166.4,
+      "rank": 391,
+      "symbol": "SLP/USDT"
+    },
+    {
+      "age_days": 1061.9,
+      "base": "SPURS",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 9531.38,
+      "rank": 392,
+      "symbol": "SPURS/USDT"
+    },
+    {
+      "age_days": 55.9,
+      "base": "XCSCO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.71,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 56d ago, needs 90d of history"
+      ],
+      "quote_volume": 8329.35,
+      "rank": 393,
+      "symbol": "XCSCO/USDT"
+    },
+    {
+      "age_days": 55.1,
+      "base": "XXLE",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -1.65,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 55d ago, needs 90d of history"
+      ],
+      "quote_volume": 8221.34,
+      "rank": 394,
+      "symbol": "XXLE/USDT"
+    },
+    {
+      "age_days": 33.9,
+      "base": "XTTWO",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.84,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 34d ago, needs 90d of history"
+      ],
+      "quote_volume": 8199.02,
+      "rank": 395,
+      "symbol": "XTTWO/USDT"
+    },
+    {
+      "age_days": 1991.8,
+      "base": "TRA",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.0,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 6940.33,
+      "rank": 396,
+      "symbol": "TRA/USDT"
+    },
+    {
+      "age_days": 31.9,
+      "base": "XJNJ",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 0.08,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 32d ago, needs 90d of history"
+      ],
+      "quote_volume": 5992.93,
+      "rank": 397,
+      "symbol": "XJNJ/USDT"
+    },
+    {
+      "age_days": 2061.9,
+      "base": "BNT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 2.11,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 5118.8,
+      "rank": 398,
+      "symbol": "BNT/USDT"
+    },
+    {
+      "age_days": 237.6,
+      "base": "USAT",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.07,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M"
+      ],
+      "quote_volume": 3815.99,
+      "rank": 399,
+      "symbol": "USAT/USDT"
+    },
+    {
+      "age_days": 32.9,
+      "base": "XUNH",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": -0.06,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 3791.77,
+      "rank": 400,
+      "symbol": "XUNH/USDT"
+    },
+    {
+      "age_days": 33.0,
+      "base": "XZM",
+      "beta": null,
+      "beta_r2": null,
+      "change_24h_pct": 1.82,
+      "is_new": false,
+      "news_articles": 0,
+      "news_score": 0.0,
+      "notes": [
+        "$0.0M turnover below $10M",
+        "listed 33d ago, needs 90d of history"
+      ],
+      "quote_volume": 1808.29,
+      "rank": 401,
+      "symbol": "XZM/USDT"
+    }
+  ],
+  "schema": 1
+}

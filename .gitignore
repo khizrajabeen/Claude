@@ -20,3 +20,8 @@ state/
 state.*/
 models/
 data/
+# ...but the dashboard's published state is meant to be committed: it is
+# what GitHub Pages serves. Without this the publish step writes files
+# that git silently ignores and the dashboard stays empty forever.
+!web/data/
+!web/data/*.json

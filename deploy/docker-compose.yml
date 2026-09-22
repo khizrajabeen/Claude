@@ -1,0 +1,29 @@
+services:
+  meridian:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: meridian
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      # `run` walks day after day, sleeping between sessions. Use `day`
+      # with an external scheduler if you would rather the host own the
+      # timing.
+      MERIDIAN_MODE: run
+      TZ: UTC
+    volumes:
+      # The journal is the record. Losing it loses every measurement the
+      # bot has made, so it lives outside the container.
+      - ../state:/app/state
+      - ../data:/app/data
+      - ../web/data:/app/web/data
+      - ../config.local.yaml:/app/config.local.yaml:ro
+    healthcheck:
+      # Healthy means the journal was written to recently — a process that
+      # is running but has stopped recording is not healthy.
+      test: ["CMD-SHELL", "find state -name 'days.csv' -mmin -1500 | grep -q ."]
+      interval: 10m
+      timeout: 10s
+      retries: 3
+      start_period: 5m
