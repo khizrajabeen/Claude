@@ -36,9 +36,16 @@ jobs:
 
       - name: Fail if credentials were ever committed
         run: |
-          # The dashboard is public. A key in web/ would be public too.
-          if grep -rIlE '(sk-ant-|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})' web/ 2>/dev/null; then
-            echo "::error::Something that looks like an API key is in web/ — refusing to publish."
+          # The dashboard is public, so anything under web/ is public.
+          #
+          # The patterns require a realistic run of key characters after
+          # each prefix. An earlier version matched the bare prefixes and
+          # failed on settings.html's own placeholder text ("sk-ant-…"),
+          # which is the classic way a security check gets disabled: it
+          # cries wolf on the file it most needs to watch.
+          PATTERNS='sk-ant-[A-Za-z0-9_-]{24,}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16}|(PK|AK)[A-Z0-9]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+          if grep -rIlnE "$PATTERNS" web/ 2>/dev/null; then
+            echo "::error::Something that looks like a real API key is in web/ — refusing to publish."
             exit 1
           fi
           echo "No credential-shaped strings found in web/."
