@@ -102,6 +102,11 @@ strategies:
     - clenow       # Clenow: EMA50/100 filter + 100-bar extreme, 3 ATR stop
     - holygrail    # Raschke & Connors: ADX>30, pullback to the 20 EMA
     - dualmom      # Antonacci: relative strength gated by absolute momentum
+    # LuxAlgo-style indicators. Implemented in full and measured; they made
+    # out-of-sample results worse, so they ship off. Enable to re-measure.
+    # - supertrend # SuperTrend factors clustered by realised performance
+    # - smc        # structure breaks, liquidity sweeps, fair value gaps
+    # - nwenvelope # Nadaraya-Watson envelope (non-repainting endpoint form)
 
   turtle:
     entry_s1: 20

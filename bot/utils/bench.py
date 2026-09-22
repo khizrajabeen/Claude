@@ -223,8 +223,11 @@ class VariantBench:
                       limits: dict, tag: str = "", exchange=None) -> dict:
         """Replay every named variant over one set of frames."""
         results: dict[str, dict] = {}
-        for name in names:
+        for position, name in enumerate(names, start=1):
             spec = VARIANTS[name]
+            logger.info("─" * 78)
+            logger.info("  [%d/%d] %s — %s", position, len(names), name, spec["label"])
+            logger.info("─" * 78)
             variant_config = _merge(self.config, spec["overrides"])
             suffix = f"{tag}/{name}" if tag else name
             variant_config.setdefault("journal", {})["replay_dir"] = \

@@ -114,6 +114,18 @@ comparison is against the real thing rather than a paraphrase of it.
 | `holygrail` | Raschke & Connors, *Street Smarts* | ADX(14) above 30, then wait for the retracement to the 20 EMA and enter in the trend's direction, targeting a retest of the recent swing |
 | `dualmom` | Antonacci, *Dual Momentum Investing* | Hold the strongest names in the universe, but only while their own trailing return clears a hurdle. Failing the absolute gate means cash, not the next name down |
 
+### LuxAlgo-style (implemented, measured, off by default)
+
+| Strategy | What it does |
+|---|---|
+| `supertrend` | SuperTrend run across a range of multipliers, each scored on what it would actually have earned, then k-means into three groups — the best group's centroid is traded. Seeded at the quartiles so the result is deterministic |
+| `smc` | Smart Money Concepts: BOS/CHoCH structure breaks, liquidity sweeps, fair value gaps, premium/discount positioning — each component reported separately |
+| `nwenvelope` | Nadaraya-Watson envelope, endpoint estimator only. The default form repaints |
+
+They are off because they measured worse, not because they are unfinished.
+See [the out-of-sample result](#did-luxalgo-help-no). Uncomment them in
+`config.yaml` to re-measure on your own data.
+
 `clenow` is deliberately close to the house `trend` strategy. That is the
 point: two respected formulations with different lookbacks are a check on
 whether a result depends on the specific parameters or on trend following
@@ -342,6 +354,61 @@ would like: **this system has no demonstrated edge.** The infrastructure
 that lets you know that — purged folds, standard errors, identical-data
 replays — is the part that is trustworthy. The strategies are not yet.
 
+### Out of sample: does picking the winners survive?
+
+`clenow`, `turtle` and `holygrail` led the first bench, so the `selective`
+variant bundles them. But they were chosen *from* that sample — re-running
+it would only confirm the choice made from it. `bench --oos` cuts 300 days
+of history at one instant across every symbol and reports both halves:
+
+```
+  variant                   in-sample            OUT-OF-SAMPLE
+                    return%    trades     return%  trades      t
+  full               -10.49       319       -1.06     244  -0.81
+  selective           -4.04        33       +3.87      42   0.95
+  luxalgo            -10.47       220       -0.10     145  -0.12
+  selective+lux      -10.36       175       +2.94     142   0.10
+  autopilot          -10.61       170       +2.19     229  -0.02
+```
+
+**No variant is positive in both halves.** The first period was hostile to
+everything; the second was kinder to most.
+
+Two things are still worth reading out of it:
+
+**`selective` ranked first in both halves** — least bad in the hard period,
+best in the easy one. Consistent *relative* ranking across a split is
+weaker evidence than a significant return, but it is not nothing, and it is
+the only result here that survived the split at all. It also traded 33 and
+42 times against `full`'s 319 and 244, which is the same "trade less"
+signal the first bench produced, now visible on data that did not choose it.
+
+**It is still not significant.** t = 0.95 on 42 trades, and it lost 4% in
+the first half. This is a reason to keep watching `selective`, not a reason
+to fund it.
+
+### Did LuxAlgo help? No.
+
+The three LuxAlgo-style strategies are implemented in full and measured on
+the same footing:
+
+- `luxalgo` alone: **−0.10%** out of sample, t = −0.12.
+- Adding them to the selective three took it from **+3.87% to +2.94%**.
+
+They made it worse. That is consistent with the published evidence on Smart
+Money Concepts — 648 backtests across four markets found no ICT/SMC signal
+with a significant forward edge, and nothing beat buy-and-hold — and it is
+why they ship disabled by default. They remain in the registry because the
+code is correct and the measurement is repeatable, not because it works.
+
+The one genuine contribution from that work is defensive: implementing
+these properly surfaced two look-ahead traps that would have made any naive
+version look excellent. Swing points are only knowable once the right
+shoulder prints, and the standard Nadaraya-Watson fit repaints — it is
+recalculated every bar, so the band a backtest "touched" was drawn knowing
+what came next. Both now have tests asserting the values do not change when
+future bars are removed.
+
 ## Machine learning: measured, then left switched off
 
 ```bash
@@ -412,7 +479,7 @@ deeper books and longer history.
 ## Tests
 
 ```bash
-python -m pytest tests/ -q      # 216 tests, no network
+python -m pytest tests/ -q      # 242 tests, no network
 ```
 
 The suite pins the claims this README makes: that margin cannot be
@@ -456,5 +523,5 @@ bot/
   analysis/    indicators, regime detection, news sentiment
   ml/          labeling, purged validation, model zoo, bake-off, trainer
   utils/       historical replay, variant bench, performance metrics
-tests/         216 tests
+tests/         242 tests
 ```
