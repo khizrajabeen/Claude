@@ -8,7 +8,11 @@ name: Deploy dashboard
 
 on:
   push:
-    branches: [main, claude/happy-brown-j5y8bv]
+    # The default branch is where the `github-pages` environment allows
+    # deployments from, unless its branch policy is widened. Listing
+    # several here costs nothing and means this deploys from whichever
+    # one the repository settles on.
+    branches: [main, claude/crypto-trading-bot-V7qg4, claude/happy-brown-j5y8bv]
     paths:
       - "web/**"
       - ".github/workflows/pages.yml"
@@ -65,17 +69,27 @@ jobs:
       - name: Explain a Pages failure in words
         if: steps.configure.outcome == 'failure'
         run: |
-          echo "::error title=GitHub Pages is not enabled::Turn it on once, then re-run this workflow."
+          echo "::error title=Pages cannot deploy from this branch::See the job log."
           cat <<'EOF'
           ────────────────────────────────────────────────────────────
-          The dashboard is built and committed. What is missing is one
-          switch that only a repository admin can flip:
+          The dashboard is built and committed. Two settings decide
+          whether it can publish, and both are repository settings
+          rather than anything in this repository:
 
-            Settings → Pages → Build and deployment
-            Source:  GitHub Actions
+          1. Pages must be enabled, with Actions as its source:
+               Settings → Pages → Build and deployment
+               Source: GitHub Actions
 
-          Then re-run this workflow (Actions → Deploy dashboard →
-          Re-run all jobs). Every push after that publishes on its own.
+          2. The `github-pages` environment must allow THIS branch.
+             When Pages is first enabled it permits the default branch
+             only, so a deploy from any other branch is rejected before
+             a single step runs — which is why a failing job here can
+             show two seconds of runtime and no logs at all.
+
+               Settings → Environments → github-pages
+               → Deployment branches and tags → add this branch
+
+             Or merge to the default branch and let it deploy there.
 
           Nothing else is wrong: the files are in web/, the credential
           scan passed, and the tests are green.
