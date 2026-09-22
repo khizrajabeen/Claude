@@ -12,8 +12,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from bot.ml.compare import ModelComparison, _predict_proba
-from bot.ml.zoo import DEFAULT_LINEUP, REGISTRY, available_models
+# scikit-learn is an optional extra: the ML layer is disabled by default
+# (`model.enabled: false`), and it was disabled because nine models were
+# compared and every AUC landed between 0.483 and 0.500 — below the
+# majority baseline. Pulling a heavyweight dependency into the base
+# install for a feature nothing runs is the wrong trade, so these skip
+# when it is absent rather than failing the suite.
+pytest.importorskip("sklearn", reason="ML extras not installed")
+
+from bot.ml.compare import ModelComparison, _predict_proba  # noqa: E402
+from bot.ml.zoo import DEFAULT_LINEUP, REGISTRY, available_models  # noqa: E402
 
 
 @pytest.fixture

@@ -17,3 +17,9 @@ feedparser>=6.0.0
 
 # ── Tests ────────────────────────────────────────────────────
 pytest>=7.4.0
+
+# ── Machine learning (optional) ──────────────────────────────
+# The ML layer ships disabled: nine models were compared and every AUC
+# landed between 0.483 and 0.500, below the majority baseline. Install
+# these only to re-run that comparison —
+#     pip install -r requirements-ml.txt

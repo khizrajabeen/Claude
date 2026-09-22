@@ -50,15 +50,38 @@ jobs:
           fi
           echo "No credential-shaped strings found in web/."
 
-      # `enablement: true` turns Pages on for the repository if it is not
-      # already, so this works from a clean repo without a visit to the
-      # settings page. If the token is not permitted to do that, the step
-      # fails with an empty environment URL — which is what "Evaluated
-      # environment url:" with nothing after it means, and is not
-      # obviously about Pages at all.
-      - uses: actions/configure-pages@v5
+      # `enablement: true` asks GitHub to turn Pages on as part of the
+      # deploy. It only works where the workflow token is allowed to
+      # create the Pages site; on many repositories it is not, and the
+      # step then fails with "Evaluated environment url:" and nothing
+      # after it — which says nothing about Pages at all. The step below
+      # catches that and explains it.
+      - id: configure
+        continue-on-error: true
+        uses: actions/configure-pages@v5
         with:
           enablement: true
+
+      - name: Explain a Pages failure in words
+        if: steps.configure.outcome == 'failure'
+        run: |
+          echo "::error title=GitHub Pages is not enabled::Turn it on once, then re-run this workflow."
+          cat <<'EOF'
+          ────────────────────────────────────────────────────────────
+          The dashboard is built and committed. What is missing is one
+          switch that only a repository admin can flip:
+
+            Settings → Pages → Build and deployment
+            Source:  GitHub Actions
+
+          Then re-run this workflow (Actions → Deploy dashboard →
+          Re-run all jobs). Every push after that publishes on its own.
+
+          Nothing else is wrong: the files are in web/, the credential
+          scan passed, and the tests are green.
+          ────────────────────────────────────────────────────────────
+          EOF
+          exit 1
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web
