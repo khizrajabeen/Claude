@@ -110,6 +110,14 @@ risk:
   cooldown_after_losses: 2
   cooldown_minutes: 120
   min_edge_cost_ratio: 3.0         # expected move must be 3x the round trip
+  # The round trip as a fraction of what the trade risks:
+  #     cost_R = round_trip_bps / (10000 * atr_stop_mult * atr_pct)
+  # A 90-day replay found +0.024R per trade gross against 0.043R per trade
+  # in costs — execution took the whole edge. This refuses trades whose
+  # toll is too large a share of their risk, which in practice means
+  # skipping quiet markets where the same signal costs twice as much.
+  # Set to 0 to disable.
+  max_cost_r: 0.06
   contrarian_risk_factor: 0.7      # fades get less size than confirmations
 
 # ── Stops, targets and trailing ──────────────────────────────

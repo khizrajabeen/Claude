@@ -71,7 +71,7 @@ class SmartMoneyConcepts(BaseStrategy):
             if df is None or len(df) < self.required_bars():
                 continue
 
-            atr_now = ind.last_value(ind.atr(df, 14))
+            atr_now = ind.last_value(ctx.indicator(symbol, "atr", period=14))
             if atr_now <= 0:
                 continue
 

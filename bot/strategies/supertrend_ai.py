@@ -67,9 +67,18 @@ class SuperTrendAI(BaseStrategy):
             returns = df["close"].pct_change().fillna(0.0).to_numpy(dtype=float)
             window = min(self.performance_window, len(df) - 1)
 
+            # The ATR is the same for every factor — only the band width
+            # changes — so computing it once and handing it to each run
+            # removes eight ninths of the work this loop used to do.
+            atr_shared = ctx.indicator(symbol, "atr", period=self.atr_period)
+            atr_now = ind.last_value(atr_shared)
+            if atr_now <= 0:
+                continue
+
             performances, directions, lines = [], [], []
             for factor in factors:
-                line, direction = ind.supertrend(df, self.atr_period, float(factor))
+                line, direction = ind.supertrend(df, self.atr_period, float(factor),
+                                                 atr_series=atr_shared)
                 signal = direction.to_numpy(dtype=float)
                 # What this setting would have earned: its position on each
                 # bar times the next bar's return. Shifted so the position
@@ -100,9 +109,6 @@ class SuperTrendAI(BaseStrategy):
             chosen_line = float(np.mean([lines[i] for i in best_group]))
 
             price = float(df["close"].iloc[-1])
-            atr_now = ind.last_value(ind.atr(df, self.atr_period))
-            if atr_now <= 0:
-                continue
 
             # How far price sits beyond the trailing stop, in ATR. A fresh
             # flip is worth more than one that ran days ago.

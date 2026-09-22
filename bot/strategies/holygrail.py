@@ -50,7 +50,7 @@ class HolyGrailPullback(BaseStrategy):
             if df is None or len(df) < self.required_bars():
                 continue
 
-            adx_series, plus_di, minus_di = ind.adx(df, self.adx_period)
+            adx_series, plus_di, minus_di = ctx.indicator(symbol, "adx", period=self.adx_period)
             adx = ind.last_value(adx_series, 0.0)
             if adx < self.adx_floor:
                 continue  # not a strong enough trend to have a pullback in
@@ -61,7 +61,7 @@ class HolyGrailPullback(BaseStrategy):
 
             close = df["close"]
             ema = ind.last_value(ind.ema(close, self.ema_period))
-            atr = ind.last_value(ind.atr(df, 14))
+            atr = ind.last_value(ctx.indicator(symbol, "atr", period=14))
             if not ema or atr <= 0:
                 continue
 

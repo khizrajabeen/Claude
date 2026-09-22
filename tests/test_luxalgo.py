@@ -338,3 +338,190 @@ def test_wave_trend_is_bounded_and_finite():
     wt = wave_trend(df).dropna()
     assert len(wt) > 400
     assert np.isfinite(wt).all()
+
+
+# ── Performance-motivated rewrites ───────────────────────────
+# These three were rewritten for speed. The tests exist because a faster
+# indicator that gives a different answer is not an optimisation, it is a
+# silent change to every measurement the bot has ever made.
+
+def _noisy_frame(seed=3, n=400):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(seed)
+    r = rng.normal(0.0004, 0.012, n)
+    close = 100 * np.exp(np.cumsum(r))
+    idx = pd.date_range("2026-01-01", periods=n, freq="1h", tz="UTC")
+    return pd.DataFrame({
+        "open": close,
+        "high": close * (1 + abs(rng.normal(0, 0.004, n))),
+        "low": close * (1 - abs(rng.normal(0, 0.004, n))),
+        "close": close, "volume": 1.0,
+    }, index=idx)
+
+
+def test_supertrend_with_a_shared_atr_matches_computing_it_itself():
+    """SuperTrend AI hands in one ATR for all nine factors; that must be
+    the same answer as each run computing its own."""
+    import numpy as np
+    from bot.analysis import indicators as ind
+
+    df = _noisy_frame()
+    shared = ind.atr(df, 10)
+    for factor in (1.0, 2.5, 5.0):
+        own_line, own_dir = ind.supertrend(df, 10, factor)
+        shared_line, shared_dir = ind.supertrend(df, 10, factor, atr_series=shared)
+        assert np.allclose(own_line.to_numpy(), shared_line.to_numpy(),
+                           equal_nan=True)
+        assert (own_dir.to_numpy() == shared_dir.to_numpy()).all()
+
+
+def test_supertrend_ratchets_and_never_backs_off():
+    """The band only moves in the trend's direction — that is what makes
+    it a trailing stop rather than a channel."""
+    import numpy as np
+    from bot.analysis import indicators as ind
+
+    df = _noisy_frame()
+    line, direction = ind.supertrend(df, 10, 3.0)
+    values = line.to_numpy()
+    dirs = direction.to_numpy()
+    for i in range(1, len(values)):
+        if not (np.isfinite(values[i]) and np.isfinite(values[i - 1])):
+            continue
+        if dirs[i] == dirs[i - 1] == 1:
+            assert values[i] >= values[i - 1] - 1e-9, "a long stop fell back"
+        elif dirs[i] == dirs[i - 1] == -1:
+            assert values[i] <= values[i - 1] + 1e-9, "a short stop rose"
+
+
+def test_supertrend_warmup_bars_carry_no_signal():
+    import numpy as np
+    from bot.analysis import indicators as ind
+
+    df = _noisy_frame()
+    line, direction = ind.supertrend(df, 10, 3.0)
+    assert np.isnan(line.iloc[0])
+    assert direction.iloc[0] == 0
+
+
+def test_normalise_still_uses_only_a_trailing_window():
+    """The rewrite must not have turned a trailing scale into a
+    whole-series one — that would leak the future into the feature."""
+    import numpy as np
+    from bot.analysis import indicators as ind
+
+    df = _noisy_frame()
+    series = df["close"]
+    cut = 250
+    full = ind.normalise(series, 200)
+    prefix = ind.normalise(series.iloc[:cut], 200)
+    assert np.allclose(full.iloc[:cut].to_numpy(), prefix.to_numpy(),
+                       equal_nan=True), "later bars changed an earlier value"
+
+
+def test_normalise_keeps_its_index_and_range():
+    import numpy as np
+    from bot.analysis import indicators as ind
+
+    df = _noisy_frame()
+    out = ind.normalise(df["close"], 200)
+    assert out.index.equals(df.index)
+    finite = out.to_numpy()[np.isfinite(out.to_numpy())]
+    assert finite.min() >= 0.0 and finite.max() <= 1.0
+
+
+def test_normalise_survives_a_flat_series_rather_than_dividing_by_zero():
+    import numpy as np
+    import pandas as pd
+    from bot.analysis import indicators as ind
+
+    flat = pd.Series([5.0] * 300,
+                     index=pd.date_range("2026-01-01", periods=300, freq="1h",
+                                         tz="UTC"))
+    out = ind.normalise(flat, 200)
+    assert not np.isinf(out.to_numpy()).any()
+
+
+def test_fair_value_gaps_finds_a_real_gap():
+    """A bullish gap is where bar i-2's high sits below bar i's low."""
+    import numpy as np
+    import pandas as pd
+    from bot.analysis import indicators as ind
+
+    n = 60
+    idx = pd.date_range("2026-01-01", periods=n, freq="1h", tz="UTC")
+    close = np.full(n, 100.0)
+    high = close + 0.5
+    low = close - 0.5
+    # A three-bar jump at bar 40: price skips from ~100 to ~110.
+    close[40:] = 110.0
+    high[40:] = 110.5
+    low[40:] = 109.5
+    df = pd.DataFrame({"open": close, "high": high, "low": low,
+                       "close": close, "volume": 1.0}, index=idx)
+
+    direction, top, bottom = ind.fair_value_gaps(df, min_atr=0.0)
+    assert (direction.to_numpy() == 1).any(), "the jump is an unfilled gap"
+    where = int(np.argmax(direction.to_numpy() == 1))
+    assert bottom.iloc[where] < top.iloc[where]
+
+
+def test_fair_value_gaps_reports_nothing_on_a_continuous_tape():
+    import numpy as np
+    from bot.analysis import indicators as ind
+
+    df = _noisy_frame()
+    direction, _, _ = ind.fair_value_gaps(df, min_atr=5.0)
+    assert (direction.to_numpy() == 0).all(), (
+        "a threshold of five ATR should admit no ordinary bar"
+    )
+
+
+def test_fair_value_gaps_cannot_see_the_first_two_bars():
+    """The pattern needs three bars; the first two have no history."""
+    from bot.analysis import indicators as ind
+
+    df = _noisy_frame()
+    direction, _, _ = ind.fair_value_gaps(df, min_atr=0.0)
+    assert direction.iloc[0] == 0
+    assert direction.iloc[1] == 0
+
+
+def test_the_indicator_cache_returns_the_same_object_twice():
+    """Two strategies asking for the same ATR on the same bars must not
+    both pay for it."""
+    from bot.strategies.base import MarketContext
+
+    df = _noisy_frame()
+    ctx = MarketContext(day="d", reads={}, frames={"X/USDT": df}, funding={},
+                        market_tone=0.0, equity=10_000.0, timeframe="1h")
+    first = ctx.indicator("X/USDT", "atr", period=14)
+    second = ctx.indicator("X/USDT", "atr", period=14)
+    assert first is second
+
+
+def test_the_indicator_cache_keeps_different_periods_apart():
+    import numpy as np
+    from bot.strategies.base import MarketContext
+
+    df = _noisy_frame()
+    ctx = MarketContext(day="d", reads={}, frames={"X/USDT": df}, funding={},
+                        market_tone=0.0, equity=10_000.0, timeframe="1h")
+    short = ctx.indicator("X/USDT", "atr", period=10)
+    long = ctx.indicator("X/USDT", "atr", period=20)
+    assert short is not long
+    assert not np.allclose(short.to_numpy(), long.to_numpy(), equal_nan=True)
+
+
+def test_two_contexts_do_not_share_a_cache():
+    """A cache that outlived its bars would serve yesterday's ATR today."""
+    from bot.strategies.base import MarketContext
+
+    df = _noisy_frame()
+    a = MarketContext(day="d1", reads={}, frames={"X/USDT": df}, funding={},
+                      market_tone=0.0, equity=10_000.0, timeframe="1h")
+    b = MarketContext(day="d2", reads={}, frames={"X/USDT": df}, funding={},
+                      market_tone=0.0, equity=10_000.0, timeframe="1h")
+    a.indicator("X/USDT", "atr", period=14)
+    assert not b._indicators

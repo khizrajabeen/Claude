@@ -415,18 +415,35 @@ class RiskBudget:
                      round_trip_bps: float) -> tuple[bool, dict]:
         """Does the expected move cover the cost of making it?
 
-        A stop at k*ATR and a target at R multiples of that implies an
-        expected gross move. Round-trip fees, spread and slippage are a
-        fixed toll on every trade regardless of how it turns out. If the
-        expected move is not a comfortable multiple of that toll, the trade
-        is negative-expectancy before the market has done anything.
+        Two gates, because they catch different mistakes.
 
-        This is the difference between a system that trades 20 times and
-        one that trades 350: the second pays the toll seventeen times more
-        often for the same gross edge.
+        **Cost in units of risk.** The round trip is a toll on notional;
+        R is the distance to the stop. So the toll as a fraction of what
+        the trade risks is
+
+            cost_R = round_trip_bps / (10,000 * atr_stop_mult * atr_pct)
+
+        and it depends on nothing but the fee schedule, the stop width and
+        the instrument's own volatility. A market whose ATR is 0.5% of
+        price costs twice as much per unit of risk as one at 1.0%, for an
+        identical signal. This is the gate that matters: over a 90-day
+        replay the strategies found +0.024R per trade gross and paid
+        0.043R per trade in costs, so execution took the entire edge and
+        then some. Refusing trades whose toll is a large share of their
+        risk is the direct answer, and unlike a conviction threshold it
+        needs no estimate of anything.
+
+        **Expected move against the toll.** The older gate, kept because
+        it catches a different case — a stop so tight the target is inside
+        the noise. Its expected move assumes the target is reached, which
+        it was on 19% of trades, so it is deliberately the looser of the
+        two and is not relied on alone.
         """
         if order.entry_price <= 0 or order.r_distance <= 0:
             return False, {"reason": "no price or stop distance"}
+
+        # What the round trip costs, measured in R.
+        cost_r = (round_trip_bps / 10_000.0) * order.entry_price / order.r_distance
 
         target_r = float(self.stops.get("target_r_multiple", 2.0))
         # Expected gross move, scaled by how convinced the book is: a
@@ -436,14 +453,25 @@ class RiskBudget:
 
         required = float(self.risk.get("min_edge_cost_ratio", 3.0))
         ratio = expected_bps / round_trip_bps if round_trip_bps > 0 else float("inf")
+        max_cost_r = float(self.risk.get("max_cost_r", 0.0) or 0.0)
 
         details = {
             "expected_bps": round(expected_bps, 2),
             "cost_bps": round(round_trip_bps, 2),
             "ratio": round(ratio, 2),
             "required": required,
+            "cost_r": round(cost_r, 4),
+            "max_cost_r": max_cost_r,
         }
-        return ratio >= required, details
+
+        if max_cost_r > 0 and cost_r > max_cost_r:
+            details["reason"] = (f"round trip is {cost_r:.3f}R "
+                                 f"(cap {max_cost_r:.3f}R)")
+            return False, details
+        if ratio < required:
+            details["reason"] = f"edge {ratio:.1f}x costs (needs {required:.1f}x)"
+            return False, details
+        return True, details
 
     # ── Exit rules ────────────────────────────────────────────
 

@@ -641,7 +641,8 @@ class DailySession:
                 if reason:
                     # Fill at the barrier itself: a stop fills where it sat,
                     # and assuming a better fill is how backtests flatter.
-                    fill = position.stop_price if reason == "stop_loss" else position.take_profit
+                    fill = (position.take_profit if reason == "take_profit"
+                            else position.stop_price)
                     closed.append(self._close(position, fill, reason, now, schedule))
                     exited = True
                     break

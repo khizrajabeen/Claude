@@ -69,7 +69,7 @@ class LorentzianClassifier(BaseStrategy):
             if df is None or read is None or len(df) < self.required_bars():
                 continue
 
-            features = self._features(df)
+            features = self._features(df, ctx, symbol)
             if features is None:
                 continue
 
@@ -114,16 +114,28 @@ class LorentzianClassifier(BaseStrategy):
 
     # ── Features ──────────────────────────────────────────────
 
-    def _features(self, df: pd.DataFrame) -> np.ndarray | None:
-        """The published feature set, each normalised on a trailing window."""
+    def _features(self, df: pd.DataFrame, ctx: MarketContext | None = None,
+                  symbol: str = "") -> np.ndarray | None:
+        """The published feature set, each normalised on a trailing window.
+
+        The context is optional so the feature builder can still be called
+        directly (a test, the ML feature set), but when it is present the
+        CCI and ADX come from the per-pass cache rather than being
+        recomputed for a frame five other strategies have already read.
+        """
         close = df["close"]
         window = self.normalise_window
+
+        def cached(name, **params):
+            if ctx is not None and symbol:
+                return ctx.indicator(symbol, name, **params)
+            return getattr(ind, name)(df, **params)
 
         columns = [
             ind.normalise(ind.rsi(close, 14), window),
             ind.normalise(ind.wave_trend(df, 10, 11), window),
-            ind.normalise(ind.cci(df, 20), window),
-            ind.normalise(ind.adx(df, 20)[0], window),
+            ind.normalise(cached("cci", period=20), window),
+            ind.normalise(cached("adx", period=20)[0], window),
             ind.normalise(ind.rsi(close, 9), window),
         ]
         matrix = pd.concat(columns, axis=1).to_numpy(dtype=float)

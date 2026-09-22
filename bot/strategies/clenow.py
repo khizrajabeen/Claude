@@ -75,7 +75,7 @@ class ClenowTrend(BaseStrategy):
             else:
                 continue
 
-            atr = ind.last_value(ind.atr(df, self.atr_period))
+            atr = ind.last_value(ctx.indicator(symbol, "atr", period=self.atr_period))
             if atr <= 0:
                 continue
 

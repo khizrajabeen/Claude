@@ -32,6 +32,7 @@ class MarketContext:
     market_tone: float = 0.0
     equity: float = 0.0
     timeframe: str = "1h"
+    _indicators: dict = field(default_factory=dict, repr=False, compare=False)
 
     def tradable(self) -> list[str]:
         return [s for s, r in self.reads.items() if r.tradable and s in self.frames]
@@ -39,6 +40,38 @@ class MarketContext:
     def close(self, symbol: str) -> pd.Series | None:
         df = self.frames.get(symbol)
         return df["close"] if df is not None and not df.empty else None
+
+    def indicator(self, symbol: str, name: str, **params):
+        """A cached indicator over this symbol's decision frame.
+
+        Seven strategies look at the same bars in the same pass and most
+        of them want an ATR; several want an RSI or an ADX as well, on the
+        same periods. Computing each one afresh was the single largest
+        cost in a planning pass — a profile showed `true_range` entered
+        150 times and `Series.__init__` over eight thousand times for
+        forty-eight symbol-passes.
+
+        A context is built once per planning pass over frames that do not
+        change inside it, so the cache lives exactly as long as the bars
+        it describes and cannot go stale. Two strategies asking for
+        different periods get different entries; there is no sharing of
+        anything that is not literally the same computation.
+        """
+        from bot.analysis import indicators as ind
+
+        df = self.frames.get(symbol)
+        if df is None or df.empty:
+            return None
+        key = (symbol, name, tuple(sorted(params.items())))
+        if key in self._indicators:
+            return self._indicators[key]
+
+        function = getattr(ind, name, None)
+        if function is None:
+            raise AttributeError(f"no indicator named {name!r}")
+        value = function(df, **params)
+        self._indicators[key] = value
+        return value
 
 
 @dataclass

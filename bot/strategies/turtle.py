@@ -62,7 +62,7 @@ class TurtleStrategy(BaseStrategy):
             if df is None or len(df) < self.required_bars():
                 continue
 
-            n = ind.last_value(ind.atr(df, self.n_period))
+            n = ind.last_value(ctx.indicator(symbol, "atr", period=self.n_period))
             if n <= 0:
                 continue
 

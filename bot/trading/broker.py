@@ -321,15 +321,28 @@ class PaperBroker:
         When a single bar spans both the stop and the target we assume the
         stop — the pessimistic assumption is the only honest one without
         tick data, and the optimistic one is how backtests lie.
+
+        A stop that has been trailed past the entry is a different event
+        from the one the position was opened with: it banks a profit. Both
+        reported as "stop_loss" makes the exit table unreadable — a
+        ten-day replay showed stop_loss exits at +0.54R, +0.80R and +0.47R
+        sitting alongside real losses, so the column said nothing about
+        how trades actually ended.
         """
         if position.direction == 1:
             hit_stop = low <= position.stop_price
             hit_target = position.take_profit > 0 and high >= position.take_profit
+            in_profit = position.stop_price > position.entry_price
         else:
             hit_stop = high >= position.stop_price
             hit_target = position.take_profit > 0 and low <= position.take_profit
+            in_profit = position.stop_price < position.entry_price
 
         if hit_stop:
+            if in_profit:
+                return "trailing_stop"
+            if position.moved_to_breakeven:
+                return "breakeven_stop"
             return "stop_loss"
         if hit_target:
             return "take_profit"

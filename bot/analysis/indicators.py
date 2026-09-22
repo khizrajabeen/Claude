@@ -160,54 +160,86 @@ def swing_points(df: pd.DataFrame, length: int = 10) -> tuple[pd.Series, pd.Seri
     return swing_high.ffill(), swing_low.ffill()
 
 
-def supertrend(df: pd.DataFrame, period: int = 10, factor: float = 3.0
+def supertrend(df: pd.DataFrame, period: int = 10, factor: float = 3.0,
+               atr_series: pd.Series | None = None
                ) -> tuple[pd.Series, pd.Series]:
     """SuperTrend trailing stop. Returns (line, direction).
 
     Direction is +1 when price is above the stop (long) and -1 below. The
     band only ever ratchets in the direction of the trend, which is what
     makes it a trailing stop rather than a channel.
+
+    `atr_series` lets a caller that evaluates many factors at once compute
+    the ATR once and pass it in. SuperTrend AI runs nine factors over the
+    same bars and the ATR does not depend on the factor at all, so
+    recomputing it nine times was eight ninths of that work wasted.
     """
-    atr_series = atr(df, period)
-    hl2 = (df["high"] + df["low"]) / 2
-    upper = hl2 + factor * atr_series
-    lower = hl2 - factor * atr_series
+    if atr_series is None:
+        atr_series = atr(df, period)
+    hl2 = (df["high"].to_numpy(dtype=float) + df["low"].to_numpy(dtype=float)) / 2.0
+    atr_arr = atr_series.to_numpy(dtype=float)
+    band = factor * atr_arr
 
     close = df["close"].to_numpy(dtype=float)
-    upper_arr = upper.to_numpy(dtype=float)
-    lower_arr = lower.to_numpy(dtype=float)
+    line, direction = _supertrend_ratchet(close, hl2 + band, hl2 - band)
+    return (pd.Series(line, index=df.index),
+            pd.Series(direction, index=df.index))
 
-    line = np.full(len(df), np.nan)
-    direction = np.zeros(len(df), dtype=int)
 
-    prev_line = np.nan
+def _supertrend_ratchet(close: np.ndarray, upper: np.ndarray, lower: np.ndarray
+                        ) -> tuple[np.ndarray, np.ndarray]:
+    """The sequential half of SuperTrend, kept as cheap as possible.
+
+    The ratchet is a state machine — each bar's stop depends on the last —
+    so it cannot be vectorised. What it can do is stop paying numpy's
+    per-element overhead: the loop runs over Python floats from `tolist()`,
+    which is several times faster than indexing arrays one element at a
+    time, and skips straight to the first bar where the ATR has warmed up
+    instead of testing every bar for NaN.
+    """
+    n = len(close)
+    line = np.full(n, np.nan)
+    direction = np.zeros(n, dtype=int)
+
+    valid = np.isfinite(upper) & np.isfinite(lower)
+    if not valid.any():
+        return line, direction
+    start = int(valid.argmax())
+
+    closes = close.tolist()
+    uppers = upper.tolist()
+    lowers = lower.tolist()
+    out_line = line.tolist()
+    out_dir = direction.tolist()
+
+    prev_line = lowers[start]
     prev_dir = 1
-    for i in range(len(df)):
-        up, low, price = upper_arr[i], lower_arr[i], close[i]
-        if not np.isfinite(up) or not np.isfinite(low):
-            continue
+    out_line[start], out_dir[start] = prev_line, prev_dir
 
-        if np.isnan(prev_line):
-            prev_line, prev_dir = low, 1
-        elif prev_dir == 1:
+    for i in range(start + 1, n):
+        up, low, price = uppers[i], lowers[i], closes[i]
+        if up != up or low != low:      # NaN, without the numpy call
+            continue                    # leaves nan/0, as a warm-up bar should
+
+        if prev_dir == 1:
             # Rising stop: never let it fall back.
-            low = max(low, prev_line)
+            if low < prev_line:
+                low = prev_line
             if price < low:
                 prev_dir, prev_line = -1, up
             else:
                 prev_line = low
         else:
-            up = min(up, prev_line)
+            if up > prev_line:
+                up = prev_line
             if price > up:
                 prev_dir, prev_line = 1, low
             else:
                 prev_line = up
 
-        line[i] = prev_line
-        direction[i] = prev_dir
+        out_line[i], out_dir[i] = prev_line, prev_dir
 
-    return (pd.Series(line, index=df.index),
-            pd.Series(direction, index=df.index))
+    return np.asarray(out_line, dtype=float), np.asarray(out_dir, dtype=int)
 
 
 def gaussian_kernel_regression(series: pd.Series, bandwidth: float = 8.0,
@@ -249,34 +281,38 @@ def fair_value_gaps(df: pd.DataFrame, min_atr: float = 0.25
     happened in between. Returns (direction, top, bottom), aligned to the
     bar on which the gap becomes visible.
     """
-    high, low = df["high"], df["low"]
-    atr_series = atr(df, 14)
+    high = df["high"].to_numpy(dtype=float)
+    low = df["low"].to_numpy(dtype=float)
+    atr_arr = atr(df, 14).to_numpy(dtype=float)
 
-    prev_high = high.shift(2)
-    prev_low = low.shift(2)
+    # Masked assignment into a Series goes through pandas' block manager
+    # for every write; there are eight of them here, and this runs once
+    # per symbol per pass. np.where does the same job in one pass over
+    # the array with no index bookkeeping.
+    prev_high = np.roll(high, 2)
+    prev_low = np.roll(low, 2)
+    prev_high[:2] = np.nan
+    prev_low[:2] = np.nan
 
     bullish = low > prev_high
     bearish = high < prev_low
 
-    size = pd.Series(np.nan, index=df.index)
-    size[bullish] = (low - prev_high)[bullish]
-    size[bearish] = (prev_low - high)[bearish]
-
+    size = np.where(bullish, low - prev_high,
+                    np.where(bearish, prev_low - high, np.nan))
     # Ignore gaps too small to matter relative to the asset's own range.
-    significant = size >= (atr_series * min_atr)
+    with np.errstate(invalid="ignore"):
+        significant = size >= (atr_arr * min_atr)
 
-    direction = pd.Series(0, index=df.index, dtype=int)
-    direction[bullish & significant] = 1
-    direction[bearish & significant] = -1
+    up = bullish & significant
+    down = bearish & significant
 
-    top = pd.Series(np.nan, index=df.index)
-    bottom = pd.Series(np.nan, index=df.index)
-    top[bullish & significant] = low[bullish & significant]
-    bottom[bullish & significant] = prev_high[bullish & significant]
-    top[bearish & significant] = prev_low[bearish & significant]
-    bottom[bearish & significant] = high[bearish & significant]
+    direction = np.where(up, 1, np.where(down, -1, 0)).astype(int)
+    top = np.where(up, low, np.where(down, prev_low, np.nan))
+    bottom = np.where(up, prev_high, np.where(down, high, np.nan))
 
-    return direction, top, bottom
+    return (pd.Series(direction, index=df.index),
+            pd.Series(top, index=df.index),
+            pd.Series(bottom, index=df.index))
 
 
 def cci(df: pd.DataFrame, period: int = 20) -> pd.Series:
@@ -318,9 +354,18 @@ def normalise(series: pd.Series, window: int = 200,
     """
     rolling_min = series.rolling(window, min_periods=window // 4).min()
     rolling_max = series.rolling(window, min_periods=window // 4).max()
-    span = (rolling_max - rolling_min).replace(0, np.nan)
-    scaled = (series - rolling_min) / span
-    return scaled.clip(0, 1) * (upper - lower) + lower
+
+    # The arithmetic runs on the arrays rather than the Series. Each
+    # pandas operator here builds a fresh Series with its own index
+    # alignment; the Lorentzian feature set calls this five times per
+    # symbol per pass, and that overhead was the single largest line in
+    # its profile. The result is identical — same index, same values.
+    low_arr = rolling_min.to_numpy(dtype=float)
+    span = rolling_max.to_numpy(dtype=float) - low_arr
+    with np.errstate(divide="ignore", invalid="ignore"):
+        scaled = (series.to_numpy(dtype=float) - low_arr) / np.where(span == 0, np.nan, span)
+    scaled = np.clip(scaled, 0.0, 1.0) * (upper - lower) + lower
+    return pd.Series(scaled, index=series.index)
 
 
 def lorentzian_distance(current: np.ndarray, history: np.ndarray) -> np.ndarray:

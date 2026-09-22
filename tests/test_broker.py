@@ -195,3 +195,52 @@ def test_closing_returns_margin_to_cash(config):
     assert broker.cash < start
     assert broker.cash == pytest.approx(start - position.entry_fee + trade.pnl)
     assert broker.reserved_margin() == 0
+
+
+def test_a_trailing_stop_in_profit_is_not_reported_as_a_loss(config):
+    """A stop trailed past the entry banks a profit; calling that
+    "stop_loss" made the exit table unreadable — a replay showed
+    stop_loss exits at +0.54R sitting alongside real losses."""
+    broker = PaperBroker(config)
+    position = broker.open(make_order(config, price=100.0, atr=1.0), now=T0)
+
+    position.stop_price = position.entry_price + 2.0      # trailed into profit
+    reason = broker.stop_or_target_hit(
+        position, high=position.entry_price + 2.5,
+        low=position.entry_price + 1.0,
+    )
+    assert reason == "trailing_stop"
+
+
+def test_a_stop_at_breakeven_is_named_as_such(config):
+    broker = PaperBroker(config)
+    position = broker.open(make_order(config, price=100.0, atr=1.0), now=T0)
+
+    position.stop_price = position.entry_price
+    position.moved_to_breakeven = True
+    reason = broker.stop_or_target_hit(
+        position, high=position.entry_price + 1.0, low=position.entry_price - 0.5,
+    )
+    assert reason == "breakeven_stop"
+
+
+def test_the_original_stop_is_still_a_loss(config):
+    broker = PaperBroker(config)
+    position = broker.open(make_order(config, price=100.0, atr=1.0), now=T0)
+    reason = broker.stop_or_target_hit(
+        position, high=position.entry_price, low=position.stop_price - 0.5,
+    )
+    assert reason == "stop_loss"
+
+
+def test_a_short_trailed_into_profit_is_also_a_trailing_stop(config):
+    broker = PaperBroker(config)
+    position = broker.open(make_order(config, side="short", price=100.0, atr=1.0),
+                           now=T0)
+
+    position.stop_price = position.entry_price - 2.0      # below entry = profit
+    reason = broker.stop_or_target_hit(
+        position, high=position.entry_price - 1.0,
+        low=position.entry_price - 2.5,
+    )
+    assert reason == "trailing_stop"
