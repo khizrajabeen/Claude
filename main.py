@@ -47,8 +47,8 @@ Examples:
     )
     parser.add_argument(
         "mode",
-        choices=["run", "day", "briefing", "plan", "replay", "report", "news",
-                 "live", "train", "compare", "bench", "backtest"],
+        choices=["run", "day", "briefing", "plan", "replay", "report", "pnl",
+                 "news", "live", "train", "compare", "bench", "backtest"],
         help="What to do",
     )
     parser.add_argument("--config", default="config.yaml", help="Config file")
@@ -67,6 +67,10 @@ Examples:
                         help="Split history and report in-sample vs out-of-sample")
     parser.add_argument("--split", type=float, default=0.5,
                         help="Fraction of history used as the in-sample half")
+    parser.add_argument("--months", type=float,
+                        help="Window for 'pnl', in months (default 3)")
+    parser.add_argument("--replay-journal", action="store_true",
+                        help="Report on the replay's records, not the live ones")
     parser.add_argument("--reset", action="store_true",
                         help="Start from a clean journal (archives the old one)")
     return parser.parse_args(argv)
@@ -172,6 +176,38 @@ def mode_replay(config, logger, args):
     if args.json:
         print(json.dumps(results, indent=2, default=str))
     return results
+
+
+def mode_pnl(config, logger, args):
+    """Cross-asset P&L: per day, and per asset class over the window."""
+    from bot.daily.journal import Journal
+    from bot.utils.pnl import period_report, render
+
+    if args.replay_journal:
+        from bot.utils.backtester import _replay_config
+        config = _replay_config(config)
+
+    journal = Journal(config)
+    days = journal.load_days()
+    trades = journal.load_trades()
+    state = journal.load_state()
+    if not trades and not days:
+        logger.info("Nothing recorded in %s — run 'replay' or 'day' first.",
+                    journal.dir)
+        return {}
+
+    months = args.months if args.months is not None else 3.0
+    window = int(months * 30.44) if months > 0 else None
+    report = period_report(
+        trades, days,
+        starting_equity=state.initial_equity or None,
+        window_days=window,
+    )
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+    else:
+        render(report, logger, daily_rows=int(args.days or 0))
+    return report
 
 
 def mode_report(config, logger, args):
@@ -406,6 +442,7 @@ def main(argv=None):
         "plan": mode_plan,
         "replay": mode_replay,
         "report": mode_report,
+        "pnl": mode_pnl,
         "news": mode_news,
         "live": mode_live,
         "train": mode_train,
