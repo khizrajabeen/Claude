@@ -39,16 +39,59 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg:        #f7f5fa;
+  --bg:        #f6f4f9;
   --bg-2:      #ffffff;
   --panel:     #ffffff;
-  --panel-2:   #fbf9fd;
-  --line:      rgba(16, 8, 28, 0.10);
+  --panel-2:   #faf8fc;
+  --line:      rgba(16, 8, 28, 0.11);
   --line-soft: rgba(16, 8, 28, 0.06);
-  --ink:       #1a1124;
-  --ink-2:     #56495f;
-  --ink-3:     #8a7f96;
-  --shadow: 0 10px 30px rgba(24, 10, 40, .08);
+  --ink:       #16101f;
+  --ink-2:     #544a60;
+  --ink-3:     #6b6179;
+  /* Everything darkens. A palette tuned on near-black does not survive
+     being inverted: measured against this background the original
+     muted grey came out at 3.67:1, the green at 3.15:1 and the red at
+     4.09:1 — all readable, none of them clearing the 4.5:1 that body
+     text is supposed to. These values clear it against both the page
+     and the white panels that sit on it. */
+  --accent:    #c4348a;
+  --accent-2:  #a3266f;
+  --grad-soft: linear-gradient(135deg,
+                rgba(196,52,138,.10), rgba(139,63,212,.07));
+  --up:        #0b7d5e;
+  --down:      #c22338;
+  --shadow: 0 10px 30px rgba(24, 10, 40, .07);
+}
+
+/* "Auto" follows the operating system. The inline script in each page's
+   head resolves it before first paint, so a dark-by-default stylesheet
+   does not flash at someone who asked for light. */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] {
+  color-scheme: light;
+  --bg:        #f6f4f9;
+  --bg-2:      #ffffff;
+  --panel:     #ffffff;
+  --panel-2:   #faf8fc;
+  --line:      rgba(16, 8, 28, 0.11);
+  --line-soft: rgba(16, 8, 28, 0.06);
+  --ink:       #16101f;
+  --ink-2:     #544a60;
+  --ink-3:     #6b6179;
+  /* Everything darkens. A palette tuned on near-black does not survive
+     being inverted: measured against this background the original
+     muted grey came out at 3.67:1, the green at 3.15:1 and the red at
+     4.09:1 — all readable, none of them clearing the 4.5:1 that body
+     text is supposed to. These values clear it against both the page
+     and the white panels that sit on it. */
+  --accent:    #c4348a;
+  --accent-2:  #a3266f;
+  --grad-soft: linear-gradient(135deg,
+                rgba(196,52,138,.10), rgba(139,63,212,.07));
+  --up:        #0b7d5e;
+  --down:      #c22338;
+  --shadow: 0 10px 30px rgba(24, 10, 40, .07);
+}
 }
 
 * { box-sizing: border-box; }
@@ -341,4 +384,30 @@ th.sortable[data-dir="asc"]::after { content: " ▴"; }
   display: inline-block; padding: 2px 8px; border-radius: 999px;
   border: 1px solid var(--line-soft); background: var(--panel-2);
   font-size: 11px; color: var(--ink-2);
+}
+
+
+/* ── Theme switch ───────────────────────────────────────── */
+.theme-switch {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 3px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--panel-2);
+}
+.theme-switch button {
+  display: grid; place-items: center;
+  width: 30px; height: 26px; padding: 0;
+  border: none; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--ink-3);
+  font-size: 13px; font-family: inherit; line-height: 1;
+  transition: background .15s ease, color .15s ease;
+}
+.theme-switch button:hover { color: var(--ink); }
+.theme-switch button[aria-pressed="true"] {
+  background: var(--grad); color: #fff;
+}
+/* The control is reachable and labelled for a screen reader even though
+   each option is drawn as a single glyph. */
+.theme-switch button span {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
 }

@@ -166,15 +166,54 @@ export const PALETTE = [
 
 /* ── Theme ────────────────────────────────────────────── */
 
+export const THEMES = [
+  { id: "light", glyph: "☀", label: "Light" },
+  { id: "dark",  glyph: "☾", label: "Dark" },
+  { id: "auto",  glyph: "◐", label: "Match system" },
+];
+
+export function currentTheme() {
+  return safeGet("theme") || "auto";
+}
+
+export function applyTheme(id) {
+  document.documentElement.dataset.theme = id;
+  safeSet("theme", id);
+  document.querySelectorAll(".theme-switch button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.theme === id));
+  });
+}
+
+/* Renders the switch into every [data-toggle-theme] host and wires it up.
+
+   Three options rather than two. "Auto" is the default because a person
+   who has set their machine to light at their desk and dark at night has
+   already answered this question, and a dashboard that ignores that
+   answer is one more thing to fix twice a day. */
 export function initTheme() {
-  const saved = safeGet("theme");
-  if (saved) document.documentElement.dataset.theme = saved;
-  document.querySelectorAll("[data-toggle-theme]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-      document.documentElement.dataset.theme = next;
-      safeSet("theme", next);
+  applyTheme(currentTheme());
+
+  document.querySelectorAll("[data-toggle-theme]").forEach((host) => {
+    const control = document.createElement("div");
+    control.className = "theme-switch";
+    control.setAttribute("role", "group");
+    control.setAttribute("aria-label", "Colour theme");
+    control.innerHTML = THEMES.map((t) => `
+      <button type="button" data-theme="${t.id}" title="${t.label}"
+              aria-pressed="${t.id === currentTheme()}">${t.glyph}<span>${t.label}</span></button>`
+    ).join("");
+    control.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-theme]");
+      if (btn) applyTheme(btn.dataset.theme);
     });
+    host.replaceWith(control);
+  });
+
+  // Following the system means following it as it changes, not only as it
+  // was when the page loaded.
+  const media = window.matchMedia?.("(prefers-color-scheme: light)");
+  media?.addEventListener?.("change", () => {
+    if (currentTheme() === "auto") applyTheme("auto");
   });
 }
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="auto">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +8,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+/* Resolve the theme before first paint. Without this a page whose
+   stylesheet defaults to dark flashes dark at someone who chose light —
+   the one frame of wrongness people notice most. */
+try {
+  var t = localStorage.getItem("theme") || "auto";
+  document.documentElement.dataset.theme = t;
+} catch (e) { document.documentElement.dataset.theme = "auto"; }
+</script>
 <link rel="stylesheet" href="./assets/app.css">
 </head>
 <body>
@@ -23,7 +32,7 @@
         <span id="status-text">loading…</span></span>
       <span class="spacer"></span>
       <span class="small muted" id="mode-pill"></span>
-      <button class="btn sm" data-toggle-theme title="Switch theme">◐</button>
+      <span data-toggle-theme></span>
       <button class="btn sm" id="refresh">↻ Refresh</button>
     </div>
 
