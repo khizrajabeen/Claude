@@ -419,8 +419,10 @@ class DailySession:
             self._check_breakers(now, schedule)
             return closed
 
-        symbols = sorted({p.symbol for p in self.broker.positions})
-        prices = self._latest_prices(symbols, now)
+        # Fetch once for the whole pass: the breakers need every symbol's
+        # price and the marking loop needs the held ones, so asking for the
+        # union here saves a second round of lookups.
+        prices = self._latest_prices(self.symbols, now)
 
         last = getattr(self, "_last_mark_time", None) or now
         if now > last:
@@ -483,7 +485,7 @@ class DailySession:
                 if stop_reason == "breakeven":
                     position.moved_to_breakeven = True
 
-        self._check_breakers(now, schedule)
+        self._check_breakers(now, schedule, prices)
         self._persist()
         return closed
 
@@ -643,9 +645,15 @@ class DailySession:
         self._persist()
         return trade
 
-    def _check_breakers(self, now: datetime, schedule: DaySchedule) -> None:
-        """Daily loss and total drawdown, measured on equity."""
-        prices = self._latest_prices(self.symbols, now)
+    def _check_breakers(self, now: datetime, schedule: DaySchedule,
+                        prices: dict[str, float] | None = None) -> None:
+        """Daily loss and total drawdown, measured on equity.
+
+        Takes the prices the caller already fetched where it has them: a
+        management pass otherwise asks for every symbol twice, which in a
+        replay is thousands of redundant lookups per simulated day.
+        """
+        prices = prices if prices is not None else self._latest_prices(self.symbols, now)
         equity = self.broker.equity(prices)
         self.state.peak_equity = max(self.state.peak_equity, equity)
 
