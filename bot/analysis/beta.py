@@ -93,7 +93,11 @@ class BetaBook:
                 series = _returns(frames.get(symbol), self.window)
                 if series is None:
                     continue
-                pair = pd.concat([series, base], axis=1).dropna()
+                # sort=True explicitly: the two series can carry
+                # different index orders when an instrument's feed
+                # returned bars out of order, and leaving pandas to guess
+                # would align them differently between runs.
+                pair = pd.concat([series, base], axis=1, sort=True).dropna()
                 if len(pair) < self.min_observations:
                     continue
                 y = pair.iloc[:, 0].to_numpy(dtype=float)

@@ -48,7 +48,8 @@ Examples:
     parser.add_argument(
         "mode",
         choices=["run", "day", "briefing", "plan", "replay", "report", "pnl",
-                 "news", "live", "train", "compare", "bench", "backtest"],
+                 "screen", "news", "live", "train", "compare", "bench",
+                 "backtest"],
         help="What to do",
     )
     parser.add_argument("--config", default="config.yaml", help="Config file")
@@ -176,6 +177,34 @@ def mode_replay(config, logger, args):
     if args.json:
         print(json.dumps(results, indent=2, default=str))
     return results
+
+
+def mode_screen(config, logger, args):
+    """Rank the exchange's markets before deciding what to trade."""
+    from bot.analysis.news_sentiment import NewsSentimentAnalyzer
+    from bot.exchange import ExchangeClient
+    from bot.markets.screener import CoinScreener, render
+
+    news = None
+    if config.get("news", {}).get("enabled", True):
+        news = NewsSentimentAnalyzer(config)
+        news.refresh(force=True)
+
+    screener = CoinScreener(config, exchange=ExchangeClient(config), news=news)
+    candidates = screener.scan()
+    if args.json:
+        print(json.dumps([c.to_dict() for c in candidates], indent=2))
+        return candidates
+
+    render(candidates, logger, limit=int(args.days or 25))
+    shortlist = [c for c in candidates if c.tradable][: screener.top_n]
+    logger.info("  Shortlist: %s", ", ".join(c.symbol for c in shortlist))
+    new = [c for c in candidates if c.is_new][:8]
+    if new:
+        logger.info("  Newly listed (%.0fd): %s",
+                    screener.new_listing_days,
+                    ", ".join(f"{c.symbol} {c.age_days:.0f}d" for c in new))
+    return candidates
 
 
 def mode_pnl(config, logger, args):
@@ -443,6 +472,7 @@ def main(argv=None):
         "replay": mode_replay,
         "report": mode_report,
         "pnl": mode_pnl,
+        "screen": mode_screen,
         "news": mode_news,
         "live": mode_live,
         "train": mode_train,

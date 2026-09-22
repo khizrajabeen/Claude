@@ -223,6 +223,27 @@ class ExchangeClient:
     def fetch_ticker(self, symbol: str) -> dict:
         return self._retry(self.exchange.fetch_ticker, symbol)
 
+    def fetch_tickers(self, symbols: list[str] | None = None) -> dict:
+        """Every ticker in one call.
+
+        The screen ranks four hundred markets by turnover; asking for them
+        one at a time is four hundred round trips and a rate limit. Venues
+        that cannot serve the batch fall back to individual calls rather
+        than returning nothing.
+        """
+        try:
+            return self._retry(self.exchange.fetch_tickers, symbols) or {}
+        except Exception as e:
+            logger.debug("Batch tickers unavailable (%s) — falling back", e)
+
+        out = {}
+        for symbol in (symbols or [])[:200]:
+            try:
+                out[symbol] = self.fetch_ticker(symbol)
+            except Exception:
+                continue
+        return out
+
     def fetch_order_book(self, symbol: str, limit: int = 20) -> dict:
         return self._retry(self.exchange.fetch_order_book, symbol, limit)
 

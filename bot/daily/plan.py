@@ -261,8 +261,18 @@ class DayPlanner:
             )
             plan.considered.append(candidate)
 
-            if abs(edge) < self.min_edge:
-                plan.rejected.append([symbol, f"edge {edge:+.3f} below {self.min_edge}"])
+            # The bar to clear differs by asset class. A perp is held on
+            # leverage with a stop twice as wide as spot's, so each one
+            # occupies the book for longer and ties up more of its risk
+            # budget; it should be a position the day is confident about,
+            # not one of a stream. Over 90 days the perp leg took 73
+            # trades and lost on 47 of them.
+            min_edge = self._min_edge(read)
+            if abs(edge) < min_edge:
+                plan.rejected.append(
+                    [symbol, f"edge {edge:+.3f} below {min_edge:.2f} "
+                             f"for {read.asset_class or 'this class'}"]
+                )
                 continue
 
             # A tilt must not be able to flip the strategies' direction.
@@ -423,6 +433,13 @@ class DayPlanner:
         return plan
 
     # ── Helpers ───────────────────────────────────────────────
+
+    def _min_edge(self, read: SymbolRead) -> float:
+        """The conviction an instrument's class demands before trading."""
+        from bot.markets.instrument import trading_profile
+
+        profile = trading_profile(read.asset_class, self.config)
+        return float(profile.get("min_edge") or self.min_edge)
 
     @staticmethod
     def _can_short(read: SymbolRead) -> bool:

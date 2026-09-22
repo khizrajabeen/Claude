@@ -88,6 +88,36 @@ COIN_KEYWORDS: dict[str, list[str]] = {
     "OP": ["optimism"],
     "TON": ["toncoin"],
     "NEAR": ["near protocol"],
+    # Added after a screen of OKX's 401 active USDT markets put several
+    # names in the top twenty that had no keyword here at all — their
+    # sentiment silently read zero, which is indistinguishable from
+    # "nothing was written about them".
+    "SUI": ["sui network", "mysten"],
+    "PEPE": ["pepe coin", "pepecoin"],
+    "ZEC": ["zcash"],
+    "HYPE": ["hyperliquid"],
+    "WLD": ["worldcoin", "world network"],
+    "TAO": ["bittensor"],
+    "ONDO": ["ondo finance"],
+    "BCH": ["bitcoin cash"],
+    "FIL": ["filecoin"],
+    "AAVE": ["aave"],
+    "INJ": ["injective"],
+    "TIA": ["celestia"],
+    "APT": ["aptos"],
+    "SEI": ["sei network"],
+    "RNDR": ["render network"],
+    "JUP": ["jupiter exchange"],
+    "ENA": ["ethena"],
+    "STX": ["stacks protocol"],
+    "IMX": ["immutable x"],
+    "GRT": ["the graph"],
+    "SAND": ["the sandbox"],
+    "MANA": ["decentraland"],
+    "CRV": ["curve finance"],
+    "MKR": ["makerdao"],
+    "LDO": ["lido finance"],
+    "OKB": ["okb"],
 }
 
 MARKET_WIDE_TERMS = ("crypto", "cryptocurrency", "digital asset", "blockchain",

@@ -5,7 +5,7 @@
 # config.local.yaml is gitignored; never commit keys.
 
 exchange:
-  name: "kraken"           # binance | kraken | coinbase | okx | kucoin | bybit
+  name: "okx"           # binance | kraken | coinbase | okx | kucoin | bybit
   market_type: "spot"      # spot | swap  (swap enables funding accrual)
   api_key: ""
   api_secret: ""
@@ -108,6 +108,60 @@ session:
   max_entry_drift_r: 0.5           # don't chase a plan that already ran
   entry_stagger_seconds: 0
 
+# ── Choosing what to look at ─────────────────────────────────
+# A static universe goes stale in two directions: it holds names whose
+# liquidity has drained away, and it misses the ones now dominating the
+# tape. A scan of OKX's 406 active USDT spot markets put ZEC and HYPE in
+# the top twelve by turnover, and neither was in the configured list.
+#
+# Ranked by 24h turnover rather than market capitalisation: cap is a
+# supply figure and says nothing about whether a position can be got out
+# of, and it is liquidity that decides whether an edge survives the
+# spread.
+screen:
+  quote: "USDT"
+  top_n: 10
+  min_quote_volume_24h: 10000000  # below this the spread eats the edge
+  # A market listed last week has no history to measure a trend, a beta
+  # or a volatility on, and its first weeks are listing flow rather than
+  # anything a strategy models. New listings are reported either way.
+  min_age_days: 90
+  new_listing_days: 30
+  include_new_listings: false
+  news_window_hours: 24
+  exclude: []
+
+# ── How each asset class is traded ───────────────────────────
+# Distinct from how it is priced. A perpetual is the only leg that can use
+# leverage, and leverage is what makes a wide stop affordable: the dollar
+# risk is unchanged but the margin falls, so the account can carry a
+# position whose stop sits out of the noise and still have cash for the
+# rest of the book. Over a 90-day replay 65% of all exits were stop-outs,
+# many on moves that then reversed, and an equity entry was once refused
+# for want of $1,300 while the crypto book sat on the cash.
+#
+# The trade-off is deliberate: a wider stop means a smaller position for
+# the same risk and fewer trades clearing their cost gate, so the perp leg
+# becomes a few high-conviction positions rather than a stream of small
+# ones. min_edge raises the bar to match. Omit a key to keep the default.
+profiles:
+  crypto_perp:
+    atr_stop_mult: 4.0             # noise cannot reach a stop this far out
+    max_leverage: 3.0              # what makes that stop affordable
+    min_edge: 0.30                 # fewer, better trades
+  crypto_spot:
+    atr_stop_mult: 2.5
+    max_leverage: 1.0              # spot is cash; no borrow is modelled
+    min_edge: 0.15
+  equity:
+    atr_stop_mult: 2.5
+    max_leverage: 1.0
+    min_edge: 0.15
+  etf:
+    atr_stop_mult: 2.5
+    max_leverage: 1.0
+    min_edge: 0.15
+
 # ── Scaling in and out ───────────────────────────────────────
 # The trailing stop protects a winner. These are the same idea at the
 # other two ends: scaling out converts part of an open gain to cash, and
@@ -140,6 +194,10 @@ risk:
   min_risk_per_trade_pct: 0.10
   max_portfolio_heat_pct: 4.0      # total open risk if every stop hits
   max_open_positions: 8            # 4 asset classes now share the book
+  maintenance_margin_rate: 0.005   # exchange's, for the liquidation check
+  liquidation_buffer: 3.0          # the stop must be this much closer than
+                                   # liquidation, or leverage turns a normal
+                                   # loss into a total one
   max_correlated_positions: 3      # crypto majors trade as one factor
   # Counting positions is only honest when they are independent. Measured
   # over 199 daily observations, every alt this bot trades runs a beta of

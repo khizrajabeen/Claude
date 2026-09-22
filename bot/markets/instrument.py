@@ -66,6 +66,62 @@ DEFAULT_COSTS: dict[AssetClass, dict[str, float]] = {
 }
 
 # Timeframe by class: fast enough to matter, slow enough to be signal.
+# How each asset class is traded, as distinct from how it is priced.
+#
+# A perpetual is the only leg that can use leverage, and leverage is what
+# makes a wide stop affordable: a 4x ATR stop on an unlevered position
+# needs four times the notional to carry the same dollar risk, which the
+# cash simply will not stretch to. With leverage the margin falls and the
+# same risk buys a stop far enough out that ordinary noise cannot reach
+# it. The measured problem it answers is real — over 90 days the perp book
+# took 47 shorts and 26 longs and 65% of all exits were stop-outs, most of
+# them on moves that later reversed.
+#
+# The trade-off is taken deliberately: a wider stop means fewer trades
+# clear their cost gate and each one is held longer, so the perp leg
+# becomes a small number of high-conviction positions rather than a stream
+# of small ones. `min_edge` raises the bar to match.
+TRADING_PROFILE: dict[str, dict] = {
+    "crypto_perp": {
+        "atr_stop_mult": 4.0,   # noise cannot reach a stop this far out
+        "max_leverage": 3.0,    # what makes that stop affordable
+        "min_edge": 0.30,       # fewer, better trades
+    },
+    "crypto_spot": {
+        "atr_stop_mult": 2.5,
+        "max_leverage": 1.0,    # spot is cash; there is no borrow here
+        "min_edge": 0.15,
+    },
+    "equity": {
+        "atr_stop_mult": 2.5,
+        "max_leverage": 1.0,
+        "min_edge": 0.15,
+    },
+    "etf": {
+        "atr_stop_mult": 2.5,
+        "max_leverage": 1.0,
+        "min_edge": 0.15,
+    },
+    "futures": {
+        "atr_stop_mult": 3.0,
+        "max_leverage": 3.0,
+        "min_edge": 0.25,
+    },
+}
+
+
+def trading_profile(asset_class, config: dict | None = None) -> dict:
+    """Stop width, leverage ceiling and edge bar for an asset class.
+
+    A config may override any of them under `profiles.<asset_class>`.
+    """
+    name = getattr(asset_class, "value", str(asset_class or ""))
+    profile = dict(TRADING_PROFILE.get(name, {}))
+    override = ((config or {}).get("profiles") or {}).get(name) or {}
+    profile.update({k: v for k, v in override.items() if v is not None})
+    return profile
+
+
 DEFAULT_TIMEFRAMES: dict[AssetClass, tuple[str, str]] = {
     AssetClass.CRYPTO_SPOT: ("1h", "4h"),
     AssetClass.CRYPTO_PERP: ("1h", "4h"),

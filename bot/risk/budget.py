@@ -27,6 +27,8 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 
+from bot.markets.instrument import trading_profile
+
 logger = logging.getLogger("trading_bot")
 
 # Symbols that move as one factor with the market. Anything not listed is
@@ -220,9 +222,18 @@ class RiskBudget:
         min_notional: float = 0.0,
         asset_class: str = "",
     ) -> SizedOrder:
-        """Size a position so a stop-out costs exactly `risk_pct` of equity."""
+        """Size a position so a stop-out costs exactly `risk_pct` of equity.
+
+        The stop width comes from the asset class's trading profile rather
+        than one global multiple. A perpetual takes a stop twice as wide
+        as spot, because leverage makes the margin for it affordable and
+        the measured problem is stop-outs on moves that later reversed —
+        65% of all exits over a 90-day replay were stops.
+        """
         caps: list[str] = []
-        k = float(self.stops.get("atr_stop_mult", 2.0))
+        profile = trading_profile(asset_class, self.config)
+        k = float(profile.get("atr_stop_mult")
+                  or self.stops.get("atr_stop_mult", 2.0))
         stop_distance = k * atr
 
         # A degenerate ATR (flat or missing data) would size the position at
@@ -281,9 +292,35 @@ class RiskBudget:
             notional = 0.0
             caps.append("below_min_notional")
 
+        # Leverage does not change what the trade risks — the stop is
+        # where it is, and a stop-out costs the same dollars either way.
+        # What it changes is how much cash the position ties up: at 3x the
+        # margin is a third of the notional, so the account can carry the
+        # position and still have cash for the rest of the book. That was
+        # a real constraint, not a theoretical one — an equity entry was
+        # refused for want of $1,300 while the crypto book sat on the cash.
+        #
+        # Safety check: the stop must sit well inside the liquidation
+        # price, or leverage converts a normal loss into a total one. At
+        # 3x, liquidation is roughly 33% away and a 4xATR stop on a 1% ATR
+        # instrument is 4% away, so there is an order of magnitude of
+        # room. Where that is not true, the leverage is reduced until it
+        # is.
+        max_leverage = float(profile.get("max_leverage", 1.0) or 1.0)
         leverage = 1.0
-        if notional > equity:
-            leverage = notional / equity
+        if max_leverage > 1.0 and entry_price > 0 and stop_distance > 0:
+            leverage = max_leverage
+            stop_fraction = stop_distance / entry_price
+            maintenance = float(self.risk.get("maintenance_margin_rate", 0.005))
+            buffer = float(self.risk.get("liquidation_buffer", 3.0))
+            # Liquidation sits at about (1/leverage - maintenance) away.
+            # Require the stop to be `buffer` times closer than that.
+            while leverage > 1.0 and \
+                    (1.0 / leverage - maintenance) < stop_fraction * buffer:
+                leverage -= 0.5
+            leverage = max(1.0, round(leverage, 2))
+            if leverage < max_leverage:
+                caps.append("liquidation_buffer")
 
         return SizedOrder(
             symbol=symbol,
