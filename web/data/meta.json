@@ -1,8 +1,8 @@
 {
-  "as_of": "2026-09-22T11:16:32+00:00",
+  "as_of": "2026-09-24T09:24:09+00:00",
   "current_day": null,
   "days_recorded": 90,
-  "last_day": "2026-08-21",
+  "last_day": "2026-08-23",
   "mode": "paper",
   "risk": {
     "max_daily_loss_pct": 2.0,
