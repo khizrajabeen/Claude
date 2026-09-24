@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from datetime import datetime, timedelta, timezone
 
 import pandas as pd
@@ -30,6 +31,7 @@ from bot.markets.instrument import AssetClass, Instrument
 
 logger = logging.getLogger("trading_bot")
 
+CRYPTO_URL = "https://data.alpaca.markets/v1beta3/crypto/us"
 DATA_URL = "https://data.alpaca.markets/v2"
 PAPER_URL = "https://paper-api.alpaca.markets/v2"
 LIVE_URL = "https://api.alpaca.markets/v2"
@@ -63,6 +65,7 @@ class AlpacaProvider:
         self.timeout = float(alpaca.get("timeout_seconds", 20))
         self._session = session
         self._warned = False
+        self._crypto_cache: dict[tuple, pd.DataFrame] = {}
 
     # ── Plumbing ──────────────────────────────────────────────
 
@@ -99,8 +102,18 @@ class AlpacaProvider:
                 "ALPACA_API_SECRET_KEY, or use the settings page's "
                 "Export .env button"
             )
-        response = self.session().get(url, params=params or {},
-                                      timeout=self.timeout)
+        response = None
+        for attempt in range(5):
+            response = self.session().get(url, params=params or {},
+                                          timeout=self.timeout)
+            if response.status_code != 429:
+                break
+            # Alpaca says when to come back; believe it rather than
+            # guessing, and fall back to exponential backoff if absent.
+            wait = float(response.headers.get("Retry-After") or 0) or min(2 ** attempt, 20)
+            logger.info("Alpaca rate limit — waiting %.0fs (attempt %d/5)",
+                        wait, attempt + 1)
+            time.sleep(wait)
         if response.status_code == 403:
             raise ProviderError(
                 "Alpaca refused the request (403) — check the keys match the "
@@ -111,7 +124,23 @@ class AlpacaProvider:
 
     # ── DataProvider interface ────────────────────────────────
 
+    @staticmethod
+    def crypto_symbol(symbol: str) -> str:
+        """The bot's spelling as Alpaca's crypto feed spells it."""
+        base = symbol.split(":")[0]
+        if "/" not in base:
+            return base
+        left, right = base.split("/", 1)
+        return f"{left}/{'USD' if right in ('USDT', 'USDC') else right}"
+
     def handles(self, instrument: Instrument) -> bool:
+        # Alpaca serves both legs of this account: US equities and ETFs,
+        # and 33 USD crypto pairs. Backtesting crypto on OKX prices and
+        # then trading it on Alpaca was comparing two different books —
+        # the spread that decides whether a trade pays for itself is a
+        # property of the venue, not of the coin.
+        if instrument.asset_class == AssetClass.CRYPTO_SPOT:
+            return self.configured and instrument.venue == "alpaca"
         if instrument.asset_class not in (AssetClass.EQUITY, AssetClass.ETF):
             return False
         if not self.configured:
@@ -124,6 +153,8 @@ class AlpacaProvider:
 
     def bars(self, instrument: Instrument, timeframe: str,
              limit: int) -> pd.DataFrame:
+        if instrument.asset_class == AssetClass.CRYPTO_SPOT:
+            return self._crypto_bars(instrument, timeframe, limit)
         size = TIMEFRAMES.get(timeframe, "1Day")
         span_days = max(2.0, limit * _SPAN.get(size, 1.5) * 1.4) + 5
         start = datetime.now(timezone.utc) - timedelta(days=span_days)
@@ -157,7 +188,110 @@ class AlpacaProvider:
         keep = ["open", "high", "low", "close", "volume"]
         return frame[keep].tail(limit)
 
+    def prefetch_crypto(self, instruments, timeframe: str, limit: int) -> int:
+        """Fill the cache for many coins in one request.
+
+        The crypto endpoint accepts `symbols` plural. Thirty coins asked
+        for one at a time is thirty requests against a 200-per-minute
+        budget, repeated per timeframe and per replay day; the same data
+        in one request is one. Returns how many symbols came back.
+        """
+        symbols = [self.crypto_symbol(i.feed_symbol) for i in instruments]
+        if not symbols:
+            return 0
+        size = TIMEFRAMES.get(timeframe, "1Day")
+        span = self._crypto_span(size, limit)
+        start = datetime.now(timezone.utc) - timedelta(days=span)
+
+        collected: dict[str, list] = {s: [] for s in symbols}
+        page = None
+        while True:
+            payload = self._get(f"{CRYPTO_URL}/bars", {
+                "symbols": ",".join(symbols), "timeframe": size,
+                "start": start.isoformat(), "limit": 10_000,
+                **({"page_token": page} if page else {}),
+            })
+            for sym, rows in (payload.get("bars") or {}).items():
+                collected.setdefault(sym, []).extend(rows)
+            page = payload.get("next_page_token")
+            if not page or all(len(v) >= limit for v in collected.values()):
+                break
+
+        filled = 0
+        for sym, rows in collected.items():
+            if not rows:
+                continue
+            self._crypto_cache[(sym, size)] = self._frame(rows).tail(limit)
+            filled += 1
+        return filled
+
+    @staticmethod
+    def _crypto_span(size: str, limit: int) -> float:
+        per_day = {"1Min": 1440, "5Min": 288, "15Min": 96, "30Min": 48,
+                   "1Hour": 24, "4Hour": 6, "1Day": 1, "1Week": 1 / 7}
+        return max(2.0, limit / per_day.get(size, 1)) * 1.3 + 2
+
+    @staticmethod
+    def _frame(rows: list) -> pd.DataFrame:
+        frame = pd.DataFrame(rows)
+        frame["t"] = pd.to_datetime(frame["t"], utc=True)
+        frame = (frame.rename(columns={"o": "open", "h": "high", "l": "low",
+                                       "c": "close", "v": "volume"})
+                 .set_index("t").sort_index())
+        return frame[["open", "high", "low", "close", "volume"]]
+
+    def _crypto_bars(self, instrument: Instrument, timeframe: str,
+                     limit: int) -> pd.DataFrame:
+        """Crypto bars. Same shape out, different endpoint in.
+
+        Crypto trades every hour of every day, so a bar count spans far
+        fewer calendar days than the same count of equity bars — the
+        equity spans in `_SPAN` would ask for years of history and get
+        throttled for it.
+        """
+        size = TIMEFRAMES.get(timeframe, "1Day")
+        symbol = self.crypto_symbol(instrument.feed_symbol)
+        cached = self._crypto_cache.get((symbol, size))
+        if cached is not None and len(cached) >= limit:
+            return cached.tail(limit)
+
+        start = datetime.now(timezone.utc) - timedelta(
+            days=self._crypto_span(size, limit))
+        rows: list[dict] = []
+        page = None
+        while len(rows) < limit:
+            payload = self._get(f"{CRYPTO_URL}/bars", {
+                "symbols": symbol, "timeframe": size,
+                "start": start.isoformat(), "limit": min(10_000, limit * 2),
+                **({"page_token": page} if page else {}),
+            })
+            batch = (payload.get("bars") or {}).get(symbol) or []
+            rows.extend(batch)
+            page = payload.get("next_page_token")
+            if not page or not batch:
+                break
+
+        if not rows:
+            return pd.DataFrame()
+        frame = self._frame(rows)
+        self._crypto_cache[(symbol, size)] = frame
+        return frame.tail(limit)
+
     def price(self, instrument: Instrument) -> float | None:
+        if instrument.asset_class == AssetClass.CRYPTO_SPOT:
+            symbol = self.crypto_symbol(instrument.feed_symbol)
+            try:
+                q = self._get(f"{CRYPTO_URL}/latest/quotes", {"symbols": symbol})
+                x = (q.get("quotes") or {}).get(symbol) or {}
+                ask, bid = float(x.get("ap") or 0), float(x.get("bp") or 0)
+                return (ask + bid) / 2 if ask and bid else None
+            except Exception as e:
+                logger.debug("Alpaca crypto price failed for %s: %s",
+                             instrument.symbol, e)
+                return None
+        return self._equity_price(instrument)
+
+    def _equity_price(self, instrument: Instrument) -> float | None:
         try:
             payload = self._get(
                 f"{DATA_URL}/stocks/{instrument.feed_symbol}/trades/latest",

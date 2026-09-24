@@ -23,30 +23,56 @@ data:
   # case. Perps are the leveraged, always-on, shortable leg; spot is the
   # unlevered one; equities and ETFs only trade when their session is open.
   instruments:
-    # ── Crypto perpetual futures (24/7, fundable, shortable) ──
-    - {symbol: "BTC/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
-    - {symbol: "ETH/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
-    - {symbol: "SOL/USDT:USDT", asset_class: "crypto_perp", venue: "okx"}
-    # ── Crypto spot (24/7, unlevered, long only) ──
-    # Widened from five names to fifteen. Spot longs were the best leg of
-    # the 90-day replay (+0.248R over 32 trades) and a cross-sectional
-    # ranking needs enough peers to rank. Every pair here clears $10M of
-    # 24h quote volume on OKX; below that the spread eats the edge.
-    - {symbol: "BTC/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "ETH/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "SOL/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "XRP/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "LINK/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "DOGE/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "SUI/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "UNI/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "NEAR/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "ARB/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "LTC/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "ADA/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "AVAX/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "FIL/USDT", asset_class: "crypto_spot", venue: "okx"}
-    - {symbol: "BCH/USDT", asset_class: "crypto_spot", venue: "okx"}
+    # ── Crypto perpetual futures — GONE ──
+    # Alpaca lists spot crypto only; there is no perpetual on the venue,
+    # so the three perps this universe used to carry could not be traded
+    # even in paper. Leverage, funding and the 4x-ATR perp profile are
+    # still in the code and still tested, for a venue that offers them.
+    #
+    # ── Crypto spot on Alpaca, priced by measurement ──
+    # Was fifteen USDT pairs hand-copied from OKX's volume ranking, each
+    # assumed to cost the same 5.5 bps. Both halves of that were wrong:
+    # the account trades USD on Alpaca, not USDT on OKX, and the real
+    # round trip ranges from 52 bps on BTC to 115 bps on BCH — a factor
+    # of two decided purely by which coin is picked.
+    #
+    # Each line below carries its own measured cost, so the per-trade
+    # edge gate compares a signal against the cost of THAT instrument.
+    # That is what makes widening the universe safe: a coin too expensive
+    # to trade is refused per trade, on the day, rather than by a
+    # guess made here. Regenerate with:
+    #     python main.py universe
+    - {symbol: "ETH/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 1.51}   # 53 bps round trip
+    - {symbol: "BTC/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 1.84}   # 54 bps round trip
+    - {symbol: "SOL/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 5.25}   # 61 bps round trip
+    - {symbol: "YFI/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 7.92}   # 66 bps round trip
+    - {symbol: "LINK/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 8.61}   # 67 bps round trip
+    - {symbol: "AAVE/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 8.82}   # 68 bps round trip
+    - {symbol: "UNI/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 9.04}   # 68 bps round trip
+    - {symbol: "CRV/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 9.52}   # 69 bps round trip
+    - {symbol: "SUSHI/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 10.47}   # 71 bps round trip
+    - {symbol: "DOT/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 11.47}   # 73 bps round trip
+    - {symbol: "SKY/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 11.5}   # 73 bps round trip
+    - {symbol: "FIL/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 14.25}   # 78 bps round trip
+    - {symbol: "TRUMP/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 15.05}   # 80 bps round trip
+    - {symbol: "DOGE/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 16.56}   # 83 bps round trip
+    - {symbol: "RENDER/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 16.87}   # 84 bps round trip
+    - {symbol: "WIF/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 16.91}   # 84 bps round trip
+    - {symbol: "ADA/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 17.5}   # 85 bps round trip
+    - {symbol: "ARB/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 17.88}   # 86 bps round trip
+    - {symbol: "SHIB/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 17.89}   # 86 bps round trip
+    - {symbol: "XRP/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 20.89}   # 92 bps round trip
+    - {symbol: "POL/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 21.2}   # 92 bps round trip
+    - {symbol: "HYPE/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 21.91}   # 94 bps round trip
+    - {symbol: "ONDO/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 23.38}   # 97 bps round trip
+    - {symbol: "PEPE/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 23.53}   # 97 bps round trip
+    - {symbol: "LDO/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 25.63}   # 101 bps round trip
+    - {symbol: "XTZ/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 28.18}   # 106 bps round trip
+    - {symbol: "LTC/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 28.67}   # 107 bps round trip
+    - {symbol: "BCH/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 28.95}   # 108 bps round trip
+    - {symbol: "AVAX/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 30.11}   # 110 bps round trip
+    - {symbol: "BONK/USD", asset_class: "crypto_spot", venue: "alpaca", fee_bps: 25.0, slippage_bps: 43.67}   # 137 bps round trip
+
     # ── US equities and ETFs — off ──
     # Removed from the traded universe, not from the code. Over 90 days
     # the equity leg lost $21 across 9 trades and the ETF leg $72 across
@@ -470,7 +496,20 @@ signals:
 # ── Tradability filters ──────────────────────────────────────
 filters:
   min_quote_volume_24h: 5000000    # skip illiquid books
-  max_spread_bps: 25
+  # Raised from 25. On Alpaca the measured spreads run 2 bps on BTC to
+  # 65 on BCH, and 25 would have cut the universe to three coins. 60 is
+  # set against the edge rather than against taste: expectancy is about
+  # +0.275R, one R is roughly 300 bps of notional on a 2.5-ATR crypto
+  # stop, so a winning trade grosses around 80 bps. Add the 50 bps of
+  # commission and a 60 bps spread cannot pay for itself — which is
+  # exactly where this line sits. The per-trade edge gate then refuses
+  # individual trades that do not clear their own instrument's cost.
+  max_spread_bps: 60
+  # Venues whose reported volume actually measures available liquidity.
+  # Alpaca is absent on purpose: it routes crypto to external market
+  # makers and reports only its own tape, so the number is a small
+  # fraction of the real book and means nothing as a filter.
+  volume_is_liquidity: ["binance", "okx", "kraken", "kucoin", "coinbase"]
   min_atr_pct: 0.15                # too quiet to pay the fees
   max_atr_pct: 12.0                # too wild to size sanely
   min_bars: 120
@@ -495,13 +534,13 @@ news:
 # ── Paper trading / execution costs ──────────────────────────
 paper:
   initial_balance: 10000.0
-  fee_maker_bps: 2.0
-  fee_taker_bps: 5.5
-  slippage_bps: 3.0
+  fee_maker_bps: 15.0             # Alpaca crypto, base tier
+  fee_taker_bps: 25.0             # Alpaca crypto, base tier — measured
+  slippage_bps: 8.0               # half-spread; per-instrument values override
   impact_coefficient: 0.5          # square-root market impact (of daily vol)
   reference_daily_vol_bps: 300.0   # fallback vol for the impact model
   max_slippage_bps: 100.0          # sanity cap on modelled slippage
-  funding_enabled: true
+  funding_enabled: false          # no perpetuals on Alpaca, so no funding leg
   default_funding_bps: 1.0         # per 8h settlement when unknown
 
 # ── Records ──────────────────────────────────────────────────

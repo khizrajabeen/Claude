@@ -166,6 +166,11 @@ class BriefingBuilder:
 
         filters = config.get("filters", {})
         self.min_quote_volume = float(filters.get("min_quote_volume_24h", 5_000_000))
+        # Venues where reported volume actually measures available
+        # liquidity. See _apply_filters for why that is not universal.
+        self.volume_is_liquidity = set(
+            filters.get("volume_is_liquidity",
+                        ["binance", "okx", "kraken", "kucoin", "coinbase"]))
         self.max_spread_bps = float(filters.get("max_spread_bps", 25))
         self.min_atr_pct = float(filters.get("min_atr_pct", 0.15))
         self.max_atr_pct = float(filters.get("max_atr_pct", 12.0))
@@ -566,7 +571,21 @@ class BriefingBuilder:
     def _apply_filters(self, read: SymbolRead) -> None:
         """Liquidity and volatility gates — a signal in an untradeable market
         is not an opportunity."""
-        if read.quote_volume_24h and read.quote_volume_24h < self.min_quote_volume:
+        venue = getattr(read, "venue", "") or ""
+        # Reported volume measures liquidity only on a venue that matches
+        # orders in its own book. Alpaca routes crypto to external market
+        # makers and reports only what crossed its tape, so BTC shows
+        # about $330k a day there against hundreds of millions globally —
+        # while quoting a 2 bps spread, which is as tight as the asset
+        # trades anywhere. Applying the $5M floor to that rejected all
+        # thirty coins, BTC included, and the backtest returned no trades
+        # at all rather than saying why.
+        #
+        # Where volume does not measure liquidity, spread does, and the
+        # spread gate below is left to do the work alone.
+        volume_meaningful = venue in self.volume_is_liquidity
+        if (volume_meaningful and read.quote_volume_24h
+                and read.quote_volume_24h < self.min_quote_volume):
             read.tradable = False
             read.skip_reason = f"thin: ${read.quote_volume_24h:,.0f} < ${self.min_quote_volume:,.0f}"
         elif read.spread_bps and read.spread_bps > self.max_spread_bps:

@@ -63,6 +63,15 @@ class CryptoProvider:
     # ── DataProvider ──────────────────────────────────────────
 
     def handles(self, instrument: Instrument) -> bool:
+        # The instrument names its venue, and that is not decoration: a
+        # pair listed on Alpaca as BTC/USD does not exist on OKX, and
+        # claiming it here returned zero bars for every coin in the
+        # universe rather than falling through to the provider that
+        # could serve it. Whoever is asked for a price must be the venue
+        # the order will actually reach, because the spread is what
+        # decides whether a trade pays for itself.
+        if instrument.venue == "alpaca":
+            return False
         return instrument.asset_class.is_crypto
 
     def bars(self, instrument: Instrument, timeframe: str, limit: int) -> pd.DataFrame:

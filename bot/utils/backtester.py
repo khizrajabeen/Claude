@@ -353,6 +353,40 @@ class DailyReplay:
 
     # ── Data ──────────────────────────────────────────────────
 
+    def _prefetch_crypto(self, router, days: int) -> None:
+        """Pull every Alpaca coin's history in one request per timeframe.
+
+        The crypto bars endpoint takes `symbols` plural. Fetched one at a
+        time, a thirty-coin universe across three timeframes is ninety
+        requests against a budget of two hundred a minute, and the replay
+        burned through it in seconds — every throttled symbol came back
+        empty and was logged as "0 bars", which reads as missing history
+        rather than as throttling. Two thirds of the universe silently
+        vanished from the backtest that way.
+        """
+        from bot.data.alpaca import AlpacaProvider
+
+        provider = next((p for p in router.providers
+                         if isinstance(p, AlpacaProvider)), None)
+        if provider is None or not provider.configured:
+            return
+        coins = [i for i in self.universe
+                 if i.venue == "alpaca" and i.asset_class.is_crypto]
+        if not coins:
+            return
+        for timeframe in sorted({tf for i in coins for tf in ladder_for(i)}):
+            needed = max(
+                int(self._span_days(coins[0], days) * _bars_per_calendar_day(
+                    timeframe, True)) + 20,
+                _slow_frame_floor(self.config, timeframe),
+            )
+            try:
+                got = provider.prefetch_crypto(coins, timeframe, needed)
+                logger.info("Prefetched %d coins of %s bars in one request",
+                            got, timeframe)
+            except Exception as e:
+                logger.warning("Crypto prefetch failed for %s: %s", timeframe, e)
+
     def _download(self, days: int) -> dict:
         """Fetch enough history for `days` sessions plus indicator warm-up.
 
@@ -365,6 +399,7 @@ class DailyReplay:
         and the replay window is the *intersection*, so the fortnight wins.
         """
         router = DataRouter(self.config)
+        self._prefetch_crypto(router, days)
 
         frames: dict[str, dict[str, pd.DataFrame]] = {}
         for instrument in self.universe:
