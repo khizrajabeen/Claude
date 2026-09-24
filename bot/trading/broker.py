@@ -397,9 +397,24 @@ class PaperBroker:
         fee_bps = self.maker_bps if maker else self.taker_bps
         exit_fee = exit_notional * fee_bps / 10_000
         total_fees = position.entry_fee + exit_fee
-        net = gross - exit_fee - position.funding_paid
+        # Two different numbers, and conflating them is an accounting bug
+        # that made every trade look better than it was.
+        #
+        # `cash_net` is what moves the balance at this moment. It excludes
+        # the entry fee because that already left cash when the position
+        # opened; subtracting it again here would charge it twice.
+        #
+        # `net` is the round trip as a TRADE — what the whole thing made,
+        # entry fee included. The old code used the cash figure for both,
+        # so `pnl` omitted the entry fee while `fees` reported it. The
+        # equity curve was right and every per-trade P&L and R was too
+        # generous, by about 0.13R at these sizes, on all 43 trades of
+        # the last replay. A reviewer found the gap by hand on one ETH
+        # trade before the ledger could show it.
+        cash_net = gross - exit_fee - position.funding_paid
 
-        self.cash += position.margin + net
+        self.cash += position.margin + cash_net
+        net = cash_net - position.entry_fee
         self.fees_paid += exit_fee
         self.slippage_cost += slip
 
@@ -460,6 +475,8 @@ class PaperBroker:
             original_quantity=round(sized_quantity, 10),
             initial_stop=round(position.initial_stop, 10),
             final_stop=round(position.stop_price, 10),
+            realized_before_exit=round(position.realized_pnl, 10),
+            exit_quantity=round(position.quantity, 10),
         )
 
         self.positions.remove(position)

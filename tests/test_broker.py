@@ -191,9 +191,16 @@ def test_closing_returns_margin_to_cash(config):
     position = broker.open(make_order(config), now=T0)
     trade = broker.close(position, position.entry_price, "signal", now=T0)
 
-    # Back to start, less the round-trip costs.
+    # Back to start, less the round trip. `trade.pnl` is the whole round
+    # trip including the entry fee, so nothing needs subtracting twice —
+    # this assertion used to add the fee back because `pnl` wrongly
+    # omitted it, which is exactly the accounting bug it now guards.
     assert broker.cash < start
-    assert broker.cash == pytest.approx(start - position.entry_fee + trade.pnl)
+    assert broker.cash == pytest.approx(start + trade.pnl)
+    # Worse than the fees alone, because the exit also crosses the
+    # spread. The exact identity is asserted in test_reconcile.py, where
+    # slippage is switched off so the arithmetic is unambiguous.
+    assert trade.pnl < -trade.fees
     assert broker.reserved_margin() == 0
 
 

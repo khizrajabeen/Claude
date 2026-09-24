@@ -153,6 +153,12 @@ class Trade:
     original_quantity: float = 0.0  # size before any add: the R denominator
     initial_stop: float = 0.0       # the stop R is measured against
     final_stop: float = 0.0         # where the stop actually sat at exit
+    # Profit banked BEFORE this exit, by scaling out. Without it the row
+    # cannot be reconciled: `pnl` includes these legs while
+    # `(exit - entry) * quantity` does not, so all 43 trades in the last
+    # replay failed an independent recomputation by up to $48.
+    realized_before_exit: float = 0.0
+    exit_quantity: float = 0.0      # size on the final leg only
 
     @property
     def holding_minutes(self) -> float:
