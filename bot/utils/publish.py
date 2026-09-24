@@ -286,6 +286,14 @@ class Publisher:
                 "enabled", True) else "live",
             "strategies": list(self.config.get("strategies", {}).get("enabled", [])),
             "universe": by_class,
+            # What a round trip costs on each instrument, in basis
+            # points. This is the number that decides whether a signal
+            # is worth acting on, so the dashboard shows it beside the
+            # price rather than leaving the reader to assume every coin
+            # costs the same. They do not: 52 bps on BTC, 115 on BCH.
+            "instrument_costs": {
+                i.symbol: round(i.round_trip_bps, 1) for i in universe
+            },
             "risk": {
                 "risk_per_trade_pct": risk.get("risk_per_trade_pct"),
                 "max_portfolio_heat_pct": risk.get("max_portfolio_heat_pct"),

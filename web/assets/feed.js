@@ -17,31 +17,35 @@
  * readers, so the failover is the design rather than a fallback.
  */
 
+/* Only two venues qualify, and which two was decided by measurement
+ * rather than by reputation.
+ *
+ * A browser on a public page can only use an endpoint that is keyless,
+ * bulk (one request, not thirty), and sends an
+ * Access-Control-Allow-Origin header. That last one eliminates most of
+ * the obvious candidates, silently: the request goes out and the
+ * browser refuses the response.
+ *
+ *   Binance   no CORS header, and 451 from several countries
+ *   KuCoin    no CORS header
+ *   Coinbase  has no bulk ticker endpoint at all; /products/tickers
+ *             is a 404, and per-product would be thirty requests
+ *   OKX       CORS, 406 USDT pairs in one request
+ *   Kraken    CORS, 1,479 pairs in one request
+ *
+ * Checked against the live endpoints, not against documentation.
+ */
 const PROVIDERS = [
-  {
-    name: "Binance",
-    url: "https://api.binance.com/api/v3/ticker/24hr",
-    parse: (rows) => {
-      const out = {};
-      for (const r of rows) {
-        if (!r.symbol.endsWith("USDT")) continue;
-        out[r.symbol.slice(0, -4)] = {
-          price: +r.lastPrice, change: +r.priceChangePercent, volume: +r.quoteVolume,
-        };
-      }
-      return out;
-    },
-  },
   {
     name: "OKX",
     url: "https://www.okx.com/api/v5/market/tickers?instType=SPOT",
     parse: (body) => {
       const out = {};
       for (const r of body.data || []) {
-        const [b, quote] = r.instId.split("-");
+        const [base, quote] = r.instId.split("-");
         if (quote !== "USDT") continue;
         const open = +r.open24h;
-        out[b] = {
+        out[base] = {
           price: +r.last,
           change: open ? (+r.last - open) / open * 100 : 0,
           volume: +r.volCcy24h,
@@ -51,17 +55,25 @@ const PROVIDERS = [
     },
   },
   {
-    name: "Coinbase",
-    url: "https://api.exchange.coinbase.com/products/tickers",
-    parse: (rows) => {
+    name: "Kraken",
+    url: "https://api.kraken.com/0/public/Ticker",
+    parse: (body) => {
       const out = {};
-      for (const r of rows || []) {
-        if (!r.product_id?.endsWith("-USD")) continue;
-        const open = +r.open;
-        out[r.product_id.slice(0, -4)] = {
-          price: +r.price,
-          change: open ? (+r.price - open) / open * 100 : 0,
-          volume: +r.volume * +r.price,
+      for (const [pair, r] of Object.entries(body.result || {})) {
+        if (!pair.endsWith("USD")) continue;
+        // Kraken's own spelling is historical: XXBTZUSD is BTC/USD, and
+        // the X/Z prefixes mark assets listed before 2018. Strip them,
+        // and map XBT to the name every other venue uses.
+        let base = pair.slice(0, -3).replace(/Z$/, "");
+        if (base.length > 3 && base.startsWith("X")) base = base.slice(1);
+        if (base === "XBT") base = "BTC";
+        const last = +r.c?.[0];
+        const open = +r.o;
+        if (!last) continue;
+        out[base] = {
+          price: last,
+          change: open ? (last - open) / open * 100 : 0,
+          volume: +r.v?.[1] * last,      // 24h base volume, in dollars
         };
       }
       return out;
