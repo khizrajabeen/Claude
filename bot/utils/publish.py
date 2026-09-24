@@ -225,6 +225,15 @@ class Publisher:
                 "exit_reason": data.get("exit_reason"),
                 "opened_on_day": data.get("opened_on_day"),
                 "closed_on_day": data.get("closed_on_day"),
+                # How the R was arrived at. Without these, a pyramid that
+                # grew the risk and a fill well past the stop produce the
+                # same row, and neither can be told from the other.
+                "units": data.get("units", 1),
+                "original_quantity": _round(data.get("original_quantity"), 10),
+                "initial_stop": _round(data.get("initial_stop"), 8),
+                "final_stop": _round(data.get("final_stop"), 8),
+                "mae_r": _round(data.get("mae_r"), 3),
+                "mfe_r": _round(data.get("mfe_r"), 3),
             })
         rows.reverse()
         return {"schema": SCHEMA_VERSION, "as_of": _now(), "trades": rows}

@@ -456,6 +456,10 @@ class PaperBroker:
             timeframe=position.timeframe,
             mae_r=round(mae_r, 4),
             mfe_r=round(mfe_r, 4),
+            units=position.units,
+            original_quantity=round(sized_quantity, 10),
+            initial_stop=round(position.initial_stop, 10),
+            final_stop=round(position.stop_price, 10),
         )
 
         self.positions.remove(position)

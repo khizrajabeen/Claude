@@ -34,6 +34,11 @@ TRADE_COLUMNS = [
     "fees", "funding", "slippage_cost", "risk_usd", "exit_reason",
     "opened_on_day", "closed_on_day", "strategy", "entry_reason",
     "asset_class", "venue", "timeframe", "mae_r", "mfe_r",
+    # The audit trail. A fixed column list silently drops anything the
+    # Trade gains later, which is how four new fields round-tripped as
+    # zeros and made the record look like it had answered a question it
+    # had not.
+    "units", "original_quantity", "initial_stop", "final_stop",
 ]
 
 DAY_COLUMNS = [

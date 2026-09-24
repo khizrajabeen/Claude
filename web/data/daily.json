@@ -1,23 +1,23 @@
 {
-  "as_of": "2026-09-24T11:10:10+00:00",
+  "as_of": "2026-09-24T12:48:22+00:00",
   "by_asset_class": {
     "crypto_spot": {
-      "avg_loss_r": -1.131,
-      "avg_win_r": 0.996,
+      "avg_loss_r": -1.122,
+      "avg_win_r": 0.958,
       "exit_reasons": {
-        "breakeven_stop": 3,
-        "stop_loss": 27,
-        "take_profit": 12,
+        "breakeven_stop": 2,
+        "stop_loss": 23,
+        "take_profit": 9,
         "time_stop": 7,
-        "trailing_stop": 3
+        "trailing_stop": 2
       },
-      "expectancy_r": -0.435,
-      "fees": 269.54,
+      "expectancy_r": -0.493,
+      "fees": 229.87,
       "funding": 0.0,
-      "losses": 35,
-      "pnl": -807.33,
-      "profit_factor": 0.37,
-      "se_r": 0.154,
+      "losses": 30,
+      "pnl": -763.13,
+      "profit_factor": 0.35,
+      "se_r": 0.163,
       "significant": true,
       "symbols": [
         "AAVE/USD",
@@ -28,49 +28,47 @@
         "LDO/USD",
         "LINK/USD",
         "ONDO/USD",
-        "PEPE/USD",
         "POL/USD",
         "SHIB/USD",
         "SKY/USD",
         "SOL/USD",
         "SUSHI/USD",
         "UNI/USD",
-        "WIF/USD",
         "XRP/USD",
         "XTZ/USD"
       ],
       "t_critical": 2.0,
-      "t_stat": -2.84,
-      "trades": 52,
-      "trades_for_significance": 28,
-      "win_rate": 32.7,
-      "wins": 17
+      "t_stat": -3.03,
+      "trades": 43,
+      "trades_for_significance": 21,
+      "win_rate": 30.2,
+      "wins": 13
     }
   },
   "by_symbol": {
     "AAVE/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -0.979,
+      "avg_loss_r": -0.934,
       "avg_win_r": 0.0,
       "exit_reasons": {
-        "stop_loss": 3,
+        "stop_loss": 2,
         "trailing_stop": 1
       },
-      "expectancy_r": -0.979,
-      "fees": 15.86,
+      "expectancy_r": -0.934,
+      "fees": 15.26,
       "funding": 0.0,
-      "losses": 4,
-      "pnl": -115.97,
+      "losses": 3,
+      "pnl": -107.87,
       "profit_factor": 0.0,
-      "se_r": 0.217,
-      "significant": true,
+      "se_r": 0.3,
+      "significant": false,
       "symbols": [
         "AAVE/USD"
       ],
-      "t_critical": 3.182,
-      "t_stat": -4.51,
-      "trades": 4,
-      "trades_for_significance": 32,
+      "t_critical": 4.303,
+      "t_stat": -3.11,
+      "trades": 3,
+      "trades_for_significance": 51,
       "win_rate": 0.0,
       "wins": 0
     },
@@ -130,55 +128,55 @@
     "CRV/USD": {
       "asset_class": "crypto_spot",
       "avg_loss_r": -0.85,
-      "avg_win_r": 1.569,
+      "avg_win_r": 1.438,
       "exit_reasons": {
         "stop_loss": 3,
-        "take_profit": 3,
+        "take_profit": 2,
         "time_stop": 1
       },
-      "expectancy_r": 0.187,
-      "fees": 28.29,
+      "expectancy_r": -0.087,
+      "fees": 27.28,
       "funding": 0.0,
       "losses": 4,
-      "pnl": -42.23,
-      "profit_factor": 0.66,
+      "pnl": -59.82,
+      "profit_factor": 0.51,
       "se_r": 0.511,
       "significant": false,
       "symbols": [
         "CRV/USD"
       ],
-      "t_critical": 2.447,
-      "t_stat": 0.37,
-      "trades": 7,
-      "trades_for_significance": 202,
-      "win_rate": 42.9,
-      "wins": 3
+      "t_critical": 2.571,
+      "t_stat": -0.17,
+      "trades": 6,
+      "trades_for_significance": 795,
+      "win_rate": 33.3,
+      "wins": 2
     },
     "HYPE/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.185,
+      "avg_loss_r": -1.208,
       "avg_win_r": 0.712,
       "exit_reasons": {
-        "stop_loss": 3,
+        "stop_loss": 2,
         "take_profit": 1,
         "time_stop": 1
       },
-      "expectancy_r": -0.806,
-      "fees": 33.42,
+      "expectancy_r": -0.728,
+      "fees": 29.61,
       "funding": 0.0,
-      "losses": 4,
-      "pnl": -111.51,
-      "profit_factor": 0.36,
-      "se_r": 0.391,
+      "losses": 3,
+      "pnl": -94.78,
+      "profit_factor": 0.4,
+      "se_r": 0.495,
       "significant": false,
       "symbols": [
         "HYPE/USD"
       ],
-      "t_critical": 2.776,
-      "t_stat": -2.06,
-      "trades": 5,
-      "trades_for_significance": 10,
-      "win_rate": 20.0,
+      "t_critical": 3.182,
+      "t_stat": -1.47,
+      "trades": 4,
+      "trades_for_significance": 11,
+      "win_rate": 25.0,
       "wins": 1
     },
     "LDO/USD": {
@@ -210,28 +208,27 @@
     "LINK/USD": {
       "asset_class": "crypto_spot",
       "avg_loss_r": 0.0,
-      "avg_win_r": 0.908,
+      "avg_win_r": 0.144,
       "exit_reasons": {
-        "take_profit": 2,
         "time_stop": 1
       },
-      "expectancy_r": 0.908,
-      "fees": 16.11,
+      "expectancy_r": 0.144,
+      "fees": 4.07,
       "funding": 0.0,
       "losses": 0,
-      "pnl": 34.71,
+      "pnl": 2.5,
       "profit_factor": 0.0,
-      "se_r": 0.433,
+      "se_r": 0.0,
       "significant": false,
       "symbols": [
         "LINK/USD"
       ],
-      "t_critical": 4.303,
-      "t_stat": 2.1,
-      "trades": 3,
-      "trades_for_significance": 13,
+      "t_critical": 12.71,
+      "t_stat": 0.0,
+      "trades": 1,
+      "trades_for_significance": 0,
       "win_rate": 100.0,
-      "wins": 3
+      "wins": 1
     },
     "ONDO/USD": {
       "asset_class": "crypto_spot",
@@ -259,31 +256,6 @@
       "trades_for_significance": 11,
       "win_rate": 25.0,
       "wins": 1
-    },
-    "PEPE/USD": {
-      "asset_class": "crypto_spot",
-      "avg_loss_r": -0.933,
-      "avg_win_r": 0.0,
-      "exit_reasons": {
-        "stop_loss": 1
-      },
-      "expectancy_r": -0.933,
-      "fees": 4.54,
-      "funding": 0.0,
-      "losses": 1,
-      "pnl": -21.63,
-      "profit_factor": 0.0,
-      "se_r": 0.0,
-      "significant": false,
-      "symbols": [
-        "PEPE/USD"
-      ],
-      "t_critical": 12.71,
-      "t_stat": 0.0,
-      "trades": 1,
-      "trades_for_significance": 0,
-      "win_rate": 0.0,
-      "wins": 0
     },
     "POL/USD": {
       "asset_class": "crypto_spot",
@@ -363,26 +335,26 @@
     },
     "SOL/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.475,
+      "avg_loss_r": -1.289,
       "avg_win_r": 0.0,
       "exit_reasons": {
-        "stop_loss": 2
+        "stop_loss": 1
       },
-      "expectancy_r": -1.475,
-      "fees": 20.73,
+      "expectancy_r": -1.289,
+      "fees": 9.01,
       "funding": 0.0,
-      "losses": 2,
-      "pnl": -83.51,
+      "losses": 1,
+      "pnl": -54.83,
       "profit_factor": 0.0,
-      "se_r": 0.186,
+      "se_r": 0.0,
       "significant": false,
       "symbols": [
         "SOL/USD"
       ],
       "t_critical": 12.71,
-      "t_stat": -7.91,
-      "trades": 2,
-      "trades_for_significance": 6,
+      "t_stat": 0.0,
+      "trades": 1,
+      "trades_for_significance": 0,
       "win_rate": 0.0,
       "wins": 0
     },
@@ -414,57 +386,31 @@
     },
     "UNI/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -0.938,
+      "avg_loss_r": -0.892,
       "avg_win_r": 0.988,
       "exit_reasons": {
-        "breakeven_stop": 1,
         "stop_loss": 2,
         "take_profit": 1,
         "time_stop": 1,
         "trailing_stop": 1
       },
-      "expectancy_r": -0.296,
-      "fees": 19.12,
+      "expectancy_r": -0.14,
+      "fees": 13.8,
       "funding": 0.0,
-      "losses": 4,
-      "pnl": -71.92,
-      "profit_factor": 0.23,
-      "se_r": 0.487,
+      "losses": 3,
+      "pnl": -52.47,
+      "profit_factor": 0.29,
+      "se_r": 0.565,
       "significant": false,
       "symbols": [
         "UNI/USD"
       ],
-      "t_critical": 2.571,
-      "t_stat": -0.61,
-      "trades": 6,
-      "trades_for_significance": 64,
-      "win_rate": 33.3,
+      "t_critical": 2.776,
+      "t_stat": -0.25,
+      "trades": 5,
+      "trades_for_significance": 312,
+      "win_rate": 40.0,
       "wins": 2
-    },
-    "WIF/USD": {
-      "asset_class": "crypto_spot",
-      "avg_loss_r": 0.0,
-      "avg_win_r": 0.067,
-      "exit_reasons": {
-        "trailing_stop": 1
-      },
-      "expectancy_r": 0.067,
-      "fees": 0.63,
-      "funding": 0.0,
-      "losses": 0,
-      "pnl": 0.6,
-      "profit_factor": 0.0,
-      "se_r": 0.0,
-      "significant": false,
-      "symbols": [
-        "WIF/USD"
-      ],
-      "t_critical": 12.71,
-      "t_stat": 0.0,
-      "trades": 1,
-      "trades_for_significance": 0,
-      "win_rate": 100.0,
-      "wins": 1
     },
     "XRP/USD": {
       "asset_class": "crypto_spot",
@@ -1146,80 +1092,14 @@
       "equity": 9120.35,
       "realized_pnl": 0.0,
       "return_pct": 0.0
-    },
-    {
-      "by_class": {
-        "crypto_spot": 16.96
-      },
-      "day": "2026-08-15",
-      "equity": 9132.25,
-      "realized_pnl": 16.96,
-      "return_pct": 0.1304
-    },
-    {
-      "by_class": {},
-      "day": "2026-08-16",
-      "equity": 9132.25,
-      "realized_pnl": 0.0,
-      "return_pct": 0.0
-    },
-    {
-      "by_class": {},
-      "day": "2026-08-17",
-      "equity": 9132.25,
-      "realized_pnl": 0.0,
-      "return_pct": 0.0
-    },
-    {
-      "by_class": {},
-      "day": "2026-08-18",
-      "equity": 9132.25,
-      "realized_pnl": 0.0,
-      "return_pct": 0.0
-    },
-    {
-      "by_class": {
-        "crypto_spot": -13.44
-      },
-      "day": "2026-08-19",
-      "equity": 9111.83,
-      "realized_pnl": -13.44,
-      "return_pct": -0.2236
-    },
-    {
-      "by_class": {
-        "crypto_spot": -21.63
-      },
-      "day": "2026-08-20",
-      "equity": 9089.67,
-      "realized_pnl": -21.63,
-      "return_pct": -0.2431
-    },
-    {
-      "by_class": {
-        "crypto_spot": -18.59
-      },
-      "day": "2026-08-21",
-      "equity": 9064.22,
-      "realized_pnl": -18.59,
-      "return_pct": -0.2739
-    },
-    {
-      "by_class": {
-        "crypto_spot": -7.5
-      },
-      "day": "2026-08-22",
-      "equity": 9056.1,
-      "realized_pnl": -7.5,
-      "return_pct": -0.0896
     }
   ],
-  "flat_days": 53,
-  "losing_days": 25,
+  "flat_days": 50,
+  "losing_days": 21,
   "period": {
     "from": "2026-05-26",
-    "to": "2026-08-22"
+    "to": "2026-08-14"
   },
   "schema": 1,
-  "winning_days": 11
+  "winning_days": 10
 }

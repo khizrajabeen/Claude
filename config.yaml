@@ -95,7 +95,11 @@ data:
     # - {symbol: "QQQ", asset_class: "etf", venue: "alpaca"}
     # - {symbol: "GLD", asset_class: "etf", venue: "alpaca"}
   timeframe: "1d"          # fallback when an instrument names none
-  higher_timeframe: "1w"   # fallback trend filter
+  # 4h, not 1w. The trend gate is a 100-period EMA, which on a weekly
+  # frame needs two years of history VISIBLE AT EACH REPLAY STEP — early
+  # in a replay it never forms, and a gate that cannot form reads as "no
+  # trend" and blocks everything silently.
+  higher_timeframe: "4h"   # fallback trend filter
   history_bars: 900        # must cover the longest strategy lookback
   orderbook_depth: 20
   orderbook_levels: 10

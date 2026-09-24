@@ -141,6 +141,19 @@ class Trade:
     mae_r: float = 0.0  # worst excursion, in R
     mfe_r: float = 0.0  # best excursion, in R
 
+    # ── Audit trail ──────────────────────────────────────────
+    # Enough to reconstruct how a trade reached its R without the
+    # journal. A reviewer asked how a -2.66R stop-out was possible on a
+    # position sized for -1R, and the record could not answer: it
+    # carried the averaged entry and the exit, and neither the units
+    # added nor the stop that R was measured against. Two quite
+    # different mechanisms — a pyramid that grew the risk, and a fill
+    # well past the stop — produce an identical row.
+    units: int = 1                  # 1 unless the position was pyramided
+    original_quantity: float = 0.0  # size before any add: the R denominator
+    initial_stop: float = 0.0       # the stop R is measured against
+    final_stop: float = 0.0         # where the stop actually sat at exit
+
     @property
     def holding_minutes(self) -> float:
         return (self.closed_at - self.opened_at).total_seconds() / 60.0
