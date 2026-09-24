@@ -68,7 +68,17 @@ jobs:
             exit 1
           fi
           echo "Paper trading: ${ALPACA_PAPER}"
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          # Trading is opt-in, and the default is deliberate. On the
+          # 80-day replay with MEASURED costs this roster returns
+          # -9.33% at -0.573R per trade; the +12.38% it showed before
+          # was an artefact of costs set roughly four times too low.
+          # A schedule that places orders on that evidence would just
+          # be an automated way to lose money, so until someone sets
+          # TRADING_ENABLED=true this workflow plans and publishes
+          # without placing anything.
+          if [ "${{ inputs.dry_run }}" = "true" ] || [ "${{ vars.TRADING_ENABLED }}" != "true" ]; then
+            echo "::notice title=Plan only::Set repository variable \
+          TRADING_ENABLED=true to place orders. See README for why it is off."
             python main.py plan
           else
             python main.py day --fast

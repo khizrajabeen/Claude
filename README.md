@@ -90,6 +90,52 @@ on one universe" is a finding, not a proof.
 
 ---
 
+## Does it make money?
+
+Not on the evidence so far, and the number that changed everything was
+the cost of trading.
+
+Measured on the live account — a $250 round trip in BTC — a crypto
+trade costs about 66 basis points all-in: Alpaca's 25 bps commission on
+each side, plus the spread. Every result this project produced before
+that measurement assumed 5.5 bps and a flat 3 bps of slippage, roughly
+a quarter of the truth.
+
+Re-run over 80 days with the measured costs and the 30-coin Alpaca
+universe:
+
+    metric                assumed costs      measured costs
+    return                     +12.38%              -9.33%
+    trades                          69                  87
+    expectancy per trade       +0.275R             -0.573R
+    profit factor                 2.26                0.36
+    win rate                     56.5%               39.1%
+
+Cost explains much of it but not all. Splitting the trades by how
+expensive each coin is to trade:
+
+    coins costing <= 70 bps round trip   35 trades   -0.269R
+    coins costing  > 70 bps round trip   52 trades   -0.777R
+
+The expensive half is far worse, which is what you would expect if cost
+were the problem. But the cheap half still loses, so the strategy does
+not have an edge on this window that merely needs cheaper execution. The
+average loss is 1.43R against an average win of 0.77R — on a 2xATR stop,
+losing 1.43R means exits are filling well past the stop, which is what a
+65 bps spread does to a stop placed 200 bps away.
+
+Two things follow. Stops have to be wide relative to the spread, not
+just relative to ATR. And a strategy has to be selected against real
+costs from the start, because one chosen against 5.5 bps is selecting
+for trades that only exist when trading is free.
+
+Scheduled trading is therefore **off by default**. The workflow runs,
+plans and publishes; it places nothing until someone sets the repository
+variable `TRADING_ENABLED=true`. The machinery is finished and tested —
+what is missing is evidence that using it would be profitable.
+
+---
+
 ## The dashboard
 
 ```bash
