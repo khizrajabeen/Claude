@@ -1,0 +1,111 @@
+# Runs the trading cycle on a schedule and publishes what it did.
+#
+# This is the "always on" half of the system. GitHub Pages serves the
+# dashboard but cannot run anything; this workflow is what actually
+# trades. It holds the keys (as repository secrets), talks to Alpaca,
+# and commits the resulting JSON back — which triggers the Pages deploy,
+# so the dashboard updates itself as a side effect of trading.
+#
+# Scheduling honesty: GitHub's cron is best-effort. A run can be delayed
+# by minutes under load, and scheduled workflows are disabled entirely
+# after 60 days without repository activity. That is survivable for a
+# bot whose entry slots are four hours wide, and it is not survivable
+# for anything that needs to act at a precise second. For that, run the
+# same cycle on a machine you control — see deploy/README.md, which is
+# kept current for exactly this reason.
+name: Trade
+
+on:
+  schedule:
+    # Every two hours. The crypto entry slots are on four-hour
+    # boundaries, so this wakes at least twice per slot and misses
+    # nothing if one run is delayed.
+    - cron: "5 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Plan only — do not place orders"
+        type: boolean
+        default: false
+
+# Never two cycles at once. Two concurrent runs would each read the
+# account, each decide the book was under-risked, and each open the
+# position the other was already opening.
+concurrency:
+  group: trade
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run one cycle
+        env:
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          ALPACA_PAPER: ${{ vars.ALPACA_PAPER || 'true' }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          CRYPTOPANIC_TOKEN: ${{ secrets.CRYPTOPANIC_TOKEN }}
+        run: |
+          if [ -z "$ALPACA_API_KEY_ID" ]; then
+            echo "::error title=No Alpaca keys::Add ALPACA_API_KEY_ID and \
+          ALPACA_API_SECRET_KEY under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          echo "Paper trading: ${ALPACA_PAPER}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python main.py plan
+          else
+            python main.py day --fast
+          fi
+
+      - name: Publish state for the dashboard
+        if: always()
+        env:
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          ALPACA_PAPER: ${{ vars.ALPACA_PAPER || 'true' }}
+        run: python main.py publish --screen
+
+      - name: Commit what changed
+        if: always()
+        run: |
+          git config user.name  "meridian-bot"
+          git config user.email "noreply@anthropic.com"
+          git add web/data journal 2>/dev/null || git add web/data
+          if git diff --cached --quiet; then
+            echo "Nothing changed — no commit."
+            exit 0
+          fi
+          # The message carries the headline so the commit list doubles
+          # as a trading log.
+          SUMMARY=$(python - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("web/data/portfolio.json")
+          if p.exists():
+              d = json.load(p.open())
+              print(f"equity ${d['equity']:,.2f} ({d['total_return_pct']:+.2f}%), "
+                    f"{d['trades']} trades, {d['open_positions']} open")
+          else:
+              print("no portfolio state")
+          PY
+          )
+          git commit -m "cycle: ${SUMMARY}"
+          for i in 1 2 3 4; do
+            git push && break || sleep $((2 ** i))
+          done
