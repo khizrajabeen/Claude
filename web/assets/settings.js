@@ -1,125 +1,112 @@
-/* Settings.
+import { shell } from "./app.js";
 
-   Keys are held in this browser's localStorage under this site's origin.
-   That is a deliberate and limited choice: a static page has nowhere else
-   to put them, and anywhere else would mean this project holding
-   somebody's exchange credentials. It is stated plainly on the page
-   rather than implied, because "your keys never leave your device" is a
-   claim people are entitled to check.
+shell("settings");
+const $ = (id) => document.getElementById(id);
 
-   The bot itself never reads this. It takes credentials from a .env file
-   on the machine it runs on. */
+/* Every field the bot actually reads. The placeholders are shaped like
+ * the real thing but deliberately too short to be mistaken for a key —
+ * the deploy workflow refuses to publish anything key-shaped under
+ * web/, and a placeholder that trips that check is how a security
+ * check gets switched off. */
+const GROUPS = [
+  { title: "Alpaca — US equities and ETFs", note:
+    "Paper keys begin with PK, live keys with AK. Paper and live are separate credentials and separate endpoints.",
+    fields: [
+      { k: "ALPACA_API_KEY_ID",     l: "Key ID",     p: "PK…" },
+      { k: "ALPACA_API_SECRET_KEY", l: "Secret key", p: "••••", secret: true },
+      { k: "ALPACA_PAPER",          l: "Paper trading", type: "select", opts: ["true", "false"] },
+    ] },
+  { title: "Crypto venue", note:
+    "One adapter, several venues. Binance returns 451 in some regions; OKX, Kraken, KuCoin and Coinbase are configured alternatives.",
+    fields: [
+      { k: "EXCHANGE_ID",     l: "Venue", type: "select",
+        opts: ["binance", "okx", "kraken", "kucoin", "coinbase"] },
+      { k: "EXCHANGE_API_KEY",    l: "API key",    p: "…" },
+      { k: "EXCHANGE_API_SECRET", l: "API secret", p: "••••", secret: true },
+      { k: "EXCHANGE_PASSWORD",   l: "Passphrase (OKX, KuCoin)", p: "••••", secret: true },
+    ] },
+  { title: "News", note:
+    "Public RSS needs no key. A key raises the rate limit and widens per-ticker coverage.",
+    fields: [
+      { k: "NEWSAPI_KEY",       l: "NewsAPI key",       p: "…" },
+      { k: "CRYPTOPANIC_TOKEN", l: "CryptoPanic token", p: "…" },
+    ] },
+  { title: "Language models", note:
+    "Optional. Used to summarise the morning briefing; no model is consulted before a trade is sized.",
+    fields: [
+      { k: "ANTHROPIC_API_KEY", l: "Anthropic key", p: "…", secret: true },
+      { k: "OPENAI_API_KEY",    l: "OpenAI key",    p: "…", secret: true },
+    ] },
+  { title: "Run", note: "How the bot behaves on the machine it runs on.",
+    fields: [
+      { k: "MERIDIAN_MODE", l: "Mode", type: "select", opts: ["paper", "live"] },
+      { k: "MERIDIAN_PUBLISH_BRANCH", l: "Publish dashboard to branch", p: "main" },
+    ] },
+];
 
-import { initTheme, safeGet, safeSet, safeRemove } from "./app.js";
-import { renderNav } from "./nav.js";
+const read = () => { try { return JSON.parse(localStorage.getItem("keys") || "{}"); } catch { return {}; } };
+const write = (o) => { try { localStorage.setItem("keys", JSON.stringify(o)); } catch {} };
 
-renderNav();
-initTheme();
-
-const PREFIX = "meridian.";
-
-/* id → the environment variable the bot expects, so Export .env produces
-   something that actually works rather than a plausible-looking file. */
-const FIELDS = {
-  "data-url":         { env: null },
-  "auto-refresh":     { env: null, type: "check" },
-  "k-anthropic":      { env: "ANTHROPIC_API_KEY" },
-  "k-openai":         { env: "OPENAI_API_KEY" },
-  "broker":           { env: "EXCHANGE_NAME" },
-  "k-exchange":       { env: "EXCHANGE_API_KEY" },
-  "k-exchange-secret":{ env: "EXCHANGE_API_SECRET" },
-  "k-alpaca":         { env: "ALPACA_API_KEY_ID" },
-  "k-alpaca-secret":  { env: "ALPACA_API_SECRET_KEY" },
-  "alpaca-paper":     { env: "ALPACA_PAPER", type: "check" },
-  "k-cryptopanic":    { env: "CRYPTOPANIC_TOKEN" },
-  "k-newsapi":        { env: "NEWSAPI_KEY" },
-  "k-cmc":            { env: "COINMARKETCAP_KEY" },
-};
-
-function node(id) { return document.getElementById(id); }
-
-function restore() {
-  for (const [id, spec] of Object.entries(FIELDS)) {
-    const input = node(id);
-    if (!input) continue;
-    const saved = safeGet(PREFIX + id);
-    if (saved === null) continue;
-    if (spec.type === "check") input.checked = saved === "true";
-    else input.value = saved;
+function preview() {
+  const v = read();
+  const lines = ["# Meridian — generated from the settings page.",
+                 "# Keep this file out of version control.", ""];
+  for (const g of GROUPS) {
+    const set = g.fields.filter((f) => v[f.k]);
+    if (!set.length) continue;
+    lines.push(`# ${g.title}`);
+    for (const f of set) lines.push(`${f.k}=${v[f.k]}`);
+    lines.push("");
   }
+  $("preview").textContent = lines.length > 3 ? lines.join("\n")
+    : "# Nothing filled in yet — the fields above write this file.";
 }
 
-function save() {
-  let ok = true;
-  for (const [id, spec] of Object.entries(FIELDS)) {
-    const input = node(id);
-    if (!input) continue;
-    const value = spec.type === "check" ? String(input.checked) : input.value;
-    if (!value) { safeRemove(PREFIX + id); continue; }
-    if (!safeSet(PREFIX + id, value)) ok = false;
-  }
-  flash(ok ? "Saved to this browser."
-           : "Could not save — this browser is blocking site storage.");
-}
+$("groups").innerHTML = GROUPS.map((g) => `
+  <section class="card">
+    <div class="card-head"><h2>${g.title}</h2></div>
+    <div class="card-body">
+      <p class="muted" style="font-size:12.5px;margin-bottom:16px">${g.note}</p>
+      ${g.fields.map((f) => `<div class="field">
+        <label for="${f.k}">${f.l}</label>
+        ${f.type === "select"
+          ? `<select id="${f.k}" data-k="${f.k}">${f.opts.map((o) => `<option>${o}</option>`).join("")}</select>`
+          : `<input id="${f.k}" data-k="${f.k}" type="${f.secret ? "password" : "text"}"
+               placeholder="${f.p || ""}" autocomplete="off" spellcheck="false">`}
+      </div>`).join("")}
+    </div>
+  </section>`).join("");
 
-function clearAll() {
-  if (!confirm("Remove every key and preference stored by this page?")) return;
-  for (const id of Object.keys(FIELDS)) safeRemove(PREFIX + id);
-  document.querySelectorAll("input").forEach((i) => {
-    if (i.type === "checkbox") i.checked = i.id === "alpaca-paper" || i.id === "auto-refresh";
-    else i.value = "";
+const saved = read();
+for (const el of document.querySelectorAll("[data-k]")) {
+  if (saved[el.dataset.k] != null) el.value = saved[el.dataset.k];
+  el.addEventListener("input", () => {
+    const v = read();
+    if (el.value) v[el.dataset.k] = el.value; else delete v[el.dataset.k];
+    write(v); preview();
   });
-  flash("Cleared.");
+  el.addEventListener("change", () => el.dispatchEvent(new Event("input")));
 }
+preview();
 
-function exportEnv() {
-  const lines = [
-    "# Written by the Meridian settings page.",
-    "# Put this on the machine that runs the bot, next to config.yaml.",
-    "# It is gitignored; never commit it.",
-    "",
-  ];
-  let any = false;
-  for (const [id, spec] of Object.entries(FIELDS)) {
-    if (!spec.env) continue;
-    const input = node(id);
-    if (!input) continue;
-    const value = spec.type === "check" ? String(input.checked) : input.value.trim();
-    if (!value) continue;
-    any = true;
-    lines.push(`${spec.env}=${value}`);
-  }
-  if (!any) { flash("Nothing to export — no keys entered."); return; }
-
-  const blob = new Blob([lines.join("\n") + "\n"], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = Object.assign(document.createElement("a"), { href: url, download: ".env" });
-  document.body.appendChild(a);
+$("export").onclick = () => {
+  const blob = new Blob([$("preview").textContent], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = ".env";
   a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-  flash("Exported .env — keep it off the repository.");
-}
-
-let flashTimer = null;
-function flash(message) {
-  const host = node("saved");
-  host.textContent = message;
-  clearTimeout(flashTimer);
-  flashTimer = setTimeout(() => { host.textContent = ""; }, 4000);
-}
-
-document.querySelectorAll("[data-reveal]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const input = node(btn.dataset.reveal);
-    const hidden = input.type === "password";
-    input.type = hidden ? "text" : "password";
-    btn.textContent = hidden ? "Hide" : "Show";
-  });
-});
-
-node("save").addEventListener("click", save);
-node("clear").addEventListener("click", clearAll);
-node("export").addEventListener("click", exportEnv);
-
-restore();
+  URL.revokeObjectURL(a.href);
+};
+$("copy").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($("preview").textContent);
+    $("copy").textContent = "Copied";
+    setTimeout(() => ($("copy").textContent = "Copy"), 1400);
+  } catch { $("copy").textContent = "Select it manually"; }
+};
+$("clear").onclick = () => {
+  if (!confirm("Clear every key stored in this browser?")) return;
+  try { localStorage.removeItem("keys"); } catch {}
+  for (const el of document.querySelectorAll("[data-k]")) el.value = "";
+  preview();
+};

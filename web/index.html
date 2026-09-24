@@ -3,215 +3,218 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meridian — Autonomous Trading</title>
-<meta name="description" content="A daily-cycle trading bot that reads the news, screens the market, sizes by risk and reports what it actually did.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+<title>Meridian</title>
+<meta name="description" content="An autonomous daily-cycle trading bot for crypto and US equities. It reads the news, sizes by volatility, and reports what it actually did.">
+<!-- Resolve the theme before first paint. A dark-mode reader should
+     never see a white flash on the way in. -->
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"auto"}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script>
-/* Resolve the theme before first paint. Without this a page whose
-   stylesheet defaults to dark flashes dark at someone who chose light —
-   the one frame of wrongness people notice most. */
-try {
-  var t = localStorage.getItem("theme") || "auto";
-  document.documentElement.dataset.theme = t;
-} catch (e) { document.documentElement.dataset.theme = "auto"; }
-</script>
-<link rel="stylesheet" href="./assets/app.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
 </head>
-<body>
-<div class="aurora"></div>
+<body class="landing">
 
-<header class="nav">
-  <div class="wrap" style="display:flex;align-items:center;gap:22px">
-    <a class="brand" href="./index.html"><span class="mark">◈</span> Meridian</a>
-    <nav data-topnav></nav>
-    <span class="spacer"></span>
-    <span data-toggle-theme></span>
-    <a class="btn sm primary" href="./dashboard.html">Open Dashboard →</a>
+<div class="stage">
+<header class="hero">
+  <nav class="hero-nav">
+    <div class="links">
+      <a href="dashboard.html">Dashboard</a>
+      <a href="markets.html">Markets</a>
+      <a href="strategies.html">Strategies</a>
+      <a href="trades.html">Trades</a>
+    </div>
+    <div class="mark"><span class="mark-glyph"></span> Meridian</div>
+    <div class="right">
+      <a class="hide-sm" href="settings.html" style="color:rgba(255,255,255,.8);font-size:13.5px">Settings</a>
+      <a class="btn btn-fill" href="dashboard.html">Open Dashboard <span class="arrow">→</span></a>
+    </div>
+  </nav>
+
+  <div class="hero-body">
+    <span class="eyebrow"><span class="dot">◆</span> Built for crypto spot, perpetuals and US equities</span>
+    <h1>Trade the Day.<br>Not the Noise.</h1>
+    <p class="lede">
+      One cycle a day: read the news, rank the market, size by volatility,
+      take the trades, and close the book. Every number on this site was
+      measured, not projected.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-fill" href="dashboard.html">Open Dashboard <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href="#how">How it works</a>
+    </div>
+  </div>
+
+  <!-- Live figures, read from the same JSON the dashboard reads.
+       A landing page quoting invented numbers is a landing page you
+       cannot trust about anything else. -->
+  <div class="strip" id="strip">
+    <div class="glass"><div class="cap">Portfolio</div><div class="big skel" style="height:30px"></div></div>
+    <div class="glass"><div class="cap">Last session</div><div class="big skel" style="height:30px"></div></div>
+    <div class="glass"><div class="cap">Risk</div><div class="big skel" style="height:30px"></div></div>
+    <div class="glass"><div class="cap">Universe</div><div class="big skel" style="height:30px"></div></div>
   </div>
 </header>
+</div>
 
-<main class="wrap">
-  <section class="hero">
-    <span class="pill"><span class="dot"></span> Paper trading · crypto spot &amp; perpetuals</span>
-    <h1>Trade the plan,<br><span class="grad">not the impulse</span></h1>
-    <p class="lede">
-      A daily-cycle bot that screens four hundred markets, reads the wire,
-      sizes every position by risk rather than by conviction, and writes
-      down exactly what it did — including the parts that lost money.
-    </p>
-    <div class="cta">
-      <a class="btn primary" href="./dashboard.html">Open Dashboard →</a>
-      <a class="btn ghost" href="https://github.com/khizrajabeen/Claude" target="_blank" rel="noopener">View the code</a>
+<main>
+  <section class="section" id="how">
+    <div class="section-head">
+      <div class="kicker">The daily cycle</div>
+      <h2>Five states, one lap a day</h2>
+      <p>The bot is a state machine anchored to UTC midnight. It cannot
+         enter outside its slots, cannot exceed its heat, and cannot end
+         a day without writing down what happened.</p>
     </div>
-
-    <div class="stat-row" id="live-stats">
-      <div class="card stat"><div class="label">Portfolio value</div>
-        <div class="value mono" id="s-equity">—</div>
-        <div class="delta muted" id="s-equity-d">loading…</div></div>
-      <div class="card stat"><div class="label">Total return</div>
-        <div class="value mono" id="s-return">—</div>
-        <div class="delta muted" id="s-return-d">since inception</div></div>
-      <div class="card stat"><div class="label">Max drawdown</div>
-        <div class="value mono" id="s-dd">—</div>
-        <div class="delta muted">peak to trough</div></div>
-      <div class="card stat"><div class="label">Closed trades</div>
-        <div class="value mono" id="s-trades">—</div>
-        <div class="delta muted" id="s-trades-d">win rate</div></div>
-    </div>
-    <p class="small muted" style="margin-top:14px" id="s-asof"></p>
-  </section>
-
-  <div class="marquee">
-    <span>OKX</span><span>KRAKEN</span><span>COINBASE</span><span>KUCOIN</span>
-    <span>ALPACA</span><span>NASDAQ</span>
-  </div>
-
-  <section class="section-head">
-    <h2>What it actually does</h2>
-    <p>Every claim here is something the code does and the record can be checked against.</p>
-  </section>
-
-  <section class="features">
-    <div class="card feature">
-      <div class="ico">◎</div>
-      <h4>Screens before it trades</h4>
-      <p>Ranks every active market on the venue by 24-hour turnover, flags
-      listings too young to have measurable history, and attaches per-coin
-      news — so the day starts from what is liquid and moving, not from a
-      list written months ago.</p>
-    </div>
-    <div class="card feature">
-      <div class="ico">⚖</div>
-      <h4>Sizes by risk, not by feel</h4>
-      <p>Every position is sized so a stop-out costs the same fraction of
-      the account. Portfolio heat, correlation and net beta are capped per
-      risk factor, and beta is measured from the tape rather than
-      assumed.</p>
-    </div>
-    <div class="card feature">
-      <div class="ico">↗</div>
-      <h4>Presses winners, books profit</h4>
-      <p>Adds units to positions that are working, each risking less than
-      the last, and sells slices at set multiples of risk so a trend does
-      not hand its gains back while the trailing stop catches up.</p>
-    </div>
-    <div class="card feature">
-      <div class="ico">📰</div>
-      <h4>Reads the wire</h4>
-      <p>Per-instrument sentiment from editorial and exchange feeds,
-      weighted by coverage and recency. A single excitable headline cannot
-      open a position, and good news in a downtrend is refused.</p>
-    </div>
-    <div class="card feature">
-      <div class="ico">🛑</div>
-      <h4>Knows when to stop</h4>
-      <p>A daily loss limit, a drawdown halt, a cooldown after losing
-      streaks and a hard cap on new positions per day. The bot is allowed
-      to decide it should not trade today.</p>
-    </div>
-    <div class="card feature">
-      <div class="ico">🔍</div>
-      <h4>Reports against itself</h4>
-      <p>Every expectancy carries its standard error and the sample it
-      would need to be real. Results that are not statistically
-      distinguishable from zero are labelled as such rather than
-      advertised.</p>
+    <div class="feature-grid">
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5a2 2 0 012-2h9l5 5v11a2 2 0 01-2 2H6a2 2 0 01-2-2zM14 3v5h5M8 13h8M8 17h5"/></svg></div><h3>Briefing</h3>
+        <p>Pull bars, score the news per ticker and per coin, rank the universe
+           cross-sectionally, and measure each alt's beta to BTC.</p></div>
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M12 3l-5 5M12 3l5 5"/></svg></div><h3>Entry</h3>
+        <p>Crypto at four-hour boundaries, equities inside the US session and
+           clear of the opening auction. Size is risk ÷ (k × ATR), never a fixed
+           dollar amount.</p></div>
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 5-7M3 21h18"/></svg></div><h3>Manage</h3>
+        <p>Trail the stop, scale out at R rungs, pyramid into a winner at half
+           size. Correlation and net-beta caps apply per risk factor, not per symbol.</p></div>
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></div><h3>Flatten</h3>
+        <p>Hit the daily loss limit and the day ends early — positions closed,
+           no new entries. The limit is not advisory.</p></div>
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div><h3>Report</h3>
+        <p>Per-day, per-class and per-symbol P&amp;L with expectancy in R, a
+           standard error and a t-stat against the right critical value.</p></div>
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M12 4L8 8M12 4l4 4M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg></div><h3>Publish</h3>
+        <p>State lands in JSON that this site reads. Stale data turns the
+           indicator amber rather than showing old numbers as current.</p></div>
     </div>
   </section>
 
-  <section class="section-head">
-    <h2>The roster, and how it was chosen</h2>
-    <p>Each strategy was run alone over the same 90 days, on one shared
-       download, so the only thing differing between runs was the strategy.</p>
+  <section class="section" style="padding-top:0">
+    <div class="split grid">
+      <div class="card">
+        <div class="card-head"><h2>Ninety days, measured</h2>
+          <span class="grow"></span>
+          <span class="pill" id="period">—</span></div>
+        <div class="card-body"><div id="curve" style="min-height:260px"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>What earned, what did not</h2></div>
+        <div class="card-body" id="classes"></div>
+        <div class="card-body" style="border-top:1px solid var(--line-soft)">
+          <p class="muted" style="font-size:12.5px;line-height:1.5">
+            Crypto spot carried the result. Equities and ETFs lost money and
+            were cut from the roster. That is stated here rather than hidden
+            behind a blended total.</p>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <section class="card pad-lg" style="margin-bottom:24px;overflow-x:auto">
-    <table>
-      <thead><tr><th>Strategy</th><th class="num">Return</th>
-        <th class="num">Trades</th><th class="num">Expectancy</th>
-        <th class="num">Max DD</th><th class="num">Profit factor</th>
-        <th>Verdict</th></tr></thead>
-      <tbody>
-        <tr><td>clenow</td><td class="num up">+14.91%</td><td class="num">39</td>
-          <td class="num up">+0.581R</td><td class="num">1.33%</td>
-          <td class="num">5.58</td><td class="up">kept</td></tr>
-        <tr><td>turtle</td><td class="num up">+10.77%</td><td class="num">69</td>
-          <td class="num up">+0.255R</td><td class="num">1.29%</td>
-          <td class="num">2.09</td><td class="up">kept</td></tr>
-        <tr><td>lorentzian</td><td class="num up">+3.80%</td><td class="num">50</td>
-          <td class="num muted">−0.002R</td><td class="num">4.02%</td>
-          <td class="num">1.37</td><td class="muted">kept on sufferance</td></tr>
-        <tr><td>supertrend</td><td class="num down">−1.17%</td><td class="num">214</td>
-          <td class="num down">−0.070R</td><td class="num">5.58%</td>
-          <td class="num">1.01</td><td class="down">dropped</td></tr>
-        <tr><td>nwenvelope</td><td class="num down">−3.23%</td><td class="num">19</td>
-          <td class="num down">−0.308R</td><td class="num">3.25%</td>
-          <td class="num">0.20</td><td class="down">dropped</td></tr>
-        <tr><td>holygrail</td><td class="num down">−3.26%</td><td class="num">55</td>
-          <td class="num down">−0.206R</td><td class="num">5.14%</td>
-          <td class="num">0.76</td><td class="down">dropped</td></tr>
-        <tr><td>smc</td><td class="num down">−6.45%</td><td class="num">162</td>
-          <td class="num down">−0.321R</td><td class="num">9.40%</td>
-          <td class="num">0.65</td><td class="down">dropped</td></tr>
-      </tbody>
-    </table>
-    <p class="small muted" style="margin-top:14px;line-height:1.7">
-      The four dropped strategies traded about 450 times between them to
-      lose money. <code>lorentzian</code> is kept because its return is
-      positive and it is a different kind of driver next to two correlated
-      trend systems — but its expectancy is essentially zero, so the gain
-      came from a handful of large winners rather than an edge per trade,
-      and the autopilot benches it if that stops being true.
-    </p>
-  </section>
-
-  <section class="card pad-lg" style="margin:40px 0">
-    <h3>Honest about what this is</h3>
-    <p style="color:var(--ink-2);font-size:14.5px;line-height:1.75;max-width:78ch">
-      This runs on paper by default. The performance shown on this page is
-      a simulation over historical bars, with modelled fees, slippage and
-      funding — not a live account. Backtests flatter: they fill at prices
-      nobody queued for, they know which markets survived, and a single
-      run cannot separate an edge from a lucky path. Numbers here are
-      reported with their error bars for that reason. Nothing on this page
-      is financial advice, and trading carries the risk of losing
-      everything committed to it.
-    </p>
+  <section class="section" style="padding-top:0">
+    <div class="section-head">
+      <div class="kicker">Connected</div>
+      <h2>Your keys, your accounts</h2>
+      <p>Alpaca for US equities, a choice of crypto venues through one adapter,
+         and news feeds per ticker. Keys live in the server's environment — the
+         settings page writes an <code>.env</code> and keeps nothing.</p>
+    </div>
+    <div class="feature-grid">
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l9-9 9 9M6 10v10h12V10"/></svg></div><h3>Alpaca</h3>
+        <p>Paper and live US equities and ETFs. Bars at 15m, 1h and 1d, with
+           paging past the 10,000-bar cap.</p></div>
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M6 6h9a3 3 0 010 6H6h10a3 3 0 010 6H6"/></svg></div><h3>Crypto venues</h3>
+        <p>Binance, OKX, Kraken, KuCoin and Coinbase through one interface, so a
+           geo-blocked venue is a config change, not a rewrite.</p></div>
+      <div class="feature"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h13v14H5a2 2 0 01-2-2zM16 9h4a1 1 0 011 1v7a2 2 0 01-2 2M7 9h5M7 13h5"/></svg></div><h3>News</h3>
+        <p>Per-ticker and per-coin feeds, fetched in parallel, scored for
+           sentiment and freshness before the open.</p></div>
+    </div>
   </section>
 </main>
 
-<footer class="wrap">
-  <span>◈ Meridian</span>
-  <span class="muted">Paper trading · no advice · your keys stay in your browser</span>
-  <span class="spacer" style="flex:1"></span>
-  <a class="muted" href="./dashboard.html">Dashboard</a>
-  <a class="muted" href="./settings.html">Settings</a>
+<footer class="section" style="padding-top:0;color:var(--ink-3);font-size:13px">
+  <div style="border-top:1px solid var(--line);padding-top:22px;display:flex;
+              gap:16px;flex-wrap:wrap;align-items:center">
+    <span>Meridian — paper trading by default.</span>
+    <span class="grow" style="flex:1"></span>
+    <span>Nothing here is financial advice.</span>
+    <span data-toggle-theme></span>
+  </div>
 </footer>
 
 <script type="module">
-import { load, fmt, sign, setText, initTheme } from "./assets/app.js";
-import { renderNav } from "./assets/nav.js";
+import { load, usd, pct, cls, num, initTheme, compact } from "./assets/app.js";
+import { lineChart, barList } from "./assets/chart.js";
 
 initTheme();
-renderNav();
 
-load("portfolio").then((p) => {
-  setText("s-equity", fmt.money(p.equity));
-  setText("s-equity-d",
-    `${fmt.pct(p.daily_return_pct)} today`, sign(p.daily_return_pct));
-  setText("s-return", fmt.pct(p.total_return_pct), sign(p.total_return_pct));
-  setText("s-dd", `${fmt.num(p.max_drawdown_pct)}%`);
-  setText("s-trades", String(p.trades));
-  setText("s-trades-d", `${fmt.num(p.win_rate, 1)}% win rate`);
-  document.getElementById("s-asof").textContent =
-    `Updated ${fmt.ago(p.as_of)} · starting balance ${fmt.money(p.starting_equity)}`;
-}).catch(() => {
-  document.getElementById("s-asof").textContent =
-    "No published results yet — run `python main.py publish` to fill this in.";
-});
+const CLASS_NAME = {
+  crypto_spot: "Crypto spot", crypto_perp: "Perpetuals",
+  equity: "Equities", etf: "ETFs",
+};
+
+try {
+  const [p, m, d] = await Promise.all([load("portfolio"), load("meta"), load("daily")]);
+
+  const coins = (m.universe?.crypto_spot?.length || 0) + (m.universe?.crypto_perp?.length || 0);
+  document.getElementById("strip").innerHTML = `
+    <div class="glass">
+      <div class="cap">Portfolio <span>${m.mode}</span></div>
+      <div class="big">${usd(p.equity)}</div>
+      <div class="${cls(p.total_return_pct)}" style="font-size:12.5px;margin-top:6px">
+        ${pct(p.total_return_pct)} since ${usd(p.starting_equity, 0)} start</div>
+    </div>
+    <div class="glass">
+      <div class="cap">Last session</div>
+      <div class="big ${cls(p.daily_pnl)}">${usd(p.daily_pnl)}</div>
+      <div class="swap-row" style="margin-top:12px">
+        <div><div class="sym">${p.trades} trades</div><div class="sub">${m.days_recorded} days recorded</div></div>
+        <div style="text-align:right"><div class="sym">${num(p.win_rate, 1)}%</div><div class="sub">win rate</div></div>
+      </div>
+    </div>
+    <div class="glass">
+      <div class="cap">Risk per trade</div>
+      <div class="big">${num(m.risk.risk_per_trade_pct, 2)}%</div>
+      <div class="swap-row" style="margin-top:12px">
+        <div><div class="sym">${num(m.risk.max_portfolio_heat_pct, 1)}%</div><div class="sub">max heat</div></div>
+        <div style="text-align:right"><div class="sym">−${num(m.risk.max_daily_loss_pct, 1)}%</div><div class="sub">daily stop</div></div>
+      </div>
+    </div>
+    <div class="glass">
+      <div class="cap">Universe</div>
+      <div class="big">${coins}</div>
+      <div style="margin-top:10px">
+        ${(m.universe?.crypto_spot || []).slice(0, 4).map((s) => `
+          <div class="asset-line"><span class="chip">${s.split("/")[0].slice(0, 3)}</span>${s}</div>`).join("")}
+      </div>
+    </div>
+    <div class="glass">
+      <div class="cap">Drawdown</div>
+      <div class="big">${num(p.max_drawdown_pct, 2)}%</div>
+      <div class="swap-row" style="margin-top:12px">
+        <div><div class="sym">${num(p.profit_factor, 2)}</div><div class="sub">profit factor</div></div>
+        <div style="text-align:right"><div class="sym">${num(p.sharpe_daily, 2)}</div><div class="sub">Sharpe</div></div>
+      </div>
+    </div>`;
+
+  document.getElementById("period").textContent = `${d.period.from} → ${d.period.to}`;
+  lineChart(document.getElementById("curve"),
+    [{ name: "Equity", values: d.curve.map((r) => ({ x: r.day.slice(5), y: r.equity })) }],
+    { fill: true, height: 260, fmt: (v) => usd(v, 0), yFmt: (v) => compact(v),
+      label: "Account equity over the recorded period" });
+
+  barList(document.getElementById("classes"),
+    Object.entries(d.by_asset_class)
+      .map(([k, v]) => ({ name: CLASS_NAME[k] || k, value: v.pnl }))
+      .sort((a, b) => b.value - a.value),
+    { fmt: (v) => usd(v, 0) });
+} catch (e) {
+  document.getElementById("strip").innerHTML =
+    `<div class="glass"><div class="cap">No data published yet</div>
+     <p style="font-size:13px;color:rgba(255,255,255,.7);margin-top:8px">
+     Run <code>python main.py publish --screen</code> to fill this in.</p></div>`;
+}
 </script>
 </body>
 </html>

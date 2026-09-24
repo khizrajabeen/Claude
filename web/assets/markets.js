@@ -1,150 +1,67 @@
-/* The whole venue, ranked.
+import { shell, load, explain, usd, pct, num, cls, price, compact, freshness, chipColour, base } from "./app.js";
 
-   The dashboard shows the top twelve. This is all four hundred, with the
-   reason each one was disqualified rather than a silent omission — a
-   market missing from a screen and a market rejected by it look identical
-   otherwise, and only one of them is a decision. */
+shell("markets");
+const $ = (id) => document.getElementById(id);
+let all = [], sort = { k: "rank", dir: 1 }, mode = "all", traded = new Set();
 
-import { load, fmt, sign, initTheme } from "./app.js";
-import { renderNav } from "./nav.js";
-
-initTheme();
-renderNav();
-
-let ROWS = [];
-let HELD = new Set();
-let sortKey = "quote_volume";
-let sortDir = "desc";
-
-const el = (id) => document.getElementById(id);
-
-const COLUMNS = [
-  { key: "rank",           label: "#",          num: true },
-  { key: "symbol",         label: "Market" },
-  { key: "quote_volume",   label: "24h volume", num: true },
-  { key: "change_24h_pct", label: "24h",        num: true },
-  { key: "price",          label: "Price",      num: true },
-  { key: "age_days",       label: "Age",        num: true },
-  { key: "news_score",     label: "News",       num: true },
-  { key: "beta",           label: "β to BTC",   num: true },
-  { key: "notes",          label: "Status" },
-];
-
-Promise.allSettled([load("screen"), load("meta")]).then(([screen, meta]) => {
-  if (screen.status !== "fulfilled") {
-    el("banner").innerHTML = `<div class="err">No market screen published.
-      Run <code>python main.py publish --screen</code>.</div>`;
-    return;
-  }
-  ROWS = screen.value.markets || [];
-  el("asof").textContent = `updated ${fmt.ago(screen.value.as_of)}`;
-
-  if (meta.status === "fulfilled") {
-    HELD = new Set(Object.values(meta.value.universe || {}).flat());
-  }
-  draw();
-});
-
-function filtered() {
-  const q = el("q").value.trim().toLowerCase();
-  const tradable = el("only-tradable").getAttribute("aria-pressed") === "true";
-  const isNew = el("only-new").getAttribute("aria-pressed") === "true";
-  const held = el("only-held").getAttribute("aria-pressed") === "true";
-
-  return ROWS.filter((m) => {
-    if (tradable && (m.notes || []).length) return false;
-    if (isNew && !m.is_new) return false;
-    if (held && !HELD.has(m.symbol)) return false;
-    if (q && !`${m.symbol} ${m.base}`.toLowerCase().includes(q)) return false;
+function render() {
+  const q = $("q").value.trim().toUpperCase();
+  let rows = all.filter((r) => {
+    if (q && !r.symbol.toUpperCase().includes(q)) return false;
+    if (mode === "traded") return traded.has(r.symbol);
+    if (mode === "new") return r.is_new;
+    if (mode === "news") return r.news_articles > 0;
     return true;
   });
-}
-
-function sorted(rows) {
-  const dir = sortDir === "asc" ? 1 : -1;
-  return rows.slice().sort((a, b) => {
-    const x = a[sortKey], y = b[sortKey];
-    if (x == null) return 1;
-    if (y == null) return -1;
-    if (typeof x === "number" && typeof y === "number") return (x - y) * dir;
-    return String(x).localeCompare(String(y)) * dir;
+  rows.sort((a, b) => {
+    const x = a[sort.k], y = b[sort.k];
+    return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sort.dir;
   });
+
+  const t = (l, v, sub) => `<div class="card tile"><div class="label">${l}</div>
+    <div class="value">${v}</div><div class="delta muted">${sub}</div></div>`;
+  const vol = rows.reduce((a, r) => a + (r.quote_volume || 0), 0);
+  const withNews = rows.filter((r) => r.news_articles > 0).length;
+  const betas = rows.filter((r) => r.beta_r2 > 0.3).map((r) => r.beta);
+  $("tiles").innerHTML =
+    t("Markets shown", rows.length, `of ${all.length} screened`) +
+    t("24h volume", compact(vol), "summed across the shown set") +
+    t("In the news", withNews, "coins with scored coverage") +
+    t("Median beta", betas.length ? num(betas.sort((a, b) => a - b)[betas.length >> 1], 2) : "—",
+      "to BTC, where r² > 0.3");
+
+  $("tbl").tBodies[0].innerHTML = rows.length ? rows.slice(0, 400).map((r) => `<tr>
+    <td class="r muted num">${r.rank}</td>
+    <td><span class="asset"><span class="coin" style="background:${chipColour(r.symbol)}">${base(r.symbol).slice(0,3)}</span>
+      <span><span class="nm">${r.symbol}</span>
+      <span class="tk">${r.is_new ? "new listing" : Math.round(r.age_days / 365) + "y old"}</span></span></span></td>
+    <td class="r num">${price(r.price)}</td>
+    <td class="r num ${cls(r.change_24h_pct)}">${pct(r.change_24h_pct, 1)}</td>
+    <td class="r num">${compact(r.quote_volume)}</td>
+    <td class="r num">${num(r.beta, 2)}</td>
+    <td class="r num ${r.beta_r2 < 0.3 ? "muted" : ""}">${num(r.beta_r2, 2)}</td>
+    <td class="r num muted">${num(r.age_days / 365, 1)}y</td>
+    <td class="r num ${cls(r.news_score)}">${r.news_articles ? num(r.news_score, 2) : "—"}</td>
+    <td class="muted" style="font-size:12px">${(r.notes || []).join(", ") || "—"}</td></tr>`).join("")
+    : `<tr><td colspan="10" class="empty">Nothing matches.</td></tr>`;
 }
 
-function tiles(rows) {
-  const tradable = ROWS.filter((m) => !(m.notes || []).length);
-  const fresh = ROWS.filter((m) => m.is_new);
-  const volume = rows.reduce((a, m) => a + (m.quote_volume || 0), 0);
-  const movers = rows.filter((m) => Math.abs(m.change_24h_pct || 0) >= 5);
-
-  el("tiles").innerHTML = [
-    ["Markets scanned", String(ROWS.length), "on the configured venue"],
-    ["Clear the filters", String(tradable.length),
-      `${ROWS.length - tradable.length} disqualified`],
-    ["Newly listed", String(fresh.length), "too young to measure"],
-    ["Turnover shown", fmt.compact(volume), "24h, this selection"],
-    ["Moved 5%+", String(movers.length), "in the last day"],
-  ].map(([label, value, delta]) => `
-    <div class="card stat"><div class="label">${label}</div>
-      <div class="value mono">${value}</div>
-      <div class="delta muted">${delta}</div></div>`).join("");
-}
-
-function draw() {
-  const rows = sorted(filtered());
-  tiles(rows);
-  el("count").textContent = `${rows.length} of ${ROWS.length}`;
-
-  if (!rows.length) {
-    el("table").innerHTML = "";
-    el("empty").innerHTML = `<div class="empty">Nothing matches that filter.</div>`;
-    return;
-  }
-  el("empty").innerHTML = "";
-  el("table").innerHTML = `
-    <thead><tr>${COLUMNS.map((c) => `
-      <th class="sortable ${c.num ? "num" : ""}" data-key="${c.key}"
-          ${c.key === sortKey ? `data-dir="${sortDir}"` : ""}>${c.label}</th>`
-    ).join("")}</tr></thead>
-    <tbody>${rows.slice(0, 200).map(row).join("")}</tbody>`;
-
-  el("table").querySelectorAll("th.sortable").forEach((th) => {
-    th.addEventListener("click", () => {
-      const key = th.dataset.key;
-      sortDir = key === sortKey && sortDir === "desc" ? "asc" : "desc";
-      sortKey = key;
-      draw();
-    });
-  });
-}
-
-function row(m) {
-  const status = (m.notes || []).length
-    ? `<span class="small down">${m.notes.join("; ")}</span>`
-    : m.is_new ? `<span class="tag">new listing</span>`
-    : HELD.has(m.symbol) ? `<span class="tag up">in universe</span>`
-    : `<span class="small muted">eligible</span>`;
-
-  return `<tr>
-    <td class="num muted">${m.rank}</td>
-    <td><span class="sym"><span class="badge">${(m.base || "?").slice(0, 3)}</span>
-      ${m.symbol}</span></td>
-    <td class="num">${fmt.compact(m.quote_volume)}</td>
-    <td class="num ${sign(m.change_24h_pct)}">${fmt.pct(m.change_24h_pct, 1)}</td>
-    <td class="num muted">${fmt.price(m.price)}</td>
-    <td class="num muted">${m.age_days == null ? "—" : Math.round(m.age_days) + "d"}</td>
-    <td class="num ${sign(m.news_score)}">${m.news_score ? fmt.num(m.news_score, 2) : "—"}</td>
-    <td class="num muted">${m.beta == null ? "—" : fmt.num(m.beta, 2)}</td>
-    <td>${status}</td>
-  </tr>`;
-}
-
-el("q").addEventListener("input", draw);
-["only-tradable", "only-new", "only-held"].forEach((id) => {
-  el(id).addEventListener("click", () => {
-    const node = el(id);
-    node.setAttribute("aria-pressed",
-      node.getAttribute("aria-pressed") === "true" ? "false" : "true");
-    draw();
-  });
-});
+try {
+  const [s, m] = await Promise.all([load("screen"), load("meta")]);
+  all = s.markets || [];
+  traded = new Set([...(m.universe?.crypto_spot || []), ...(m.universe?.crypto_perp || [])]);
+  const f = freshness(s.as_of);
+  $("fresh").innerHTML = `<span class="dot-live ${f.state}"></span><span>${f.text}</span>`;
+  $("q").oninput = render;
+  $("filter").onclick = (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    for (const x of $("filter").children) x.setAttribute("aria-pressed", String(x === b));
+    mode = b.dataset.f; render();
+  };
+  $("tbl").tHead.onclick = (e) => {
+    const th = e.target.closest("th.sortable"); if (!th) return;
+    sort = { k: th.dataset.k, dir: sort.k === th.dataset.k ? -sort.dir : -1 };
+    render();
+  };
+  render();
+} catch (e) { explain(document.querySelector(".content"), e); }

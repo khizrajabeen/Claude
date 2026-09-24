@@ -4,48 +4,57 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Markets — Meridian</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"auto"}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script>
-/* Resolve the theme before first paint. Without this a page whose
-   stylesheet defaults to dark flashes dark at someone who chose light —
-   the one frame of wrongness people notice most. */
-try {
-  var t = localStorage.getItem("theme") || "auto";
-  document.documentElement.dataset.theme = t;
-} catch (e) { document.documentElement.dataset.theme = "auto"; }
-</script>
-<link rel="stylesheet" href="./assets/app.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
-<div class="aurora"></div>
-<div class="shell">
-  <aside class="rail" data-nav></aside>
-  <main class="main">
-    <div class="page-head">
+<div class="app">
+  <nav class="rail" aria-label="Sections"></nav>
+  <div class="main">
+    <header class="topbar">
       <h1>Markets</h1>
-      <span class="count" id="count"></span>
-      <span class="spacer"></span>
-      <span class="small muted" id="asof"></span>
+      <nav class="tabs" aria-label="Views"></nav>
+      <span class="grow"></span>
+      <span class="pill" id="fresh"><span class="dot-live"></span><span>loading…</span></span>
       <span data-toggle-theme></span>
-    </div>
-    <div id="banner"></div>
-    <section class="tiles" id="tiles"></section>
-
-    <section class="card">
-      <div class="toolbar">
-        <input type="text" id="q" placeholder="Filter by market…">
-        <button class="chip" id="only-tradable" aria-pressed="true">Tradable only</button>
-        <button class="chip" id="only-new" aria-pressed="false">New listings</button>
-        <button class="chip" id="only-held" aria-pressed="false">In my universe</button>
-      </div>
-      <div class="scroll"><table id="table"></table></div>
-      <div id="empty"></div>
-    </section>
-  </main>
+    </header>
+    <main class="content">
+      <div class="grid cols-4" id="tiles" style="margin-bottom:16px"></div>
+      <section class="card">
+        <div class="card-head">
+          <h2>Screened markets</h2>
+          <span class="grow"></span>
+          <input id="q" class="btn-quiet" style="padding:7px 12px;min-width:180px"
+                 placeholder="Search symbol…" aria-label="Search symbol">
+          <div class="seg" id="filter" role="group" aria-label="Filter">
+            <button data-f="all" aria-pressed="true" type="button">All</button>
+            <button data-f="traded" type="button">Traded</button>
+            <button data-f="new" type="button">New</button>
+            <button data-f="news" type="button">In the news</button>
+          </div>
+        </div>
+        <div class="card-body flush"><div class="tbl-wrap"><table class="tbl" id="tbl">
+          <thead><tr>
+            <th class="sortable r" data-k="rank">#</th>
+            <th class="sortable" data-k="symbol">Market</th>
+            <th class="sortable r" data-k="price">Price</th>
+            <th class="sortable r" data-k="change_24h_pct">24h</th>
+            <th class="sortable r" data-k="quote_volume">Volume 24h</th>
+            <th class="sortable r" data-k="beta">Beta</th>
+            <th class="sortable r" data-k="beta_r2">r²</th>
+            <th class="sortable r" data-k="age_days">Age</th>
+            <th class="sortable r" data-k="news_score">News</th>
+            <th>Notes</th>
+          </tr></thead><tbody></tbody>
+        </table></div></div>
+      </section>
+    </main>
+  </div>
 </div>
-<script type="module" src="./assets/markets.js"></script>
+<script type="module" src="assets/markets.js"></script>
 </body>
 </html>

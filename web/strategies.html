@@ -4,58 +4,46 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Strategies — Meridian</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"auto"}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script>
-/* Resolve the theme before first paint. Without this a page whose
-   stylesheet defaults to dark flashes dark at someone who chose light —
-   the one frame of wrongness people notice most. */
-try {
-  var t = localStorage.getItem("theme") || "auto";
-  document.documentElement.dataset.theme = t;
-} catch (e) { document.documentElement.dataset.theme = "auto"; }
-</script>
-<link rel="stylesheet" href="./assets/app.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
-<div class="aurora"></div>
-<div class="shell">
-  <aside class="rail" data-nav></aside>
-  <main class="main">
-    <div class="page-head">
+<div class="app">
+  <nav class="rail" aria-label="Sections"></nav>
+  <div class="main">
+    <header class="topbar">
       <h1>Strategies</h1>
-      <span class="count" id="count"></span>
-      <span class="spacer"></span>
-      <span class="small muted" id="asof"></span>
+      <nav class="tabs" aria-label="Views"></nav>
+      <span class="grow"></span>
+      <span class="pill" id="fresh"><span class="dot-live"></span><span>loading…</span></span>
       <span data-toggle-theme></span>
-    </div>
-    <div id="banner"></div>
-    <section class="cols two" style="margin-bottom:16px">
-      <div class="card">
-        <h3>Live performance <span class="small muted">from the journal</span></h3>
-        <div class="scroll"><table id="live"></table></div>
-        <div id="live-empty"></div>
+    </header>
+    <main class="content">
+      <div class="note" style="margin-bottom:16px">
+        Two strategies are enabled. The rest are kept in the codebase and
+        benchmarked, but do not trade — each one measured worse than the pair
+        that ships, and a driver whose per-trade expectancy is zero
+        diversifies nothing except the fee bill.
       </div>
-      <div class="card">
-        <h3>By asset class</h3>
-        <div class="scroll"><table id="classes"></table></div>
-      </div>
-    </section>
-
-    <section class="card" style="margin-bottom:16px">
-      <h3>The solo bench <span class="small muted">how the roster was chosen</span></h3>
-      <div class="scroll"><table id="bench"></table></div>
-      <p class="small muted" style="margin-top:14px;line-height:1.7" id="bench-note"></p>
-    </section>
-
-    <section class="card">
-      <h3>By market</h3>
-      <div class="scroll"><table id="symbols"></table></div>
-    </section>
-  </main>
+      <div class="grid cols-3" id="cards" style="margin-bottom:16px"></div>
+      <section class="card">
+        <div class="card-head"><h2>Per-asset-class results</h2><span class="grow"></span>
+          <span class="muted" style="font-size:12px" id="period"></span></div>
+        <div class="card-body flush"><div class="tbl-wrap"><table class="tbl" id="tbl">
+          <thead><tr>
+            <th>Asset class</th><th class="r">Trades</th><th class="r">P&amp;L</th>
+            <th class="r">Expectancy</th><th class="r">Std error</th><th class="r">t-stat</th>
+            <th class="r">Profit factor</th><th>Significant?</th>
+          </tr></thead><tbody></tbody>
+        </table></div></div>
+      </section>
+    </main>
+  </div>
 </div>
-<script type="module" src="./assets/strategies.js"></script>
+<script type="module" src="assets/strategies.js"></script>
 </body>
 </html>

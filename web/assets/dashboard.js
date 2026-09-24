@@ -1,296 +1,205 @@
-/* The dashboard.
-
-   Everything on this page comes from the JSON the bot publishes. There is
-   no mock data and no placeholder: if a file is missing the page says so
-   rather than showing a plausible-looking number, because a dashboard
-   that invents figures is worse than one that admits it is empty. */
-
 import {
-  loadAll, fmt, sign, el, sparkline, donut, PALETTE, initTheme,
+  shell, load, explain, usd, pct, num, cls, arrow, price, compact,
+  freshness, chipColour, base,
 } from "./app.js";
-import { renderNav } from "./nav.js";
+import { lineChart, donut } from "./chart.js";
 
-renderNav();
-initTheme();
+shell("dashboard");
 
-const CLASS_LABEL = {
-  crypto_perp: "Crypto futures",
-  crypto_spot: "Crypto spot",
-  equity: "Stocks",
-  etf: "ETFs",
-  futures: "Futures",
-  unknown: "Unclassified",
+const CLASS_NAME = {
+  crypto_spot: "Crypto spot", crypto_perp: "Perpetuals",
+  equity: "Equities", etf: "ETFs",
 };
+const $ = (id) => document.getElementById(id);
 
-let timer = null;
+let daily;   // kept for the range buttons to redraw without refetching
 
-async function render() {
-  const d = await loadAll([
-    "portfolio", "positions", "trades", "daily", "strategies", "meta", "screen",
+function tile(label, value, delta, tone) {
+  return `<div class="card tile">
+    <div class="label">${label}</div>
+    <div class="value">${value}</div>
+    ${delta ? `<div class="delta ${tone || "muted"}">${delta}</div>` : ""}
+  </div>`;
+}
+
+function drawCurve(days) {
+  const rows = daily.curve.slice(-days);
+  lineChart($("curve"),
+    [{ name: "Equity", values: rows.map((r) => ({ x: r.day.slice(5), y: r.equity })) }],
+    { fill: true, height: 280, fmt: (v) => usd(v),
+      yFmt: (v) => compact(v),
+      label: `Account equity over the last ${rows.length} recorded days` });
+}
+
+try {
+  const [p, m, pos, d, strat, screen] = await Promise.all([
+    load("portfolio"), load("meta"), load("positions"),
+    load("daily"), load("strategies"), load("screen").catch(() => null),
   ]);
+  daily = d;
 
-  if (!d.portfolio) {
-    document.getElementById("banner").innerHTML = `
-      <div class="err" style="margin-bottom:16px">
-        <strong>No published data.</strong> This dashboard reads files the bot
-        writes. Run <code>python main.py publish</code> (add
-        <code>--replay-journal</code> to show a backtest) and redeploy, or
-        point it at a server that publishes them.
-      </div>`;
-    setStatus("off", "no data");
-    return;
-  }
-  document.getElementById("banner").innerHTML = "";
+  /* ── Header chrome ───────────────────────────────────── */
+  const f = freshness(p.as_of);
+  $("fresh").innerHTML = `<span class="dot-live ${f.state}"></span><span>${f.text}</span>`;
+  $("mode").textContent = m.mode;
+  $("avatar").textContent = m.mode === "live" ? "LV" : "PA";
 
-  tiles(d.portfolio);
-  status(d.portfolio, d.meta);
-  curve(d.daily);
-  holdings(d.positions, d.portfolio);
-  byClass(d.daily);
-  allocation(d.positions, d.portfolio);
-  trades(d.trades);
-  strategies(d.strategies);
-  screen(d.screen);
-}
+  /* ── Stat tiles ──────────────────────────────────────── */
+  $("tiles").innerHTML = [
+    tile("Portfolio value", usd(p.equity),
+         `${arrow(p.total_return_pct)} ${pct(p.total_return_pct)} from ${usd(p.starting_equity, 0)}`,
+         cls(p.total_return_pct)),
+    tile("Last session P&amp;L", usd(p.daily_pnl),
+         `${arrow(p.daily_pnl)} ${pct(p.daily_return_pct)} on the day`, cls(p.daily_pnl)),
+    tile("Max drawdown", num(p.max_drawdown_pct, 2) + "%",
+         `peak ${usd(p.peak_equity, 0)}`, "muted"),
+    tile("Win rate", num(p.win_rate, 1) + "%",
+         `${p.trades} trades · PF ${num(p.profit_factor, 2)}`, "muted"),
+  ].join("");
 
-/* ── Header ───────────────────────────────────────────── */
+  /* ── Performance ─────────────────────────────────────── */
+  $("badges").innerHTML =
+    `Sharpe ${num(p.sharpe_daily, 2)} · expectancy ${num(p.expectancy_r, 3)}R`;
+  $("legend").innerHTML =
+    `<span><i style="background:var(--s1)"></i>Equity</span>
+     <span class="muted">${d.period.from} → ${d.period.to}</span>
+     <span class="muted">${d.winning_days}W / ${d.losing_days}L / ${d.flat_days} flat</span>`;
+  drawCurve(90);
 
-function setStatus(kind, text) {
-  document.getElementById("status-dot").className = `dot ${kind}`;
-  document.getElementById("status-text").textContent = text;
-}
-
-function status(p, meta) {
-  const age = (Date.now() - new Date(p.as_of).getTime()) / 1000;
-  // A dashboard whose data quietly went stale is the failure worth
-  // shouting about: it looks exactly like one that is working.
-  const kind = p.halted_reason ? "off" : age > 7200 ? "stale" : "";
-  setStatus(kind,
-    p.halted_reason ? `halted — ${p.halted_reason}`
-      : `updated ${fmt.ago(p.as_of)}`);
-
-  if (meta) {
-    const names = (meta.strategies || []).join(", ") || "none";
-    document.getElementById("mode-pill").textContent =
-      `${meta.mode} · ${meta.days_recorded} days · ${names}`;
-  }
-}
-
-function tiles(p) {
-  const rows = [
-    ["Portfolio value", fmt.money(p.equity),
-      `${fmt.pct(p.daily_return_pct)} today`, sign(p.daily_return_pct)],
-    ["Daily P&L", fmt.money(p.daily_pnl), "realised + open",
-      sign(p.daily_pnl)],
-    ["Total return", fmt.pct(p.total_return_pct),
-      `from ${fmt.money(p.starting_equity)}`, sign(p.total_return_pct)],
-    ["Max drawdown", `${fmt.num(p.max_drawdown_pct)}%`, "peak to trough",
-      p.max_drawdown_pct > 10 ? "down" : "muted"],
-    ["Expectancy", `${fmt.num(p.expectancy_r, 3)}R`,
-      `${p.trades} trades · ${fmt.num(p.win_rate, 1)}% win`,
-      sign(p.expectancy_r)],
-  ];
-  document.getElementById("tiles").innerHTML = rows.map(
-    ([label, value, delta, cls]) => `
-      <div class="card stat">
-        <div class="label">${label}</div>
-        <div class="value mono ${cls}">${value}</div>
-        <div class="delta muted">${delta}</div>
-      </div>`).join("");
-}
-
-/* ── Panels ───────────────────────────────────────────── */
-
-function curve(daily) {
-  const host = document.getElementById("curve");
-  const points = (daily?.curve || []).filter((r) => r.equity > 0);
-  if (points.length < 2) {
-    host.innerHTML = `<div class="empty">Not enough history to plot yet.</div>`;
-    return;
-  }
-  host.innerHTML = sparkline(points.map((r) => r.equity));
-  document.getElementById("curve-range").textContent =
-    `${points.length} days`;
-  document.getElementById("curve-start").textContent =
-    `${fmt.day(points[0].day)} · ${fmt.money(points[0].equity)}`;
-  document.getElementById("curve-end").textContent =
-    `${fmt.day(points.at(-1).day)} · ${fmt.money(points.at(-1).equity)}`;
-}
-
-function holdings(positions, p) {
-  const rows = positions?.positions || [];
-  document.getElementById("pos-count").textContent =
-    `${rows.length} of ${p.open_positions ?? rows.length}`;
-  const host = document.getElementById("holdings");
-  if (!rows.length) {
-    host.innerHTML = `<div class="empty">Flat — no positions open.</div>`;
-    return;
-  }
-  host.innerHTML = rows.map((r) => {
-    const notional = (r.quantity || 0) * (r.entry_price || 0);
-    const share = p.equity ? Math.min(100, (notional / p.equity) * 100) : 0;
-    return `
-      <div style="margin-bottom:14px">
-        <div class="row" style="justify-content:space-between;margin-bottom:6px">
-          <span class="sym">
-            <span class="badge">${(r.symbol || "?").slice(0, 3)}</span>
-            <span><div>${r.symbol}</div>
-              <div class="sub">${r.side} · ${r.strategy || "blend"}${
-                r.units > 1 ? ` · ${r.units} units` : ""}${
-                r.leverage > 1 ? ` · ${fmt.num(r.leverage, 1)}x` : ""}</div>
-            </span>
-          </span>
-          <span class="mono small">${fmt.compact(notional)}</span>
-        </div>
-        <div class="bar"><i style="width:${share.toFixed(1)}%"></i></div>
-      </div>`;
-  }).join("");
-}
-
-function byClass(daily) {
-  const classes = daily?.by_asset_class || {};
-  const names = Object.keys(classes);
-  const host = document.getElementById("by-class");
-  if (!names.length) {
-    host.innerHTML = `<div class="empty">No closed trades yet.</div>`;
-    return;
-  }
-  host.innerHTML = `
-    <div style="overflow-x:auto"><table>
-      <thead><tr><th>Class</th><th class="num">Trades</th>
-        <th class="num">P&amp;L</th><th class="num">Win%</th>
-        <th class="num">Expect R</th><th class="num">Real?</th></tr></thead>
-      <tbody>${names.map((n) => {
-        const c = classes[n];
-        return `<tr>
-          <td>${CLASS_LABEL[n] || n}</td>
-          <td class="num">${c.trades}</td>
-          <td class="num ${sign(c.pnl)}">${fmt.money(c.pnl)}</td>
-          <td class="num">${fmt.num(c.win_rate, 1)}</td>
-          <td class="num ${sign(c.expectancy_r)}">${fmt.num(c.expectancy_r, 3)}</td>
-          <td class="num ${c.significant ? "up" : "muted"}">${
-            c.significant ? "yes" : "no"}</td>
-        </tr>`;
-      }).join("")}</tbody>
-    </table></div>
-    <p class="small muted" style="margin-top:12px">
-      "Real?" is whether the expectancy clears the critical t-value for its
-      own sample size. A fine average over a handful of trades is not a
-      finding.</p>`;
-}
-
-function allocation(positions, p) {
-  const rows = positions?.positions || [];
-  const byClassName = {};
-  rows.forEach((r) => {
-    const key = CLASS_LABEL[r.asset_class] || r.asset_class || "Unclassified";
-    byClassName[key] = (byClassName[key] || 0) + (r.quantity || 0) * (r.entry_price || 0);
-  });
-  const invested = Object.values(byClassName).reduce((a, b) => a + b, 0);
-  const cash = Math.max(0, (p.cash ?? 0));
-  if (cash > 0) byClassName["Cash"] = cash;
-
-  const slices = Object.entries(byClassName)
-    .filter(([, v]) => v > 0)
-    .map(([label, value], i) => ({
-      label, value,
-      color: label === "Cash" ? "var(--ink-3)" : PALETTE[i % PALETTE.length],
-    }));
-
-  document.getElementById("donut").innerHTML = donut(slices);
-  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
-  document.getElementById("alloc-legend").innerHTML = slices.map((s) => `
-    <div><span class="swatch" style="background:${s.color}"></span>
-      <span>${s.label}</span>
-      <span class="val">${((s.value / total) * 100).toFixed(0)}%</span></div>`
-  ).join("") || `<div class="empty">Nothing allocated.</div>`;
-  void invested;
-}
-
-function trades(data) {
-  const rows = (data?.trades || []).slice(0, 12);
-  const table = document.getElementById("trade-table");
-  if (!rows.length) {
-    table.outerHTML = `<div class="empty" id="trade-table">No closed trades yet.</div>`;
-    return;
-  }
-  table.innerHTML = `
-    <thead><tr><th>Market</th><th>Side</th><th class="num">P&amp;L</th>
-      <th class="num">R</th><th>Exit</th><th>Closed</th></tr></thead>
-    <tbody>${rows.map((t) => `
-      <tr>
-        <td><span class="sym"><span class="badge">${(t.symbol || "?").slice(0, 3)}</span>
-          <span><div>${t.symbol}</div>
-          <div class="sub">${t.strategy || "blend"}</div></span></span></td>
-        <td class="${t.side === "long" ? "up" : "down"}">${t.side}</td>
-        <td class="num ${sign(t.pnl)}">${fmt.money(t.pnl)}</td>
-        <td class="num ${sign(t.r_multiple)}">${fmt.num(t.r_multiple, 2)}</td>
-        <td class="muted small">${(t.exit_reason || "").replace(/_/g, " ")}</td>
-        <td class="muted small">${fmt.day(t.closed_on_day)}</td>
-      </tr>`).join("")}</tbody>`;
-}
-
-function strategies(data) {
-  const stats = data?.strategies || {};
-  const names = Object.keys(stats);
-  const table = document.getElementById("strategy-table");
-  if (!names.length) {
-    table.outerHTML = `<div class="empty" id="strategy-table">No strategy history yet.</div>`;
-    return;
-  }
-  const expectancy = (s) => s.avg_r ?? s.expectancy_r ?? s.expectancy ?? 0;
-  const rowOf = (n) => {
-    const s = stats[n] || {};
-    const exp = expectancy(s);
-    return `<tr>
-      <td>${n}</td>
-      <td class="num">${s.trades ?? s.sample ?? 0}</td>
-      <td class="num ${sign(s.pnl ?? 0)}">${fmt.money(s.pnl ?? 0)}</td>
-      <td class="num ${sign(exp)}">${fmt.num(exp, 3)}</td>
-      <td class="num">${fmt.num(s.win_rate ?? 0, 1)}</td>
-    </tr>`;
+  // A Sharpe this high over ninety days is not what a real edge
+  // produces; it is what a lucky window looks like, and the roster was
+  // chosen by looking at this window. Saying so next to the number is
+  // the difference between a report and a sales pitch.
+  const n = daily.curve.length;
+  $("caveat").textContent =
+    `Measured over ${n} recorded days on ${p.trades} trades — a sample this ` +
+    `short cannot separate edge from luck, and the strategy roster was ` +
+    `chosen by looking at this same window. Treat the ratios as a ` +
+    `description of what happened, not a forecast.`;
+  $("range").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    for (const x of $("range").children) x.setAttribute("aria-pressed", String(x === b));
+    drawCurve(Number(b.dataset.days));
   };
-  // Best first, so what is working is the first thing read.
-  const ordered = names.slice().sort(
-    (a, b) => (stats[b].pnl ?? 0) - (stats[a].pnl ?? 0));
-  table.innerHTML = `
-    <thead><tr><th>Strategy</th><th class="num">Trades</th>
-      <th class="num">P&amp;L</th><th class="num">Expect R</th>
-      <th class="num">Win%</th></tr></thead>
-    <tbody>${ordered.map(rowOf).join("")}</tbody>`;
-}
 
-function screen(data) {
-  const rows = (data?.markets || []).slice(0, 12);
-  const table = document.getElementById("screen-table");
-  if (!rows.length) {
-    document.getElementById("screen-note").textContent =
-      "run `python main.py publish --screen` to fill this in";
-    table.outerHTML = `<div class="empty" id="screen-table">No screen published.</div>`;
-    return;
+  /* ── Open positions ──────────────────────────────────── */
+  const rows = pos.positions || [];
+  $("poscount").textContent = `${rows.length} of ${m.risk.max_open_positions}`;
+  $("positions").innerHTML = rows.length ? rows.map((r) => {
+    // Risk per unit is entry-to-stop in the losing direction. If that
+    // comes out negative the stop sits on the wrong side of the entry,
+    // which is a broken position, not a 68R winner. Say so instead of
+    // dividing by it.
+    const risk = r.side === "long" ? r.entry_price - r.stop_price
+                                   : r.stop_price - r.entry_price;
+    const broken = !(risk > 0);
+    const target = broken ? null
+      : Math.abs((r.take_profit - r.entry_price) / risk);
+    return `<div class="row">
+      <span class="asset">
+        <span class="coin" style="background:${chipColour(r.symbol)}">${base(r.symbol).slice(0, 3)}</span>
+        <span><span class="nm">${r.symbol}</span>
+          <span class="tk">${CLASS_NAME[r.asset_class] || r.asset_class} · ${r.strategy}</span></span>
+      </span>
+      <span class="grow"></span>
+      <span class="col"><div class="k num">${price(r.entry_price)}</div>
+        <div class="v">${r.quantity} @ ${r.leverage}×</div></span>
+      <span class="pill ${r.side === "long" ? "up" : "down"}">${r.side}</span>
+      ${broken
+        ? `<span class="pill warn" title="Stop is on the wrong side of the entry">stop inverted</span>`
+        : `<span class="col"><div class="k num">${usd(r.risk_usd)}</div>
+             <div class="v">risk · ${num(target, 1)}R target</div></span>`}
+    </div>`;
+  }).join("") : `<p class="empty">Flat — no positions open.</p>`;
+
+  /* ── Allocation by risk factor ───────────────────────── */
+  const byClass = Object.entries(d.by_asset_class);
+  const risked = rows.reduce((a, r) => a + r.risk_usd, 0);
+  // Slices are the SIZE of each class's contribution, signed in the
+  // legend. Labelling |P&L| as "allocation" would be a lie with a
+  // picture attached.
+  donut($("donut"),
+    byClass.map(([k, v]) => ({ name: CLASS_NAME[k] || k, value: Math.abs(v.pnl) })),
+    { centreValue: usd(risked, 0), centreLabel: "at risk now",
+      label: "Share of profit and loss by asset class" });
+  $("donut-legend").innerHTML = byClass.map(([k, v], i) =>
+    `<span style="display:flex;align-items:center;width:100%">
+       <i style="background:var(--s${(i % 6) + 1})"></i>${CLASS_NAME[k] || k}
+       <span class="grow" style="flex:1"></span>
+       <span class="num ${cls(v.pnl)}">${usd(v.pnl, 0)}</span></span>`).join("");
+  $("riskstats").innerHTML = [
+    ["Heat cap", num(m.risk.max_portfolio_heat_pct, 1) + "%"],
+    ["Per trade", num(m.risk.risk_per_trade_pct, 2) + "%"],
+    ["Daily stop", "−" + num(m.risk.max_daily_loss_pct, 1) + "%"],
+  ].map(([k, v]) => `<span><div class="tk muted">${k}</div>
+     <div class="num" style="font-size:14px;margin-top:3px">${v}</div></span>`).join("");
+
+  /* ── Top movers, from the screen ─────────────────────── */
+  const mk = (screen?.markets || []).filter((x) => x.change_24h_pct != null);
+  const sorted = [...mk].sort((a, b) => b.change_24h_pct - a.change_24h_pct);
+  const col = (title, list, tone) =>
+    `<div style="border-right:1px solid var(--line-soft)">
+      <div class="tk muted" style="padding:12px 16px 6px;font-weight:640;
+           letter-spacing:.06em;text-transform:uppercase;font-size:10.5px;color:var(--${tone})">${title}</div>
+      ${list.map((r) => `<div class="row" style="padding:9px 16px">
+        <span class="asset"><span class="coin" style="background:${chipColour(r.symbol)};
+          width:24px;height:24px;font-size:9px">${base(r.symbol).slice(0, 3)}</span>
+          <span class="nm" style="font-size:12.5px">${base(r.symbol)}</span></span>
+        <span class="grow"></span>
+        <span class="num ${cls(r.change_24h_pct)}" style="font-size:12.5px">${pct(r.change_24h_pct, 1)}</span>
+      </div>`).join("")}
+    </div>`;
+  $("movers").innerHTML = mk.length
+    ? col("Gainers", sorted.slice(0, 5), "up") +
+      col("Losers", sorted.slice(-5).reverse(), "down").replace("border-right", "border-left")
+    : `<p class="empty">Run the screener to populate movers.</p>`;
+
+  /* ── Market intelligence ─────────────────────────────
+   * News when there is news. When there is none, the honest
+   * fallback is what the screen DID measure — breadth, how tightly
+   * the market is following BTC, and what is newly listed. An empty
+   * card is a wasted third of the row; an invented headline is worse. */
+  const scored = (screen?.markets || [])
+    .filter((r) => r.news_articles > 0)
+    .sort((a, b) => Math.abs(b.news_score) - Math.abs(a.news_score))
+    .slice(0, 6);
+
+  if (scored.length) {
+    $("newscount").textContent = `${scored.length} in the news`;
+    $("news").innerHTML = scored.map((r) => `
+      <div class="news">
+        <div class="tag">${base(r.symbol)} · rank ${r.rank}${r.is_new ? " · new listing" : ""}</div>
+        <p>${r.news_articles} article${r.news_articles === 1 ? "" : "s"} scored
+           <b class="${cls(r.news_score)}">${num(r.news_score, 2)}</b>,
+           beta ${num(r.beta, 2)} to BTC, 24h ${pct(r.change_24h_pct, 1)}.</p>
+      </div>`).join("");
+  } else if (mk.length) {
+    const up = mk.filter((r) => r.change_24h_pct > 0).length;
+    const tight = mk.filter((r) => r.beta_r2 > 0.5);
+    const highBeta = [...tight].sort((a, b) => b.beta - a.beta).slice(0, 3);
+    const fresh = mk.filter((r) => r.is_new).length;
+    const btc = mk.find((r) => r.symbol.startsWith("BTC/"));
+    $("newscount").textContent = "from the screen";
+    $("news").innerHTML = `
+      <div class="news"><div class="tag">Breadth</div>
+        <p><b class="${cls(up * 2 - mk.length)}">${up} of ${mk.length}</b> screened markets
+           are up over 24h${btc ? `, with BTC ${pct(btc.change_24h_pct, 1)}` : ""}.
+           Breadth this wide means the move is the market, not the pick.</p></div>
+      <div class="news"><div class="tag">Correlation to BTC</div>
+        <p>${tight.length} markets track BTC closely enough to measure
+           (r² &gt; 0.5). The highest beta:
+           ${highBeta.map((r) => `<b>${base(r.symbol)} ${num(r.beta, 2)}</b>`).join(", ")}.
+           Holding several of those is one bet in different wrappers.</p></div>
+      <div class="news"><div class="tag">New listings</div>
+        <p>${fresh || "No"} market${fresh === 1 ? "" : "s"} below the minimum age
+           threshold${fresh ? " — excluded from entry until they have history to measure" : "."}</p></div>
+      <div class="news"><div class="tag">News coverage</div>
+        <p>No scored articles in the last screen. Add a news key on the
+           settings page to widen per-coin coverage.</p></div>`;
+  } else {
+    $("news").innerHTML = `<p class="empty">Run the screener to populate this.</p>`;
   }
-  table.innerHTML = `
-    <thead><tr><th>#</th><th>Market</th><th class="num">24h volume</th>
-      <th class="num">24h</th><th class="num">Age</th>
-      <th class="num">News</th><th>Note</th></tr></thead>
-    <tbody>${rows.map((m) => `
-      <tr>
-        <td class="muted">${m.rank}</td>
-        <td><span class="sym"><span class="badge">${(m.base || "?").slice(0, 3)}</span>
-          ${m.symbol}</span></td>
-        <td class="num">${fmt.compact(m.quote_volume)}</td>
-        <td class="num ${sign(m.change_24h_pct)}">${fmt.pct(m.change_24h_pct, 1)}</td>
-        <td class="num muted">${m.age_days == null ? "—" : Math.round(m.age_days) + "d"}</td>
-        <td class="num ${sign(m.news_score)}">${fmt.num(m.news_score, 2)}</td>
-        <td class="small muted">${(m.notes || []).join("; ") || (m.is_new ? "new listing" : "")}</td>
-      </tr>`).join("")}</tbody>`;
+} catch (e) {
+  explain(document.querySelector(".content"), e);
 }
-
-/* ── Lifecycle ────────────────────────────────────────── */
-
-document.getElementById("refresh").addEventListener("click", () => render());
-render();
-// The bot publishes on its own schedule; polling keeps a left-open tab
-// from drifting without anyone noticing.
-timer = setInterval(render, 60_000);
-window.addEventListener("beforeunload", () => clearInterval(timer));
