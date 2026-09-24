@@ -289,9 +289,31 @@ class PaperBroker:
 
         This is the entry-side counterpart of a trailing stop: the trail
         protects a winner, and this one presses it. The combined position
-        is carried at a weighted-average entry, and the stop is *not*
-        loosened — a pyramid that widens its own stop to accommodate the
-        new unit has quietly increased the risk it was sized for.
+        is carried at a weighted-average entry, and the stop is pulled up
+        so that the whole position still risks what the original unit
+        risked.
+
+        That last part was the bug that made this strategy lose money.
+        The old code left the stop where it was, on the stated grounds
+        that moving it would "quietly increase the risk it was sized
+        for". The opposite is true: leaving it still adds a second unit
+        with its own full stop distance, so the risk grows with the
+        size. Measured on a 10-unit position risking $40, one half-size
+        add took the real risk to $80 — exactly double — and the
+        stop-out lost $83.60, or 1.57R.
+
+        Across 87 replayed trades that showed up as an average loss of
+        1.43R against an average win of 0.77R, with 92% of losses
+        exceeding the 1R the position was supposedly sized to. It also
+        produced the contradiction of a "breakeven" stop losing 1.25R:
+        the stop was parked at the ORIGINAL entry while the averaged
+        entry had moved above it, so breakeven was a loss by
+        construction.
+
+        The stop now solves for the distance that keeps total risk at
+        the original budget: new_stop = avg_entry -/+ risk_usd / qty.
+        Pyramiding stays what it is meant to be — more size on a winner,
+        not more risk.
         """
         now = now or datetime.now(timezone.utc)
         quantity = float(order.quantity)
@@ -325,9 +347,28 @@ class PaperBroker:
         position.entry_fee += fee
         position.units += 1
 
+        # Hold total risk at the original budget. Without this the added
+        # unit carries its own full stop distance and the position risks
+        # a multiple of what it was sized for.
+        direction = position.direction
+        budget = position.risk_usd
+        if budget > 0 and total > 0:
+            required = budget / total
+            tightened = position.entry_price - direction * required
+            # Only ever pull the stop closer. If the trail has already
+            # moved it past this point, the trail is the tighter of the
+            # two and stays.
+            if ((direction == 1 and tightened > position.stop_price)
+                    or (direction == -1 and tightened < position.stop_price)):
+                logger.info("  %s stop tightened for the added unit: "
+                            "%.6f → %.6f (risk held at $%.2f)",
+                            position.symbol, position.stop_price, tightened, budget)
+                position.stop_price = tightened
+
         logger.info(
-            "  Added unit %d to %s %s at %.4f — size now %.4f",
+            "  Added unit %d to %s %s at %.4f — size now %.4f, risk $%.2f",
             position.units, position.side, position.symbol, fill, total,
+            abs(position.entry_price - position.stop_price) * total,
         )
         return True
 

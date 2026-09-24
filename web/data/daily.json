@@ -1,23 +1,23 @@
 {
-  "as_of": "2026-09-24T10:28:36+00:00",
+  "as_of": "2026-09-24T11:10:10+00:00",
   "by_asset_class": {
     "crypto_spot": {
-      "avg_loss_r": -1.432,
-      "avg_win_r": 0.767,
+      "avg_loss_r": -1.131,
+      "avg_win_r": 0.996,
       "exit_reasons": {
-        "breakeven_stop": 2,
-        "stop_loss": 42,
-        "take_profit": 27,
-        "time_stop": 14,
-        "trailing_stop": 2
+        "breakeven_stop": 3,
+        "stop_loss": 27,
+        "take_profit": 12,
+        "time_stop": 7,
+        "trailing_stop": 3
       },
-      "expectancy_r": -0.573,
-      "fees": 490.66,
+      "expectancy_r": -0.435,
+      "fees": 269.54,
       "funding": 0.0,
-      "losses": 53,
-      "pnl": -1298.42,
-      "profit_factor": 0.36,
-      "se_r": 0.125,
+      "losses": 35,
+      "pnl": -807.33,
+      "profit_factor": 0.37,
+      "se_r": 0.154,
       "significant": true,
       "symbols": [
         "AAVE/USD",
@@ -28,236 +28,262 @@
         "LDO/USD",
         "LINK/USD",
         "ONDO/USD",
+        "PEPE/USD",
         "POL/USD",
         "SHIB/USD",
         "SKY/USD",
         "SOL/USD",
         "SUSHI/USD",
-        "TRUMP/USD",
         "UNI/USD",
         "WIF/USD",
         "XRP/USD",
         "XTZ/USD"
       ],
-      "t_critical": 1.98,
-      "t_stat": -4.57,
-      "trades": 87,
-      "trades_for_significance": 19,
-      "win_rate": 39.1,
-      "wins": 34
+      "t_critical": 2.0,
+      "t_stat": -2.84,
+      "trades": 52,
+      "trades_for_significance": 28,
+      "win_rate": 32.7,
+      "wins": 17
     }
   },
   "by_symbol": {
     "AAVE/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.309,
-      "avg_win_r": 0.849,
+      "avg_loss_r": -0.979,
+      "avg_win_r": 0.0,
       "exit_reasons": {
-        "breakeven_stop": 1,
-        "take_profit": 1
+        "stop_loss": 3,
+        "trailing_stop": 1
       },
-      "expectancy_r": -0.23,
-      "fees": 19.21,
+      "expectancy_r": -0.979,
+      "fees": 15.86,
       "funding": 0.0,
-      "losses": 1,
-      "pnl": -20.33,
-      "profit_factor": 0.64,
-      "se_r": 1.079,
-      "significant": false,
+      "losses": 4,
+      "pnl": -115.97,
+      "profit_factor": 0.0,
+      "se_r": 0.217,
+      "significant": true,
       "symbols": [
         "AAVE/USD"
       ],
-      "t_critical": 12.71,
-      "t_stat": -0.21,
-      "trades": 2,
-      "trades_for_significance": 170,
-      "win_rate": 50.0,
-      "wins": 1
+      "t_critical": 3.182,
+      "t_stat": -4.51,
+      "trades": 4,
+      "trades_for_significance": 32,
+      "win_rate": 0.0,
+      "wins": 0
     },
     "ADA/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.52,
-      "avg_win_r": 1.015,
+      "avg_loss_r": -0.956,
+      "avg_win_r": 1.008,
       "exit_reasons": {
-        "take_profit": 2,
-        "time_stop": 2
+        "breakeven_stop": 1,
+        "stop_loss": 1,
+        "take_profit": 1
       },
-      "expectancy_r": -0.253,
-      "fees": 30.44,
+      "expectancy_r": -0.302,
+      "fees": 29.46,
       "funding": 0.0,
       "losses": 2,
-      "pnl": -3.21,
-      "profit_factor": 0.95,
-      "se_r": 0.736,
+      "pnl": -52.18,
+      "profit_factor": 0.42,
+      "se_r": 0.673,
       "significant": false,
       "symbols": [
         "ADA/USD"
       ],
-      "t_critical": 3.182,
-      "t_stat": -0.34,
-      "trades": 4,
-      "trades_for_significance": 131,
-      "win_rate": 50.0,
-      "wins": 2
+      "t_critical": 4.303,
+      "t_stat": -0.45,
+      "trades": 3,
+      "trades_for_significance": 60,
+      "win_rate": 33.3,
+      "wins": 1
     },
     "ARB/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.496,
-      "avg_win_r": 1.078,
-      "exit_reasons": {
-        "stop_loss": 5,
-        "take_profit": 2
-      },
-      "expectancy_r": -0.761,
-      "fees": 51.08,
-      "funding": 0.0,
-      "losses": 5,
-      "pnl": -117.8,
-      "profit_factor": 0.49,
-      "se_r": 0.475,
-      "significant": false,
-      "symbols": [
-        "ARB/USD"
-      ],
-      "t_critical": 2.447,
-      "t_stat": -1.6,
-      "trades": 7,
-      "trades_for_significance": 14,
-      "win_rate": 28.6,
-      "wins": 2
-    },
-    "CRV/USD": {
-      "asset_class": "crypto_spot",
-      "avg_loss_r": -1.328,
-      "avg_win_r": 1.263,
-      "exit_reasons": {
-        "stop_loss": 4,
-        "take_profit": 5,
-        "time_stop": 1
-      },
-      "expectancy_r": -0.032,
-      "fees": 35.35,
-      "funding": 0.0,
-      "losses": 5,
-      "pnl": -32.83,
-      "profit_factor": 0.76,
-      "se_r": 0.44,
-      "significant": false,
-      "symbols": [
-        "CRV/USD"
-      ],
-      "t_critical": 2.262,
-      "t_stat": -0.07,
-      "trades": 10,
-      "trades_for_significance": 7125,
-      "win_rate": 50.0,
-      "wins": 5
-    },
-    "HYPE/USD": {
-      "asset_class": "crypto_spot",
-      "avg_loss_r": -1.539,
-      "avg_win_r": 0.712,
+      "avg_loss_r": -1.389,
+      "avg_win_r": 1.119,
       "exit_reasons": {
         "stop_loss": 2,
         "take_profit": 1
       },
-      "expectancy_r": -0.789,
-      "fees": 24.79,
+      "expectancy_r": -0.553,
+      "fees": 12.49,
       "funding": 0.0,
       "losses": 2,
-      "pnl": -37.17,
-      "profit_factor": 0.63,
-      "se_r": 0.75,
+      "pnl": -47.73,
+      "profit_factor": 0.31,
+      "se_r": 0.839,
+      "significant": false,
+      "symbols": [
+        "ARB/USD"
+      ],
+      "t_critical": 4.303,
+      "t_stat": -0.66,
+      "trades": 3,
+      "trades_for_significance": 30,
+      "win_rate": 33.3,
+      "wins": 1
+    },
+    "CRV/USD": {
+      "asset_class": "crypto_spot",
+      "avg_loss_r": -0.85,
+      "avg_win_r": 1.569,
+      "exit_reasons": {
+        "stop_loss": 3,
+        "take_profit": 3,
+        "time_stop": 1
+      },
+      "expectancy_r": 0.187,
+      "fees": 28.29,
+      "funding": 0.0,
+      "losses": 4,
+      "pnl": -42.23,
+      "profit_factor": 0.66,
+      "se_r": 0.511,
+      "significant": false,
+      "symbols": [
+        "CRV/USD"
+      ],
+      "t_critical": 2.447,
+      "t_stat": 0.37,
+      "trades": 7,
+      "trades_for_significance": 202,
+      "win_rate": 42.9,
+      "wins": 3
+    },
+    "HYPE/USD": {
+      "asset_class": "crypto_spot",
+      "avg_loss_r": -1.185,
+      "avg_win_r": 0.712,
+      "exit_reasons": {
+        "stop_loss": 3,
+        "take_profit": 1,
+        "time_stop": 1
+      },
+      "expectancy_r": -0.806,
+      "fees": 33.42,
+      "funding": 0.0,
+      "losses": 4,
+      "pnl": -111.51,
+      "profit_factor": 0.36,
+      "se_r": 0.391,
       "significant": false,
       "symbols": [
         "HYPE/USD"
       ],
-      "t_critical": 4.303,
-      "t_stat": -1.05,
-      "trades": 3,
-      "trades_for_significance": 14,
-      "win_rate": 33.3,
+      "t_critical": 2.776,
+      "t_stat": -2.06,
+      "trades": 5,
+      "trades_for_significance": 10,
+      "win_rate": 20.0,
       "wins": 1
     },
     "LDO/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.711,
-      "avg_win_r": 0.0,
+      "avg_loss_r": -1.258,
+      "avg_win_r": 0.007,
       "exit_reasons": {
-        "stop_loss": 4,
-        "time_stop": 3
+        "stop_loss": 2,
+        "time_stop": 1
       },
-      "expectancy_r": -1.711,
-      "fees": 37.87,
+      "expectancy_r": -0.837,
+      "fees": 14.86,
       "funding": 0.0,
-      "losses": 7,
-      "pnl": -310.0,
+      "losses": 2,
+      "pnl": -100.99,
       "profit_factor": 0.0,
-      "se_r": 0.224,
-      "significant": true,
+      "se_r": 0.422,
+      "significant": false,
       "symbols": [
         "LDO/USD"
       ],
-      "t_critical": 2.447,
-      "t_stat": -7.64,
-      "trades": 7,
-      "trades_for_significance": 20,
-      "win_rate": 0.0,
-      "wins": 0
+      "t_critical": 4.303,
+      "t_stat": -1.98,
+      "trades": 3,
+      "trades_for_significance": 15,
+      "win_rate": 33.3,
+      "wins": 1
     },
     "LINK/USD": {
       "asset_class": "crypto_spot",
       "avg_loss_r": 0.0,
-      "avg_win_r": 0.196,
+      "avg_win_r": 0.908,
       "exit_reasons": {
-        "take_profit": 4,
-        "time_stop": 2
+        "take_profit": 2,
+        "time_stop": 1
       },
-      "expectancy_r": 0.196,
-      "fees": 57.52,
+      "expectancy_r": 0.908,
+      "fees": 16.11,
       "funding": 0.0,
       "losses": 0,
-      "pnl": 30.47,
+      "pnl": 34.71,
       "profit_factor": 0.0,
-      "se_r": 0.087,
+      "se_r": 0.433,
       "significant": false,
       "symbols": [
         "LINK/USD"
       ],
-      "t_critical": 2.571,
-      "t_stat": 2.24,
-      "trades": 6,
-      "trades_for_significance": 10,
+      "t_critical": 4.303,
+      "t_stat": 2.1,
+      "trades": 3,
+      "trades_for_significance": 13,
       "win_rate": 100.0,
-      "wins": 6
+      "wins": 3
     },
     "ONDO/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -0.783,
-      "avg_win_r": 0.51,
+      "avg_loss_r": -1.283,
+      "avg_win_r": 0.411,
       "exit_reasons": {
-        "stop_loss": 1,
-        "take_profit": 1,
-        "time_stop": 3,
-        "trailing_stop": 1
+        "breakeven_stop": 1,
+        "stop_loss": 2,
+        "time_stop": 1
       },
-      "expectancy_r": -0.136,
-      "fees": 13.46,
+      "expectancy_r": -0.86,
+      "fees": 14.05,
       "funding": 0.0,
       "losses": 3,
-      "pnl": -58.34,
-      "profit_factor": 0.19,
-      "se_r": 0.384,
+      "pnl": -94.42,
+      "profit_factor": 0.04,
+      "se_r": 0.428,
       "significant": false,
       "symbols": [
         "ONDO/USD"
       ],
-      "t_critical": 2.571,
-      "t_stat": -0.35,
-      "trades": 6,
-      "trades_for_significance": 184,
-      "win_rate": 50.0,
-      "wins": 3
+      "t_critical": 3.182,
+      "t_stat": -2.01,
+      "trades": 4,
+      "trades_for_significance": 11,
+      "win_rate": 25.0,
+      "wins": 1
+    },
+    "PEPE/USD": {
+      "asset_class": "crypto_spot",
+      "avg_loss_r": -0.933,
+      "avg_win_r": 0.0,
+      "exit_reasons": {
+        "stop_loss": 1
+      },
+      "expectancy_r": -0.933,
+      "fees": 4.54,
+      "funding": 0.0,
+      "losses": 1,
+      "pnl": -21.63,
+      "profit_factor": 0.0,
+      "se_r": 0.0,
+      "significant": false,
+      "symbols": [
+        "PEPE/USD"
+      ],
+      "t_critical": 12.71,
+      "t_stat": 0.0,
+      "trades": 1,
+      "trades_for_significance": 0,
+      "win_rate": 0.0,
+      "wins": 0
     },
     "POL/USD": {
       "asset_class": "crypto_spot",
@@ -267,10 +293,10 @@
         "stop_loss": 1
       },
       "expectancy_r": -1.418,
-      "fees": 9.29,
+      "fees": 9.46,
       "funding": 0.0,
       "losses": 1,
-      "pnl": -77.76,
+      "pnl": -79.21,
       "profit_factor": 0.0,
       "se_r": 0.0,
       "significant": false,
@@ -286,171 +312,147 @@
     },
     "SHIB/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.369,
-      "avg_win_r": 0.0,
+      "avg_loss_r": 0.0,
+      "avg_win_r": 1.055,
       "exit_reasons": {
-        "stop_loss": 3
+        "take_profit": 1
       },
-      "expectancy_r": -1.369,
-      "fees": 4.99,
+      "expectancy_r": 1.055,
+      "fees": 3.97,
       "funding": 0.0,
-      "losses": 3,
-      "pnl": -44.47,
+      "losses": 0,
+      "pnl": 22.47,
       "profit_factor": 0.0,
-      "se_r": 0.041,
-      "significant": true,
+      "se_r": 0.0,
+      "significant": false,
       "symbols": [
         "SHIB/USD"
       ],
-      "t_critical": 4.303,
-      "t_stat": -33.55,
-      "trades": 3,
-      "trades_for_significance": 1,
-      "win_rate": 0.0,
-      "wins": 0
+      "t_critical": 12.71,
+      "t_stat": 0.0,
+      "trades": 1,
+      "trades_for_significance": 0,
+      "win_rate": 100.0,
+      "wins": 1
     },
     "SKY/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.429,
+      "avg_loss_r": -1.284,
       "avg_win_r": 0.0,
       "exit_reasons": {
-        "stop_loss": 5
+        "stop_loss": 2,
+        "time_stop": 1
       },
-      "expectancy_r": -1.429,
-      "fees": 20.03,
+      "expectancy_r": -1.284,
+      "fees": 11.65,
       "funding": 0.0,
-      "losses": 5,
-      "pnl": -164.41,
+      "losses": 3,
+      "pnl": -89.6,
       "profit_factor": 0.0,
-      "se_r": 0.005,
+      "se_r": 0.141,
       "significant": true,
       "symbols": [
         "SKY/USD"
       ],
-      "t_critical": 2.776,
-      "t_stat": -311.99,
-      "trades": 5,
-      "trades_for_significance": 1,
+      "t_critical": 4.303,
+      "t_stat": -9.13,
+      "trades": 3,
+      "trades_for_significance": 6,
       "win_rate": 0.0,
       "wins": 0
     },
     "SOL/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.28,
+      "avg_loss_r": -1.475,
       "avg_win_r": 0.0,
       "exit_reasons": {
         "stop_loss": 2
       },
-      "expectancy_r": -1.28,
-      "fees": 15.98,
+      "expectancy_r": -1.475,
+      "fees": 20.73,
       "funding": 0.0,
       "losses": 2,
-      "pnl": -96.59,
+      "pnl": -83.51,
       "profit_factor": 0.0,
-      "se_r": 0.009,
-      "significant": true,
+      "se_r": 0.186,
+      "significant": false,
       "symbols": [
         "SOL/USD"
       ],
       "t_critical": 12.71,
-      "t_stat": -139.81,
+      "t_stat": -7.91,
       "trades": 2,
-      "trades_for_significance": 1,
+      "trades_for_significance": 6,
       "win_rate": 0.0,
       "wins": 0
     },
     "SUSHI/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.393,
-      "avg_win_r": 1.392,
+      "avg_loss_r": -1.429,
+      "avg_win_r": 1.571,
       "exit_reasons": {
-        "stop_loss": 4,
+        "stop_loss": 1,
         "take_profit": 2
       },
-      "expectancy_r": -0.465,
-      "fees": 12.83,
+      "expectancy_r": 0.571,
+      "fees": 12.06,
       "funding": 0.0,
-      "losses": 4,
-      "pnl": -54.02,
-      "profit_factor": 0.31,
-      "se_r": 0.589,
+      "losses": 1,
+      "pnl": 165.08,
+      "profit_factor": 13.21,
+      "se_r": 1.006,
       "significant": false,
       "symbols": [
         "SUSHI/USD"
       ],
-      "t_critical": 2.571,
-      "t_stat": -0.79,
-      "trades": 6,
-      "trades_for_significance": 40,
-      "win_rate": 33.3,
+      "t_critical": 4.303,
+      "t_stat": 0.57,
+      "trades": 3,
+      "trades_for_significance": 39,
+      "win_rate": 66.7,
       "wins": 2
-    },
-    "TRUMP/USD": {
-      "asset_class": "crypto_spot",
-      "avg_loss_r": -1.519,
-      "avg_win_r": 0.144,
-      "exit_reasons": {
-        "stop_loss": 1,
-        "take_profit": 1
-      },
-      "expectancy_r": -0.688,
-      "fees": 15.48,
-      "funding": 0.0,
-      "losses": 1,
-      "pnl": -10.07,
-      "profit_factor": 0.48,
-      "se_r": 0.831,
-      "significant": false,
-      "symbols": [
-        "TRUMP/USD"
-      ],
-      "t_critical": 12.71,
-      "t_stat": -0.83,
-      "trades": 2,
-      "trades_for_significance": 15,
-      "win_rate": 50.0,
-      "wins": 1
     },
     "UNI/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.489,
-      "avg_win_r": 0.664,
+      "avg_loss_r": -0.938,
+      "avg_win_r": 0.988,
       "exit_reasons": {
-        "stop_loss": 8,
-        "take_profit": 4,
-        "time_stop": 2,
+        "breakeven_stop": 1,
+        "stop_loss": 2,
+        "take_profit": 1,
+        "time_stop": 1,
         "trailing_stop": 1
       },
-      "expectancy_r": -0.484,
-      "fees": 62.88,
+      "expectancy_r": -0.296,
+      "fees": 19.12,
       "funding": 0.0,
-      "losses": 8,
-      "pnl": -286.5,
-      "profit_factor": 0.19,
-      "se_r": 0.326,
+      "losses": 4,
+      "pnl": -71.92,
+      "profit_factor": 0.23,
+      "se_r": 0.487,
       "significant": false,
       "symbols": [
         "UNI/USD"
       ],
-      "t_critical": 2.145,
-      "t_stat": -1.48,
-      "trades": 15,
-      "trades_for_significance": 29,
-      "win_rate": 46.7,
-      "wins": 7
+      "t_critical": 2.571,
+      "t_stat": -0.61,
+      "trades": 6,
+      "trades_for_significance": 64,
+      "win_rate": 33.3,
+      "wins": 2
     },
     "WIF/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.425,
-      "avg_win_r": 0.0,
+      "avg_loss_r": 0.0,
+      "avg_win_r": 0.067,
       "exit_reasons": {
-        "stop_loss": 2
+        "trailing_stop": 1
       },
-      "expectancy_r": -1.425,
-      "fees": 5.81,
+      "expectancy_r": 0.067,
+      "fees": 0.63,
       "funding": 0.0,
-      "losses": 2,
-      "pnl": -48.17,
+      "losses": 0,
+      "pnl": 0.6,
       "profit_factor": 0.0,
       "se_r": 0.0,
       "significant": false,
@@ -459,61 +461,60 @@
       ],
       "t_critical": 12.71,
       "t_stat": 0.0,
-      "trades": 2,
+      "trades": 1,
       "trades_for_significance": 0,
-      "win_rate": 0.0,
-      "wins": 0
+      "win_rate": 100.0,
+      "wins": 1
     },
     "XRP/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": -1.463,
+      "avg_loss_r": -1.126,
       "avg_win_r": 0.0,
       "exit_reasons": {
-        "breakeven_stop": 1,
-        "time_stop": 1
+        "stop_loss": 1
       },
-      "expectancy_r": -1.463,
-      "fees": 29.53,
+      "expectancy_r": -1.126,
+      "fees": 16.03,
       "funding": 0.0,
-      "losses": 2,
-      "pnl": -188.6,
+      "losses": 1,
+      "pnl": -80.57,
       "profit_factor": 0.0,
-      "se_r": 0.264,
+      "se_r": 0.0,
       "significant": false,
       "symbols": [
         "XRP/USD"
       ],
       "t_critical": 12.71,
-      "t_stat": -5.54,
-      "trades": 2,
-      "trades_for_significance": 11,
+      "t_stat": 0.0,
+      "trades": 1,
+      "trades_for_significance": 0,
       "win_rate": 0.0,
       "wins": 0
     },
     "XTZ/USD": {
       "asset_class": "crypto_spot",
-      "avg_loss_r": 0.0,
-      "avg_win_r": 0.93,
+      "avg_loss_r": -0.994,
+      "avg_win_r": 0.0,
       "exit_reasons": {
-        "take_profit": 4
+        "stop_loss": 1
       },
-      "expectancy_r": 0.93,
-      "fees": 44.11,
+      "expectancy_r": -0.994,
+      "fees": 6.8,
       "funding": 0.0,
-      "losses": 0,
-      "pnl": 221.38,
+      "losses": 1,
+      "pnl": -38.71,
       "profit_factor": 0.0,
-      "se_r": 0.132,
-      "significant": true,
+      "se_r": 0.0,
+      "significant": false,
       "symbols": [
         "XTZ/USD"
       ],
-      "t_critical": 3.182,
-      "t_stat": 7.07,
-      "trades": 4,
-      "trades_for_significance": 13,
-      "win_rate": 100.0,
-      "wins": 4
+      "t_critical": 12.71,
+      "t_stat": 0.0,
+      "trades": 1,
+      "trades_for_significance": 0,
+      "win_rate": 0.0,
+      "wins": 0
     }
   },
   "curve": [
@@ -574,590 +575,651 @@
       "return_pct": 0.0
     },
     {
-      "by_class": {},
+      "by_class": {
+        "crypto_spot": 96.96
+      },
       "day": "2026-06-03",
-      "equity": 10000.0,
+      "equity": 10093.94,
+      "realized_pnl": 96.96,
+      "return_pct": 0.9394
+    },
+    {
+      "by_class": {},
+      "day": "2026-06-04",
+      "equity": 10093.94,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
-      "by_class": {
-        "crypto_spot": -28.99
-      },
-      "day": "2026-06-04",
-      "equity": 9969.8,
-      "realized_pnl": -28.99,
-      "return_pct": -0.302
-    },
-    {
       "by_class": {},
       "day": "2026-06-05",
-      "equity": 9969.8,
+      "equity": 10093.94,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-06",
-      "equity": 9969.8,
+      "equity": 10093.94,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-07",
-      "equity": 9969.8,
+      "equity": 10093.94,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-08",
-      "equity": 9969.8,
+      "equity": 10093.94,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-09",
-      "equity": 9969.8,
+      "equity": 10093.94,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-10",
-      "equity": 9969.8,
+      "equity": 10093.94,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
-      "by_class": {
-        "crypto_spot": 52.12
-      },
+      "by_class": {},
       "day": "2026-06-11",
-      "equity": 10017.59,
-      "realized_pnl": 52.12,
-      "return_pct": 0.4794
+      "equity": 10131.46,
+      "realized_pnl": 0.0,
+      "return_pct": 0.3718
     },
     {
       "by_class": {
-        "crypto_spot": -32.44
+        "crypto_spot": -75.67
       },
       "day": "2026-06-12",
-      "equity": 9975.81,
-      "realized_pnl": -32.44,
-      "return_pct": -0.4171
+      "equity": 10014.55,
+      "realized_pnl": -75.67,
+      "return_pct": -1.3246
     },
     {
       "by_class": {},
       "day": "2026-06-13",
-      "equity": 9949.46,
+      "equity": 9988.1,
       "realized_pnl": 0.0,
-      "return_pct": -0.2642
+      "return_pct": -0.2641
     },
     {
       "by_class": {
-        "crypto_spot": -59.84
+        "crypto_spot": -60.06
       },
       "day": "2026-06-14",
-      "equity": 9912.82,
-      "realized_pnl": -59.84,
+      "equity": 9951.32,
+      "realized_pnl": -60.06,
       "return_pct": -0.3473
     },
     {
       "by_class": {},
       "day": "2026-06-15",
-      "equity": 9888.83,
+      "equity": 9927.23,
       "realized_pnl": 0.0,
-      "return_pct": -0.242
+      "return_pct": -0.2421
     },
     {
       "by_class": {
-        "crypto_spot": -153.4
+        "crypto_spot": -17.22
       },
       "day": "2026-06-16",
-      "equity": 9742.23,
-      "realized_pnl": -153.4,
-      "return_pct": -1.8964
+      "equity": 9919.86,
+      "realized_pnl": -17.22,
+      "return_pct": -0.4937
     },
     {
       "by_class": {
-        "crypto_spot": -88.1
+        "crypto_spot": 9.4
       },
       "day": "2026-06-17",
-      "equity": 9648.28,
-      "realized_pnl": -88.1,
-      "return_pct": -0.9644
+      "equity": 9923.13,
+      "realized_pnl": 9.4,
+      "return_pct": 0.0599
     },
     {
       "by_class": {},
       "day": "2026-06-18",
-      "equity": 9648.28,
-      "realized_pnl": 0.0,
-      "return_pct": 0.0
-    },
-    {
-      "by_class": {},
-      "day": "2026-06-19",
-      "equity": 9648.28,
+      "equity": 9923.13,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {
-        "crypto_spot": -77.76
+        "crypto_spot": -58.31
       },
-      "day": "2026-06-20",
-      "equity": 9565.79,
-      "realized_pnl": -77.76,
-      "return_pct": -0.855
+      "day": "2026-06-19",
+      "equity": 9834.36,
+      "realized_pnl": -58.31,
+      "return_pct": -0.8945
     },
     {
-      "by_class": {},
+      "by_class": {
+        "crypto_spot": -79.21
+      },
+      "day": "2026-06-20",
+      "equity": 9819.58,
+      "realized_pnl": -79.21,
+      "return_pct": -0.0899
+    },
+    {
+      "by_class": {
+        "crypto_spot": -84.2
+      },
       "day": "2026-06-21",
-      "equity": 9565.79,
-      "realized_pnl": 0.0,
-      "return_pct": 0.0
+      "equity": 9686.67,
+      "realized_pnl": -84.2,
+      "return_pct": -1.1603
     },
     {
       "by_class": {},
       "day": "2026-06-22",
-      "equity": 9565.79,
+      "equity": 9686.67,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-23",
-      "equity": 9565.79,
+      "equity": 9686.67,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-24",
-      "equity": 9565.79,
+      "equity": 9686.67,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
-      "by_class": {},
+      "by_class": {
+        "crypto_spot": -30.5
+      },
       "day": "2026-06-25",
-      "equity": 9565.79,
-      "realized_pnl": 0.0,
-      "return_pct": 0.0
+      "equity": 9655.12,
+      "realized_pnl": -30.5,
+      "return_pct": -0.3256
     },
     {
       "by_class": {},
       "day": "2026-06-26",
-      "equity": 9565.79,
+      "equity": 9655.12,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {
-        "crypto_spot": -53.06
+        "crypto_spot": -23.31
       },
       "day": "2026-06-27",
-      "equity": 9542.21,
-      "realized_pnl": -53.06,
-      "return_pct": -0.2465
+      "equity": 9630.49,
+      "realized_pnl": -23.31,
+      "return_pct": -0.2551
     },
     {
       "by_class": {},
       "day": "2026-06-28",
-      "equity": 9542.21,
+      "equity": 9630.49,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
-      "by_class": {
-        "crypto_spot": -48.17
-      },
+      "by_class": {},
       "day": "2026-06-29",
-      "equity": 9522.27,
-      "realized_pnl": -48.17,
-      "return_pct": -0.2089
+      "equity": 9630.49,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-06-30",
-      "equity": 9522.27,
+      "equity": 9630.49,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-07-01",
-      "equity": 9522.27,
+      "equity": 9630.49,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
-      "by_class": {
-        "crypto_spot": 25.21
-      },
+      "by_class": {},
       "day": "2026-07-02",
-      "equity": 9523.0,
-      "realized_pnl": 25.21,
-      "return_pct": 0.0077
+      "equity": 9623.01,
+      "realized_pnl": 0.0,
+      "return_pct": -0.0776
     },
     {
       "by_class": {
-        "crypto_spot": 54.74
+        "crypto_spot": 10.41
       },
       "day": "2026-07-03",
-      "equity": 9537.64,
-      "realized_pnl": 54.74,
-      "return_pct": 0.1837
+      "equity": 9649.61,
+      "realized_pnl": 10.41,
+      "return_pct": 0.294
     },
     {
       "by_class": {
-        "crypto_spot": -96.59
+        "crypto_spot": -135.24
       },
       "day": "2026-07-04",
-      "equity": 9478.67,
-      "realized_pnl": -96.59,
-      "return_pct": -0.6183
+      "equity": 9472.55,
+      "realized_pnl": -135.24,
+      "return_pct": -1.8499
     },
     {
       "by_class": {
-        "crypto_spot": -71.2
+        "crypto_spot": -119.27
       },
       "day": "2026-07-05",
-      "equity": 9467.77,
-      "realized_pnl": -71.2,
-      "return_pct": 0.0277
+      "equity": 9355.45,
+      "realized_pnl": -119.27,
+      "return_pct": -1.0698
     },
     {
       "by_class": {
-        "crypto_spot": -100.99
+        "crypto_spot": -17.67
       },
       "day": "2026-07-06",
-      "equity": 9427.18,
-      "realized_pnl": -100.99,
-      "return_pct": -0.4287
+      "equity": 9336.5,
+      "realized_pnl": -17.67,
+      "return_pct": -0.2025
     },
     {
-      "by_class": {
-        "crypto_spot": -61.25
-      },
+      "by_class": {},
       "day": "2026-07-07",
-      "equity": 9400.86,
-      "realized_pnl": -61.25,
-      "return_pct": -0.2792
+      "equity": 9336.5,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-07-08",
-      "equity": 9400.86,
+      "equity": 9336.5,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {
-        "crypto_spot": 114.84
+        "crypto_spot": 21.41
       },
       "day": "2026-07-09",
-      "equity": 9449.87,
-      "realized_pnl": 114.84,
-      "return_pct": 0.5213
+      "equity": 9355.33,
+      "realized_pnl": 21.41,
+      "return_pct": 0.2016
     },
     {
       "by_class": {
-        "crypto_spot": -113.58
+        "crypto_spot": -0.19
       },
       "day": "2026-07-10",
-      "equity": 9397.94,
-      "realized_pnl": -113.58,
-      "return_pct": -0.568
+      "equity": 9349.45,
+      "realized_pnl": -0.19,
+      "return_pct": -0.0628
     },
     {
       "by_class": {
-        "crypto_spot": -214.16
+        "crypto_spot": -96.83
       },
       "day": "2026-07-11",
-      "equity": 9287.52,
-      "realized_pnl": -214.16,
-      "return_pct": -1.0843
+      "equity": 9247.42,
+      "realized_pnl": -96.83,
+      "return_pct": -1.0913
     },
     {
       "by_class": {},
       "day": "2026-07-12",
-      "equity": 9287.52,
+      "equity": 9247.42,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-07-13",
-      "equity": 9287.52,
+      "equity": 9247.42,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
-      "by_class": {
-        "crypto_spot": 24.97
-      },
+      "by_class": {},
       "day": "2026-07-14",
-      "equity": 9297.83,
-      "realized_pnl": 24.97,
-      "return_pct": 0.111
+      "equity": 9252.3,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0527
     },
     {
       "by_class": {
-        "crypto_spot": 0.22
+        "crypto_spot": -30.28
       },
       "day": "2026-07-15",
-      "equity": 9310.41,
-      "realized_pnl": 0.22,
-      "return_pct": 0.1241
+      "equity": 9226.52,
+      "realized_pnl": -30.28,
+      "return_pct": -0.3169
     },
     {
       "by_class": {
-        "crypto_spot": -103.68
+        "crypto_spot": -24.43
       },
       "day": "2026-07-16",
-      "equity": 9236.64,
-      "realized_pnl": -103.68,
-      "return_pct": -0.9002
+      "equity": 9167.11,
+      "realized_pnl": -24.43,
+      "return_pct": -0.7131
     },
     {
       "by_class": {
-        "crypto_spot": 2.99
+        "crypto_spot": 2.58
       },
       "day": "2026-07-17",
-      "equity": 9255.0,
-      "realized_pnl": 2.99,
-      "return_pct": 0.205
-    },
-    {
-      "by_class": {},
-      "day": "2026-07-18",
-      "equity": 9252.65,
-      "realized_pnl": 0.0,
-      "return_pct": -0.0254
+      "equity": 9184.69,
+      "realized_pnl": 2.58,
+      "return_pct": 0.1765
     },
     {
       "by_class": {
-        "crypto_spot": -36.75
+        "crypto_spot": 3.8
+      },
+      "day": "2026-07-18",
+      "equity": 9188.79,
+      "realized_pnl": 3.8,
+      "return_pct": 0.0461
+    },
+    {
+      "by_class": {
+        "crypto_spot": -15.26
       },
       "day": "2026-07-19",
-      "equity": 9230.0,
-      "realized_pnl": -36.75,
-      "return_pct": -0.2712
+      "equity": 9174.11,
+      "realized_pnl": -15.26,
+      "return_pct": -0.177
     },
     {
       "by_class": {},
       "day": "2026-07-20",
-      "equity": 9230.0,
+      "equity": 9174.11,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
-      "by_class": {},
+      "by_class": {
+        "crypto_spot": -28.83
+      },
       "day": "2026-07-21",
-      "equity": 9181.36,
-      "realized_pnl": 0.0,
-      "return_pct": -0.5271
+      "equity": 9146.82,
+      "realized_pnl": -28.83,
+      "return_pct": -0.2975
     },
     {
       "by_class": {
-        "crypto_spot": -127.42
+        "crypto_spot": 2.25
       },
       "day": "2026-07-22",
-      "equity": 9150.93,
-      "realized_pnl": -127.42,
-      "return_pct": -0.3529
+      "equity": 9143.27,
+      "realized_pnl": 2.25,
+      "return_pct": -0.0502
     },
     {
-      "by_class": {
-        "crypto_spot": -39.8
-      },
+      "by_class": {},
       "day": "2026-07-23",
-      "equity": 9105.5,
-      "realized_pnl": -39.8,
-      "return_pct": -0.5076
+      "equity": 9134.26,
+      "realized_pnl": 0.0,
+      "return_pct": -0.0985
     },
     {
       "by_class": {
-        "crypto_spot": -28.78
+        "crypto_spot": -13.52
       },
       "day": "2026-07-24",
-      "equity": 9098.81,
-      "realized_pnl": -28.78,
-      "return_pct": -0.0714
+      "equity": 9128.91,
+      "realized_pnl": -13.52,
+      "return_pct": -0.0569
     },
     {
       "by_class": {},
       "day": "2026-07-25",
-      "equity": 9098.81,
+      "equity": 9124.1,
       "realized_pnl": 0.0,
-      "return_pct": 0.0
+      "return_pct": -0.0527
     },
     {
       "by_class": {
-        "crypto_spot": 13.17
+        "crypto_spot": 22.47
       },
       "day": "2026-07-26",
-      "equity": 9111.05,
-      "realized_pnl": 13.17,
-      "return_pct": 0.1345
+      "equity": 9146.26,
+      "realized_pnl": 22.47,
+      "return_pct": 0.2197
     },
     {
       "by_class": {
-        "crypto_spot": -5.92
+        "crypto_spot": -13.72
       },
       "day": "2026-07-27",
-      "equity": 9111.05,
-      "realized_pnl": -5.92,
-      "return_pct": 0.0
+      "equity": 9134.9,
+      "realized_pnl": -13.72,
+      "return_pct": -0.1093
     },
     {
       "by_class": {},
       "day": "2026-07-28",
-      "equity": 9110.71,
-      "realized_pnl": 0.0,
-      "return_pct": -0.0037
-    },
-    {
-      "by_class": {
-        "crypto_spot": -44.84
-      },
-      "day": "2026-07-29",
-      "equity": 9076.08,
-      "realized_pnl": -44.84,
-      "return_pct": -0.3873
-    },
-    {
-      "by_class": {
-        "crypto_spot": 36.86
-      },
-      "day": "2026-07-30",
-      "equity": 9096.81,
-      "realized_pnl": 36.86,
-      "return_pct": 0.2284
-    },
-    {
-      "by_class": {
-        "crypto_spot": -27.65
-      },
-      "day": "2026-07-31",
-      "equity": 9080.07,
-      "realized_pnl": -27.65,
-      "return_pct": -0.184
-    },
-    {
-      "by_class": {},
-      "day": "2026-08-01",
-      "equity": 9080.07,
+      "equity": 9134.9,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
-      "day": "2026-08-02",
-      "equity": 9074.93,
+      "day": "2026-07-29",
+      "equity": 9134.9,
       "realized_pnl": 0.0,
-      "return_pct": -0.0566
+      "return_pct": 0.0
     },
     {
       "by_class": {
-        "crypto_spot": -66.81
+        "crypto_spot": 19.22
       },
+      "day": "2026-07-30",
+      "equity": 9153.32,
+      "realized_pnl": 19.22,
+      "return_pct": 0.2016
+    },
+    {
+      "by_class": {},
+      "day": "2026-07-31",
+      "equity": 9153.32,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-01",
+      "equity": 9153.32,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {
+        "crypto_spot": -28.83
+      },
+      "day": "2026-08-02",
+      "equity": 9121.03,
+      "realized_pnl": -28.83,
+      "return_pct": -0.3528
+    },
+    {
+      "by_class": {},
       "day": "2026-08-03",
-      "equity": 9043.28,
-      "realized_pnl": -66.81,
-      "return_pct": -0.3537
+      "equity": 9121.03,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-08-04",
-      "equity": 9043.28,
+      "equity": 9121.03,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-08-05",
-      "equity": 9043.28,
+      "equity": 9121.03,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-08-06",
-      "equity": 9043.28,
+      "equity": 9121.03,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {},
       "day": "2026-08-07",
-      "equity": 9043.28,
+      "equity": 9121.03,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-08",
+      "equity": 9121.03,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-09",
+      "equity": 9114.02,
+      "realized_pnl": 0.0,
+      "return_pct": -0.0768
+    },
+    {
+      "by_class": {
+        "crypto_spot": 14.85
+      },
+      "day": "2026-08-10",
+      "equity": 9134.87,
+      "realized_pnl": 14.85,
+      "return_pct": 0.1753
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-11",
+      "equity": 9134.87,
       "realized_pnl": 0.0,
       "return_pct": 0.0
     },
     {
       "by_class": {
-        "crypto_spot": 20.75
-      },
-      "day": "2026-08-08",
-      "equity": 9053.96,
-      "realized_pnl": 20.75,
-      "return_pct": 0.118
-    },
-    {
-      "by_class": {
-        "crypto_spot": 24.07
-      },
-      "day": "2026-08-09",
-      "equity": 9058.93,
-      "realized_pnl": 24.07,
-      "return_pct": 0.055
-    },
-    {
-      "by_class": {
-        "crypto_spot": 28.39
-      },
-      "day": "2026-08-10",
-      "equity": 9081.85,
-      "realized_pnl": 28.39,
-      "return_pct": 0.1938
-    },
-    {
-      "by_class": {
-        "crypto_spot": 2.51
-      },
-      "day": "2026-08-11",
-      "equity": 9077.82,
-      "realized_pnl": 2.51,
-      "return_pct": -0.0443
-    },
-    {
-      "by_class": {
-        "crypto_spot": -18.09
+        "crypto_spot": -13.91
       },
       "day": "2026-08-12",
-      "equity": 9066.62,
-      "realized_pnl": -18.09,
-      "return_pct": -0.1234
+      "equity": 9120.35,
+      "realized_pnl": -13.91,
+      "return_pct": -0.1589
     },
     {
       "by_class": {},
       "day": "2026-08-13",
-      "equity": 9066.62,
+      "equity": 9120.35,
       "realized_pnl": 0.0,
       "return_pct": 0.0
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-14",
+      "equity": 9120.35,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {
+        "crypto_spot": 16.96
+      },
+      "day": "2026-08-15",
+      "equity": 9132.25,
+      "realized_pnl": 16.96,
+      "return_pct": 0.1304
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-16",
+      "equity": 9132.25,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-17",
+      "equity": 9132.25,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {},
+      "day": "2026-08-18",
+      "equity": 9132.25,
+      "realized_pnl": 0.0,
+      "return_pct": 0.0
+    },
+    {
+      "by_class": {
+        "crypto_spot": -13.44
+      },
+      "day": "2026-08-19",
+      "equity": 9111.83,
+      "realized_pnl": -13.44,
+      "return_pct": -0.2236
+    },
+    {
+      "by_class": {
+        "crypto_spot": -21.63
+      },
+      "day": "2026-08-20",
+      "equity": 9089.67,
+      "realized_pnl": -21.63,
+      "return_pct": -0.2431
+    },
+    {
+      "by_class": {
+        "crypto_spot": -18.59
+      },
+      "day": "2026-08-21",
+      "equity": 9064.22,
+      "realized_pnl": -18.59,
+      "return_pct": -0.2739
+    },
+    {
+      "by_class": {
+        "crypto_spot": -7.5
+      },
+      "day": "2026-08-22",
+      "equity": 9056.1,
+      "realized_pnl": -7.5,
+      "return_pct": -0.0896
     }
   ],
-  "flat_days": 43,
-  "losing_days": 24,
+  "flat_days": 53,
+  "losing_days": 25,
   "period": {
     "from": "2026-05-26",
-    "to": "2026-08-13"
+    "to": "2026-08-22"
   },
   "schema": 1,
-  "winning_days": 13
+  "winning_days": 11
 }

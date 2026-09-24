@@ -94,8 +94,8 @@ data:
     # - {symbol: "SPY", asset_class: "etf", venue: "alpaca"}
     # - {symbol: "QQQ", asset_class: "etf", venue: "alpaca"}
     # - {symbol: "GLD", asset_class: "etf", venue: "alpaca"}
-  timeframe: "1h"          # fallback when an instrument names none
-  higher_timeframe: "4h"   # fallback trend filter
+  timeframe: "1d"          # fallback when an instrument names none
+  higher_timeframe: "1w"   # fallback trend filter
   history_bars: 900        # must cover the longest strategy lookback
   orderbook_depth: 20
   orderbook_levels: 10
@@ -105,7 +105,7 @@ data:
   # slower frame (fewer, better trades); a wild one gets a faster frame so
   # the stop is not a day wide. Turning this off pins everything to
   # data.timeframe above.
-  adaptive_timeframes: true
+  adaptive_timeframes: false
   equity:
     cache_hours: 6         # Nasdaq's endpoint is daily; re-asking is waste
     max_retries: 3

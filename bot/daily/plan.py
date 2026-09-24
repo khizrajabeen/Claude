@@ -349,7 +349,34 @@ class DayPlanner:
 
         # Rank by conviction, then liquidity: the same edge is worth more
         # where it can be executed cheaply.
-        candidates.sort(key=lambda t: (abs(t[0].edge), t[1].quote_volume_24h), reverse=True)
+        # Rank on edge NET of what that instrument costs to trade, not on
+        # raw edge.
+        #
+        # The cost gate below is a veto: it throws out the hopeless. It
+        # does nothing about preference, so with raw-edge ranking an
+        # expensive coin outranks a cheap one whenever it squeaks past
+        # the gate. Combined with a momentum score that is volatility
+        # scaled — Clenow ranks on annualised slope, and slope rises with
+        # volatility — the book filled with exactly the wrong names.
+        #
+        # Over 87 replayed trades, BTC and ETH never traded once. They
+        # are the two cheapest instruments on the venue at 53 and 54 bps
+        # round trip. What traded instead was UNI, LDO, ARB, SHIB and
+        # SKY at 68 to 106 bps, because high volatility both raises the
+        # momentum score and widens the spread. The ranking was
+        # selecting for cost.
+        #
+        # Subtracting the cost makes the comparison the one that
+        # matters: not "which signal is strongest" but "which signal
+        # keeps the most after paying to act on it".
+        def _net_edge(item) -> float:
+            candidate, read, _ = item
+            cost_bps = self._round_trip_bps(read)
+            gross_bps = abs(candidate.edge) * read.atr_pct * 100
+            return gross_bps - cost_bps
+
+        candidates.sort(key=lambda t: (_net_edge(t), t[1].quote_volume_24h),
+                        reverse=True)
 
         book = list(open_positions)
         # The daily budget is spent across every slot of the day, not per

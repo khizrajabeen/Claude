@@ -68,17 +68,28 @@ jobs:
             exit 1
           fi
           echo "Paper trading: ${ALPACA_PAPER}"
-          # Trading is opt-in, and the default is deliberate. On the
-          # 80-day replay with MEASURED costs this roster returns
-          # -9.33% at -0.573R per trade; the +12.38% it showed before
-          # was an artefact of costs set roughly four times too low.
-          # A schedule that places orders on that evidence would just
-          # be an automated way to lose money, so until someone sets
-          # TRADING_ENABLED=true this workflow plans and publishes
-          # without placing anything.
-          if [ "${{ inputs.dry_run }}" = "true" ] || [ "${{ vars.TRADING_ENABLED }}" != "true" ]; then
-            echo "::notice title=Plan only::Set repository variable \
-          TRADING_ENABLED=true to place orders. See README for why it is off."
+          # Paper trades freely; live money does not.
+          #
+          # The earlier gate blocked both, which was the wrong shape. A
+          # paper order costs nothing and buys the one thing the
+          # backtest cannot give: forward execution data on a venue
+          # whose spreads and fills we now know matter more than the
+          # signal. Refusing to gather that because the backtest is
+          # negative is how a strategy stays broken — you need the
+          # out-of-sample record to tell a fixed strategy from a
+          # re-fitted one.
+          #
+          # Live is different. On the 80-day replay with measured costs
+          # this roster returns -9.33% at -0.573R per trade, so real
+          # money stays behind an explicit TRADING_ENABLED=true.
+          BLOCK=0
+          if [ "${{ inputs.dry_run }}" = "true" ]; then BLOCK=1; fi
+          if [ "$ALPACA_PAPER" != "true" ] && [ "${{ vars.TRADING_ENABLED }}" != "true" ]; then
+            echo "::warning title=Live blocked::ALPACA_PAPER is false and \
+          TRADING_ENABLED is not true. Planning only."
+            BLOCK=1
+          fi
+          if [ "$BLOCK" = "1" ]; then
             python main.py plan
           else
             python main.py day --fast

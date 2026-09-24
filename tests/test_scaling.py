@@ -131,15 +131,31 @@ def test_the_combined_entry_is_a_weighted_average(config):
     assert first < position.entry_price < 110.0
 
 
-def test_the_stop_is_not_loosened_by_a_pyramid(config):
-    """A pyramid that widens its own stop to fit the new unit has quietly
-    increased the risk it was sized for."""
+def test_a_pyramid_holds_the_risk_it_was_sized_for(config):
+    """A pyramid adds size, not risk.
+
+    This test used to assert the opposite and state the right reason
+    for it: that a pyramid "has quietly increased the risk it was sized
+    for". It then checked that the stop had NOT moved — which is the
+    thing that increases the risk. The added unit carries its own full
+    stop distance, so leaving the stop alone lets exposure grow with
+    size while the stop stays put.
+
+    Measured on a 10-unit position risking $40, one half-size add took
+    the real risk to $80 and the stop-out lost 1.57R. Holding the stop
+    still was the bug; the test was guarding it.
+    """
     broker = PaperBroker(config)
     position = broker.open(make_order(config), now=T0)
+    before = abs(position.entry_price - position.stop_price) * position.quantity
     stop = position.stop_price
 
     broker.add_to(position, make_order(config, price=106.0, qty=5.0), now=T0)
-    assert position.stop_price == pytest.approx(stop)
+    after = abs(position.entry_price - position.stop_price) * position.quantity
+
+    assert position.quantity > 10.0, "the size grew"
+    assert after == pytest.approx(before, rel=0.02), "the risk did not"
+    assert position.stop_price > stop, "and the stop tightened to hold it"
 
 
 def test_adding_without_cash_is_refused_not_crashed(config):
