@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import signal as signal_module
 import sys
 from datetime import datetime, timedelta, timezone
@@ -95,10 +96,7 @@ def build_context(config, args, read_only: bool = False):
     if not args.read_only:
         journal.acquire()
     state = journal.load_state()
-    broker = PaperBroker(
-        config, cash=state.cash, positions=state.positions,
-        trade_counter=state.trade_counter,
-    )
+    broker = _build_broker(config, state)
     if args.fast:
         clock = SimulatedClock(datetime.now(timezone.utc))
         logging.getLogger("trading_bot").warning(
@@ -112,6 +110,38 @@ def build_context(config, args, read_only: bool = False):
         config, router, broker, journal, state, clock=clock, universe=universe,
     )
     return router, journal, state, broker, session
+
+
+def _build_broker(config, state):
+    """The simulated broker, or the real one when keys are present.
+
+    Presence of credentials is the switch, not a config flag. A flag can
+    be true while the keys are missing, and the failure then arrives as a
+    stack trace mid-session rather than as a decision made before the
+    first order. Paper versus live is a separate question, answered by
+    ALPACA_PAPER and defaulting to paper.
+    """
+    import os
+    from bot.trading.broker import PaperBroker
+    from bot.trading.alpaca_broker import AlpacaBroker
+
+    logger = logging.getLogger("trading_bot")
+    kw = dict(cash=state.cash, positions=state.positions,
+              trade_counter=state.trade_counter)
+
+    if not (os.environ.get("ALPACA_API_KEY_ID")
+            and os.environ.get("ALPACA_API_SECRET_KEY")):
+        logger.info("No Alpaca keys — simulated broker; no order will leave "
+                    "this machine.")
+        return PaperBroker(config, **kw)
+
+    broker = AlpacaBroker(config, **kw)
+    where = "PAPER" if broker.paper else "LIVE — REAL MONEY"
+    logger.warning("Alpaca broker active (%s). Orders will be placed.", where)
+    drift = broker.reconcile()
+    for line in drift:
+        logger.warning("Ledger differs from the account — %s", line)
+    return broker
 
 
 # ── Modes ────────────────────────────────────────────────────
@@ -221,8 +251,18 @@ def mode_publish(config, logger, args):
         screen = CoinScreener(config, exchange=ExchangeClient(config)).scan(
             beta_book=beta_book)
 
+    # The live account is only available when there are keys to ask with.
+    # Publishing without it degrades to the ledger-only view rather than
+    # failing, so a run on a machine with no credentials still updates
+    # the dashboard.
+    broker = None
+    if os.environ.get("ALPACA_API_KEY_ID") and os.environ.get("ALPACA_API_SECRET_KEY"):
+        from bot.trading.alpaca_broker import AlpacaBroker
+        broker = AlpacaBroker(config)
+
     publisher = Publisher(config, out_dir=args.out)
-    written = publisher.publish(journal=Journal(source), screen=screen)
+    written = publisher.publish(journal=Journal(source), screen=screen,
+                                broker=broker)
     for name in sorted(written):
         logger.info("  %s", publisher.dir / name)
     return written
