@@ -43,7 +43,7 @@ class Publisher:
 
     # ── Entry point ───────────────────────────────────────────
 
-    def publish(self, journal=None, screen=None) -> dict:
+    def publish(self, journal=None, screen=None, broker=None) -> dict:
         """Write every file. Returns what was written, for the caller to log."""
         from bot.daily.journal import Journal
 
@@ -65,10 +65,74 @@ class Publisher:
         if screen is not None:
             written["screen.json"] = self._screen(screen)
 
+        # The live account, and last prices for anything the browser
+        # cannot fetch itself. The dashboard is a public static page: it
+        # has no server, so it cannot hold an API key, so it cannot ask
+        # Alpaca anything. Whatever needs a key has to be written here,
+        # on the machine that has one.
+        account = self._account(broker)
+        if account:
+            written["account.json"] = account
+        quotes = self._quotes(broker)
+        if quotes:
+            written["quotes.json"] = quotes
+
         for name, payload in written.items():
             self._write(name, payload)
         logger.info("Published %d file(s) to %s", len(written), self.dir)
         return written
+
+    def _account(self, broker) -> dict | None:
+        """The venue's own view of the account.
+
+        Distinct from portfolio.json, which is the bot's ledger. Both are
+        published because a disagreement between them is the single most
+        useful thing this dashboard can show: it means something happened
+        that the bot does not know about.
+        """
+        if broker is None or not hasattr(broker, "snapshot"):
+            return None
+        try:
+            snap = broker.snapshot()
+        except Exception as e:
+            logger.warning("Could not snapshot the account: %s", e)
+            return None
+        snap["schema"] = SCHEMA_VERSION
+        try:
+            snap["drift"] = broker.reconcile()
+        except Exception:
+            snap["drift"] = []
+        return snap
+
+    def _quotes(self, broker) -> dict | None:
+        """Last price for every instrument in the universe.
+
+        Crypto the browser can fetch itself from a public venue. Equities
+        it cannot — every feed worth using needs a key. These are stamped
+        with the time they were taken so the page can say how old they
+        are instead of implying they are live.
+        """
+        if broker is None:
+            return None
+        try:
+            from bot.data.router import DataRouter
+            from bot.markets import build_universe
+            router = DataRouter(self.config)
+            rows = {}
+            for instrument in build_universe(self.config):
+                price = router.price(instrument)
+                if price:
+                    rows[instrument.symbol] = {
+                        "price": round(float(price), 8),
+                        "asset_class": instrument.asset_class.value,
+                        "venue": instrument.venue,
+                    }
+        except Exception as e:
+            logger.warning("Could not collect quotes: %s", e)
+            return None
+        if not rows:
+            return None
+        return {"schema": SCHEMA_VERSION, "as_of": _now(), "quotes": rows}
 
     def _write(self, name: str, payload) -> None:
         path = self.dir / name

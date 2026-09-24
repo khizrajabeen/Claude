@@ -1,5 +1,6 @@
-import { shell, load, explain, usd, pct, num, cls, price, compact, freshness, chipColour, base } from "./app.js";
+import { shell, load, explain, usd, pct, num, cls, price, compact, freshness, chipColour, base , gated } from "./app.js";
 
+await gated();
 shell("markets");
 const $ = (id) => document.getElementById(id);
 let all = [], sort = { k: "rank", dir: 1 }, mode = "all", traded = new Set();

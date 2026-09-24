@@ -133,6 +133,9 @@ const I = {
   dashboard: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
   trades:    'M3 17l6-6 4 4 8-8M15 7h6v6',
   markets:   'M3 3v18h18M7 15l4-5 3 3 5-7',
+  live:      'M3 12h3l3-8 4 16 3-8h5',
+  account:   'M3 10h18M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM7 15h4',
+  journal:   'M4 4h11l5 5v11H4zM15 4v5h5M8 13h8M8 17h5',
   strategies:'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5',
   settings:  'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.6 1.6 0 007 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H1a2 2 0 110-4h.1A1.6 1.6 0 002.6 7a1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H7a1.6 1.6 0 001-1.5V1a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V7a1.6 1.6 0 001.5 1H21a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z',
 };
@@ -144,11 +147,25 @@ const icon = (k) =>
 export const PAGES = [
   { id: "index",      href: "index.html",      icon: "home",       label: "Overview" },
   { id: "dashboard",  href: "dashboard.html",  icon: "dashboard",  label: "Dashboard" },
+  { id: "live",       href: "live.html",       icon: "live",       label: "Live markets" },
+  { id: "account",    href: "account.html",    icon: "account",    label: "Account" },
   { id: "trades",     href: "trades.html",     icon: "trades",     label: "Trades" },
   { id: "markets",    href: "markets.html",    icon: "markets",    label: "Markets" },
   { id: "strategies", href: "strategies.html", icon: "strategies", label: "Strategies" },
+  { id: "journal",    href: "journal.html",    icon: "journal",    label: "Journal" },
   { id: "settings",   href: "settings.html",   icon: "settings",   label: "Settings" },
 ];
+
+/* Run the passcode gate before a page renders, when one is configured.
+ * Called from shell(), so every app page is covered by construction and
+ * a new page cannot forget to ask. */
+export async function gated() {
+  try {
+    const { guard, configuredHash } = await import("./gate.js");
+    const hash = await configuredHash();
+    if (hash) await guard({ hash });
+  } catch { /* no gate configured, or it failed to load — show the page */ }
+}
 
 export function shell(active) {
   const rail = document.querySelector(".rail");
@@ -165,7 +182,8 @@ export function shell(active) {
   }
   const tabs = document.querySelector(".tabs");
   if (tabs) {
-    tabs.innerHTML = PAGES.filter((p) => !["index", "settings"].includes(p.id))
+    const TOP = ["dashboard", "live", "account", "trades"];
+    tabs.innerHTML = PAGES.filter((p) => TOP.includes(p.id))
       .map((p) => `<a href="${p.href}"${p.id === active ? ' imsy-current="page"' : ""}>${p.label}</a>`)
       .join("").replaceAll("imsy-current", "aria-current");
   }

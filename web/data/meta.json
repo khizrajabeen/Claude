@@ -1,8 +1,8 @@
 {
-  "as_of": "2026-09-24T09:24:09+00:00",
+  "as_of": "2026-09-24T10:08:36+00:00",
   "current_day": null,
-  "days_recorded": 90,
-  "last_day": "2026-08-23",
+  "days_recorded": 0,
+  "last_day": null,
   "mode": "paper",
   "risk": {
     "max_daily_loss_pct": 2.0,
@@ -21,27 +21,37 @@
     "turtle"
   ],
   "universe": {
-    "crypto_perp": [
-      "BTC/USDT:USDT",
-      "ETH/USDT:USDT",
-      "SOL/USDT:USDT"
-    ],
     "crypto_spot": [
-      "BTC/USDT",
-      "ETH/USDT",
-      "SOL/USDT",
-      "XRP/USDT",
-      "LINK/USDT",
-      "DOGE/USDT",
-      "SUI/USDT",
-      "UNI/USDT",
-      "NEAR/USDT",
-      "ARB/USDT",
-      "LTC/USDT",
-      "ADA/USDT",
-      "AVAX/USDT",
-      "FIL/USDT",
-      "BCH/USDT"
+      "ETH/USD",
+      "BTC/USD",
+      "SOL/USD",
+      "YFI/USD",
+      "LINK/USD",
+      "AAVE/USD",
+      "UNI/USD",
+      "CRV/USD",
+      "SUSHI/USD",
+      "DOT/USD",
+      "SKY/USD",
+      "FIL/USD",
+      "TRUMP/USD",
+      "DOGE/USD",
+      "RENDER/USD",
+      "WIF/USD",
+      "ADA/USD",
+      "ARB/USD",
+      "SHIB/USD",
+      "XRP/USD",
+      "POL/USD",
+      "HYPE/USD",
+      "ONDO/USD",
+      "PEPE/USD",
+      "LDO/USD",
+      "XTZ/USD",
+      "LTC/USD",
+      "BCH/USD",
+      "AVAX/USD",
+      "BONK/USD"
     ]
   }
 }

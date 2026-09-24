@@ -1,5 +1,6 @@
-import { shell } from "./app.js";
+import { shell , gated } from "./app.js";
 
+await gated();
 shell("settings");
 const $ = (id) => document.getElementById(id);
 

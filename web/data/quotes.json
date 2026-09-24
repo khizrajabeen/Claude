@@ -1,0 +1,156 @@
+{
+  "as_of": "2026-09-24T10:09:00+00:00",
+  "quotes": {
+    "AAVE/USD": {
+      "asset_class": "crypto_spot",
+      "price": 136.07,
+      "venue": "alpaca"
+    },
+    "ADA/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.2347175,
+      "venue": "alpaca"
+    },
+    "ARB/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.2123445,
+      "venue": "alpaca"
+    },
+    "AVAX/USD": {
+      "asset_class": "crypto_spot",
+      "price": 10.0704,
+      "venue": "alpaca"
+    },
+    "BCH/USD": {
+      "asset_class": "crypto_spot",
+      "price": 326.075,
+      "venue": "alpaca"
+    },
+    "BONK/USD": {
+      "asset_class": "crypto_spot",
+      "price": 3.44e-06,
+      "venue": "alpaca"
+    },
+    "BTC/USD": {
+      "asset_class": "crypto_spot",
+      "price": 83225.817,
+      "venue": "alpaca"
+    },
+    "CRV/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.327875,
+      "venue": "alpaca"
+    },
+    "DOGE/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.0920847,
+      "venue": "alpaca"
+    },
+    "DOT/USD": {
+      "asset_class": "crypto_spot",
+      "price": 1.10604,
+      "venue": "alpaca"
+    },
+    "ETH/USD": {
+      "asset_class": "crypto_spot",
+      "price": 2638.974,
+      "venue": "alpaca"
+    },
+    "FIL/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.95663,
+      "venue": "alpaca"
+    },
+    "HYPE/USD": {
+      "asset_class": "crypto_spot",
+      "price": 90.285,
+      "venue": "alpaca"
+    },
+    "LDO/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.387715,
+      "venue": "alpaca"
+    },
+    "LINK/USD": {
+      "asset_class": "crypto_spot",
+      "price": 12.1584,
+      "venue": "alpaca"
+    },
+    "LTC/USD": {
+      "asset_class": "crypto_spot",
+      "price": 66.54605,
+      "venue": "alpaca"
+    },
+    "ONDO/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.422385,
+      "venue": "alpaca"
+    },
+    "PEPE/USD": {
+      "asset_class": "crypto_spot",
+      "price": 4.24e-06,
+      "venue": "alpaca"
+    },
+    "POL/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.1006795,
+      "venue": "alpaca"
+    },
+    "RENDER/USD": {
+      "asset_class": "crypto_spot",
+      "price": 1.76277,
+      "venue": "alpaca"
+    },
+    "SHIB/USD": {
+      "asset_class": "crypto_spot",
+      "price": 5.59e-06,
+      "venue": "alpaca"
+    },
+    "SKY/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.069105,
+      "venue": "alpaca"
+    },
+    "SOL/USD": {
+      "asset_class": "crypto_spot",
+      "price": 112.955,
+      "venue": "alpaca"
+    },
+    "SUSHI/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.243295,
+      "venue": "alpaca"
+    },
+    "TRUMP/USD": {
+      "asset_class": "crypto_spot",
+      "price": 1.963,
+      "venue": "alpaca"
+    },
+    "UNI/USD": {
+      "asset_class": "crypto_spot",
+      "price": 8.929815,
+      "venue": "alpaca"
+    },
+    "WIF/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.231105,
+      "venue": "alpaca"
+    },
+    "XRP/USD": {
+      "asset_class": "crypto_spot",
+      "price": 1.458,
+      "venue": "alpaca"
+    },
+    "XTZ/USD": {
+      "asset_class": "crypto_spot",
+      "price": 0.319144,
+      "venue": "alpaca"
+    },
+    "YFI/USD": {
+      "asset_class": "crypto_spot",
+      "price": 2312.9,
+      "venue": "alpaca"
+    }
+  },
+  "schema": 1
+}

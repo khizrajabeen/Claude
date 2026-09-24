@@ -1,0 +1,4 @@
+{
+  "_comment": "Set sha256 to the hex SHA-256 of your passcode to gate the dashboard. Empty means no gate. This hides the page from casual visitors and is NOT security -- every file under data/ stays fetchable directly. Generate with: printf '%s' 'your-passcode' | sha256sum",
+  "sha256": ""
+}

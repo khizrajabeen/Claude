@@ -1,9 +1,10 @@
 import {
   shell, load, explain, usd, pct, num, cls, arrow, price, compact,
-  freshness, chipColour, base,
+  freshness, chipColour, base, gated,
 } from "./app.js";
 import { lineChart, donut } from "./chart.js";
 
+await gated();
 shell("dashboard");
 
 const CLASS_NAME = {

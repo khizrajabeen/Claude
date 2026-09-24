@@ -1,6 +1,7 @@
-import { shell, load, explain, usd, num, cls, freshness } from "./app.js";
+import { shell, load, explain, usd, num, cls, freshness , gated } from "./app.js";
 import { barList } from "./chart.js";
 
+await gated();
 shell("strategies");
 const $ = (id) => document.getElementById(id);
 const CLASS_NAME = { crypto_spot: "Crypto spot", crypto_perp: "Perpetuals",

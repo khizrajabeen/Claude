@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account — Meridian</title>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"auto"}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Sections"></nav>
+  <div class="main">
+    <header class="topbar">
+      <h1>Account</h1>
+      <nav class="tabs" aria-label="Views"></nav>
+      <span class="grow"></span>
+      <span class="pill" id="fresh"><span class="dot-live"></span><span>loading…</span></span>
+      <span data-toggle-theme></span>
+    </header>
+    <main class="content">
+      <div class="grid cols-4" id="tiles" style="margin-bottom:16px"></div>
+      <div class="grid split" style="margin-bottom:16px">
+        <section class="card">
+          <div class="card-head"><h2>Positions at the venue</h2><span class="grow"></span>
+            <span class="pill" id="poscount">—</span></div>
+          <div class="card-body flush"><div class="tbl-wrap"><table class="tbl" id="pos">
+            <thead><tr><th>Asset</th><th class="r">Qty</th><th class="r">Avg entry</th>
+              <th class="r">Now</th><th class="r">Value</th><th class="r">Unrealised</th></tr></thead>
+            <tbody></tbody></table></div></div>
+        </section>
+        <section class="card">
+          <div class="card-head"><h2>Reconciliation</h2></div>
+          <div class="card-body" id="drift"></div>
+        </section>
+      </div>
+      <section class="card">
+        <div class="card-head"><h2>Open orders</h2><span class="grow"></span>
+          <span class="muted" style="font-size:12px" id="market"></span></div>
+        <div class="card-body flush"><div class="tbl-wrap"><table class="tbl" id="ord">
+          <thead><tr><th>Submitted</th><th>Asset</th><th>Side</th><th class="r">Qty</th>
+            <th>Type</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+<script type="module" src="assets/account.js"></script>
+</body>
+</html>
