@@ -81,10 +81,26 @@ def test_stops_sit_on_the_correct_side(config):
 
 
 def test_a_symbol_nobody_has_a_view_on_is_skipped(config):
+    """And the reason says WHICH kind of "no view" it was.
+
+    This fixture supplies 100 bars against a 200-bar warm-up, so the
+    honest reason is that the indicators never formed — not that the
+    strategies looked and saw nothing. The two need opposite responses
+    and used to share one message.
+    """
     ctx = build_context(symbols=["A/USDT"], bars=100, drifts=[0.0])
     plan = build_plan(config, ctx)
     assert plan.trades == []
-    assert any("no strategy has a view" in reason for _, reason in plan.rejected)
+    reasons = [reason for _, reason in plan.rejected]
+    assert any("indicators not ready" in r for r in reasons), reasons
+
+
+def test_a_warmed_up_symbol_with_no_setup_says_so(config):
+    """The other branch: enough history, strategies ran, nothing fired."""
+    ctx = build_context(symbols=["A/USDT"], bars=400, drifts=[0.0])
+    plan = build_plan(config, ctx)
+    reasons = [reason for _, reason in plan.rejected]
+    assert not any("indicators not ready" in r for r in reasons), reasons
 
 
 def test_untradable_symbols_never_reach_the_plan(config):

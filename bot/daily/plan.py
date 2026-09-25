@@ -136,6 +136,12 @@ class DayPlanner:
         # Only for measuring what the shorting rule is worth. Leaving it on
         # books positions that cannot be executed on a spot exchange.
         self.allow_spot_shorts = bool(signals.get("allow_spot_shorts", False))
+        # Where signals are lost, stage by stage. See bot/daily/funnel.py:
+        # "no strategy has a view" is an outcome, and this separates the
+        # market being quiet from an indicator that never warmed up.
+        from bot.daily.funnel import Funnel
+        self.funnel = Funnel()
+        self.warmup_bars = int(config.get("data", {}).get("min_bars", 200))
         # Longs must rank in the top (1 - band) of their class, shorts in
         # the bottom. 0 disables the filter; 0.5 would admit only the
         # single strongest and weakest name.
@@ -236,14 +242,33 @@ class DayPlanner:
         candidates: list[tuple[Candidate, SymbolRead, CombinedView]] = []
 
         for symbol, read in briefing.symbols.items():
+            self.funnel.examined(symbol, getattr(briefing, "day", ""))
+
             if not read.tradable:
-                plan.rejected.append([symbol, read.skip_reason or "not tradable"])
+                reason = read.skip_reason or "not tradable"
+                plan.rejected.append([symbol, reason])
+                self.funnel.died("tradable", reason)
                 continue
+            self.funnel.passed("tradable")
 
             view = views.get(symbol)
             if view is None:
-                plan.rejected.append([symbol, "no strategy has a view"])
+                # "No view" is three different things and only one of
+                # them is the market. Separate them, because an
+                # indicator that never warmed up and a genuinely quiet
+                # tape look identical in the log and need opposite
+                # responses.
+                if not self.strategies:
+                    reason = "no strategies enabled"
+                elif read.bars and read.bars < self.warmup_bars:
+                    reason = (f"indicators not ready: {read.bars} bars "
+                              f"< {self.warmup_bars} needed")
+                else:
+                    reason = "strategies ran, none produced a signal"
+                plan.rejected.append([symbol, reason])
+                self.funnel.died("has_view", reason)
                 continue
+            self.funnel.passed("has_view")
 
             edge = self.apply_tilts(view, read, tone)
             side = "long" if edge > 0 else "short"
