@@ -225,7 +225,7 @@ def main():
     results=[]
     arms=[("crypto_2",{s:all_frames["crypto"][s] for s in CRYPTO[:2]},r,False)
           for r in (*RULES,"buy_hold")]
-    arms += [(f"crypto_{len(all_frames["crypto"])}",all_frames["crypto"],r,False) for r in (*RULES,"buy_hold")]
+    arms += [(f"crypto_{len(all_frames['crypto'])}",all_frames["crypto"],r,False) for r in (*RULES,"buy_hold")]
     if "etfs" in all_frames:
         arms += [("etfs",all_frames["etfs"],r,shorts)
                  for r in ("momentum_90_200","momentum_20_100") for shorts in (False,True)]
