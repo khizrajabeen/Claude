@@ -136,7 +136,9 @@ def _build_broker(config, state):
         return PaperBroker(config, **kw)
 
     broker = AlpacaBroker(config, **kw)
-    where = "PAPER" if broker.paper else "LIVE — REAL MONEY"
+    if not broker.paper:
+        raise RuntimeError("Live execution is disabled in this paper-research build")
+    where = "PAPER"
     logger.warning("Alpaca broker active (%s). Orders will be placed.", where)
     drift = broker.reconcile()
     for line in drift:

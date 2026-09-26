@@ -39,7 +39,7 @@ TRADE_COLUMNS = [
     # zeros and made the record look like it had answered a question it
     # had not.
     "units", "original_quantity", "initial_stop", "final_stop",
-    "realized_before_exit", "exit_quantity",
+    "realized_before_exit", "exit_quantity", "scale_out_fees",
 ]
 
 DAY_COLUMNS = [

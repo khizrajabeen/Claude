@@ -66,6 +66,7 @@ class Position:
     # Which configured rungs have already fired, so each fires once.
     scaled_out_at_levels: list = field(default_factory=list)
     realized_pnl: float = 0.0
+    realized_fees: float = 0.0
     tags: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -159,6 +160,7 @@ class Trade:
     # replay failed an independent recomputation by up to $48.
     realized_before_exit: float = 0.0
     exit_quantity: float = 0.0      # size on the final leg only
+    scale_out_fees: float = 0.0
 
     @property
     def holding_minutes(self) -> float:

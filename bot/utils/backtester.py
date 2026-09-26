@@ -76,7 +76,12 @@ class ReplayExchange:
         df = self.frames.get(symbol, {}).get(timeframe)
         if df is None or df.empty:
             return 0
-        return int(df.index.searchsorted(self.clock.now(), side="right"))
+        if timeframe not in TIMEFRAME_SECONDS:
+            raise ValueError(f"Unknown bar duration: {timeframe}")
+        # Feeds index OHLCV at opening time; the complete bar is only
+        # available after its duration has elapsed.
+        cutoff = self.clock.now() - timedelta(seconds=TIMEFRAME_SECONDS[timeframe])
+        return int(df.index.searchsorted(cutoff, side="right"))
 
     def _visible(self, symbol: str, timeframe: str) -> pd.DataFrame:
         count = self._visible_count(symbol, timeframe)

@@ -1,0 +1,7 @@
+{
+  "candidate": "momentum_90_200",
+  "capital_usd": 1000,
+  "allocation_per_asset": 0.2,
+  "fee_bps": 25,
+  "max_spread_bps": 50
+}

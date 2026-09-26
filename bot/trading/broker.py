@@ -264,6 +264,7 @@ class PaperBroker:
 
         position.quantity -= quantity
         position.realized_pnl += net
+        position.realized_fees += fee
         risk_per_unit = abs(position.entry_price - position.initial_stop)
         at_r = ((fill - position.entry_price) * position.direction / risk_per_unit
                 if risk_per_unit > 0 else 0.0)
@@ -396,7 +397,7 @@ class PaperBroker:
         exit_notional = position.quantity * fill
         fee_bps = self.maker_bps if maker else self.taker_bps
         exit_fee = exit_notional * fee_bps / 10_000
-        total_fees = position.entry_fee + exit_fee
+        total_fees = position.entry_fee + position.realized_fees + exit_fee
         # Two different numbers, and conflating them is an accounting bug
         # that made every trade look better than it was.
         #
@@ -428,8 +429,10 @@ class PaperBroker:
         # whatever quantity happens to be left after scaling out.
         risk_per_unit = abs(position.entry_price - position.initial_stop)
         sized_quantity = position.original_quantity or position.quantity
-        r_multiple = (net / (risk_per_unit * sized_quantity)) \
-            if risk_per_unit > 0 and sized_quantity > 0 else 0.0
+        initial_risk = position.risk_usd
+        if initial_risk <= 0:
+            raise ValueError("Position has no frozen initial dollar risk")
+        r_multiple = net / initial_risk
 
         if position.direction == 1:
             mfe = (position.best_price - position.entry_price)
@@ -477,6 +480,7 @@ class PaperBroker:
             final_stop=round(position.stop_price, 10),
             realized_before_exit=round(position.realized_pnl, 10),
             exit_quantity=round(position.quantity, 10),
+            scale_out_fees=position.realized_fees,
         )
 
         self.positions.remove(position)

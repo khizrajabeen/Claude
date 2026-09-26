@@ -26,3 +26,8 @@ models/
 # visible locally, because the files were there; only CI saw the repo as
 # it actually was.
 /data/
+
+# Paper run evidence is retained as versioned Actions artifacts, not public data.
+paper-journal/**/runs/
+paper-journal/**/cycle.lock
+pytest-of-root/

@@ -48,7 +48,7 @@ def test_replay_price_is_the_last_visible_close(frames):
     clock = SimulatedClock(START + timedelta(hours=500))
     exchange = ReplayExchange(frames, clock)
     expected = frames["BTC/USDT"]["1h"].loc[
-        frames["BTC/USDT"]["1h"].index <= clock.now(), "close"
+        frames["BTC/USDT"]["1h"].index <= clock.now() - timedelta(hours=1), "close"
     ].iloc[-1]
     assert exchange.get_current_price("BTC/USDT") == pytest.approx(expected)
 

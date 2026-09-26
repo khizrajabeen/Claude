@@ -40,7 +40,8 @@ def row_from(trade) -> Row:
                units=d["units"], realized_before_exit=d["realized_before_exit"],
                exit_quantity=d["exit_quantity"], pnl=d["pnl"], fees=d["fees"],
                funding=d["funding"], r_reported=d["r_multiple"],
-               exit_reason=d["exit_reason"])
+               exit_reason=d["exit_reason"], initial_risk_usd=d["risk_usd"],
+               scale_out_fees=d["scale_out_fees"])
 
 
 def assert_reconciles(trade):

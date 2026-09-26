@@ -61,7 +61,8 @@ def test_a_stopped_pyramid_loses_about_one_r_not_two():
     b.add_to(p, order(5.0, 104.0, 100.0))
     trade = b.close(p, p.stop_price, reason="stop_loss", day="d")
     # Fees put it slightly past 1R; the old behaviour was -1.567R.
-    assert -1.05 < trade.r_multiple < -0.5, trade.r_multiple
+    assert trade.r_multiple == pytest.approx(trade.pnl / 40.0)
+    assert trade.r_multiple < -1.0  # fees add to the fixed $40 price risk
 
 
 def test_shorts_tighten_the_other_way():

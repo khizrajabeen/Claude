@@ -41,6 +41,8 @@ class Row:
     funding: float
     r_reported: float
     exit_reason: str
+    initial_risk_usd: float = 0.0
+    scale_out_fees: float = 0.0
 
     @property
     def direction(self) -> int:
@@ -57,7 +59,7 @@ class Row:
         """
         leg = self.exit_quantity or self.quantity
         return ((self.exit - self.entry) * leg * self.direction
-                + self.realized_before_exit)
+                + self.realized_before_exit + self.scale_out_fees)
 
     @property
     def net(self) -> float:
@@ -65,8 +67,8 @@ class Row:
 
     @property
     def risk_usd(self) -> float:
-        return abs(self.entry - self.initial_stop) * (self.original_quantity
-                                                      or self.quantity)
+        # A changed average entry cannot reconstruct the original risk.
+        return self.initial_risk_usd
 
     @property
     def r_computed(self) -> float:
@@ -78,7 +80,7 @@ class Row:
 
     @property
     def r_from_price(self) -> float:
-        """R attributable to the price path alone, before any cost."""
+        """R from executed prices before fees/funding; includes execution slippage."""
         return self.gross / self.risk_usd if self.risk_usd > 0 else 0.0
 
     @property
@@ -95,7 +97,7 @@ class Row:
         if "stop" not in self.exit_reason or self.risk_usd <= 0:
             return 0.0
         beyond = (self.final_stop - self.exit) * self.direction
-        return beyond * (self.original_quantity or self.quantity) / self.risk_usd
+        return beyond * self.exit_quantity / self.risk_usd
 
 
 def load(path: str) -> list[Row]:
@@ -113,6 +115,7 @@ def load(path: str) -> list[Row]:
                 realized_before_exit=f("realized_before_exit"),
                 exit_quantity=f("exit_quantity"),
                 pnl=f("pnl"), fees=f("fees"), funding=f("funding"),
+                initial_risk_usd=f("risk_usd"), scale_out_fees=f("scale_out_fees"),
                 r_reported=f("r_multiple"), exit_reason=d.get("exit_reason", ""),
             ))
     return out
