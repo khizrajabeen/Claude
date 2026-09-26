@@ -1,0 +1,22 @@
+{
+  "account": "4e036b8d2e4ade61a5452882a417b5baec6f60f389b9aeafd07d0b2ab549fe01",
+  "accounted": {},
+  "cash": 1000.0,
+  "config": "274911d51239c7b334e21b241d5d97134156b2bfb9d26f99f850ac3a45347ec0",
+  "intent_day": {
+    "mdaily1-3c6466022fff7620d8ee2b53": "2026-09-26"
+  },
+  "owned": [
+    "BTC/USD"
+  ],
+  "pending": {
+    "mdaily1-3c6466022fff7620d8ee2b53": {
+      "client_order_id": "mdaily1-3c6466022fff7620d8ee2b53",
+      "notional": "200.00",
+      "side": "buy",
+      "symbol": "BTC/USD",
+      "time_in_force": "gtc",
+      "type": "market"
+    }
+  }
+}
