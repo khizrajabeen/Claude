@@ -1,0 +1,56 @@
+name: Strategy research
+
+on:
+  push:
+    branches: ["claude/happy-brown-j5y8bv"]
+    paths:
+      - "bot/utils/extended_research.py"
+      - "tests/test_extended_research.py"
+      - ".github/workflows/research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: strategy-research
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Verify research arithmetic and causality
+        run: python -m pytest -q tests/test_extended_research.py tests/test_daily_candidates.py
+      - name: Compare fixed rules on crypto and stock ETFs
+        env:
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+          ALPACA_PAPER: "true"
+        run: python -m bot.utils.extended_research --equities
+      - name: Preserve datasets, ledgers and equity curves
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-${{ github.run_id }}-${{ github.run_attempt }}
+          path: research/extended/
+          retention-days: 90
+          if-no-files-found: ignore
+      - name: Publish comparison without changing paper settings
+        run: |
+          git config user.name "meridian-bot"
+          git config user.email "meridian-bot@users.noreply.github.com"
+          git add research/extended/summary.json research/extended/RESULTS.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "research: fixed challenger comparison including ETF shorts"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
