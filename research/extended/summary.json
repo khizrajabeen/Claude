@@ -1,0 +1,2601 @@
+{
+  "data_sha256": {
+    "crypto": "0a66c4b88b7ea905c5972772b723508be11f28d847baf78d8ff606577348b61a",
+    "etfs": "cffc287db5c3ceed2ef9a8a7af4be6a16a894d0cd1584ed2db194890787a6015"
+  },
+  "excluded_markets": {
+    "SOL/USD": "Missing daily history; largest gap 417 days 00:00:00"
+  },
+  "results": [
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": 11.296161373843706,
+      "max_drawdown_pct": 14.164867550595995,
+      "round_trips": 22,
+      "positive_day_pct": 18.493150684931507,
+      "worst_month_pct": -4.405516286748501,
+      "fees": 230.51463317960867,
+      "carry": 0.0,
+      "turnover": 92205.85327184346,
+      "mean_gross_exposure_pct": 15.65373189047596,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": 9.824449901629162,
+      "max_drawdown_pct": 14.82452256034722,
+      "round_trips": 22,
+      "positive_day_pct": 18.356164383561644,
+      "worst_month_pct": -4.6255920560713815,
+      "fees": 228.75309750072603,
+      "carry": 0.0,
+      "turnover": 91501.23900029044,
+      "mean_gross_exposure_pct": 15.648674812988073,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 37.17081241047473,
+      "max_drawdown_pct": 12.441367741712162,
+      "round_trips": 23,
+      "positive_day_pct": 35.70451436388509,
+      "worst_month_pct": -8.46428278509791,
+      "fees": 286.4010055065776,
+      "carry": 0.0,
+      "turnover": 114560.40220263104,
+      "mean_gross_exposure_pct": 27.73835930805723,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 35.21805349048337,
+      "max_drawdown_pct": 12.432739983164453,
+      "round_trips": 23,
+      "positive_day_pct": 35.70451436388509,
+      "worst_month_pct": -8.45822268130788,
+      "fees": 284.02799732223804,
+      "carry": 0.0,
+      "turnover": 113611.19892889514,
+      "mean_gross_exposure_pct": 27.717391781485567,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 5.06614402119796,
+      "max_drawdown_pct": 2.392217780302097,
+      "round_trips": 2,
+      "positive_day_pct": 7.835820895522389,
+      "worst_month_pct": 0.0,
+      "fees": 21.49436590105766,
+      "carry": 0.0,
+      "turnover": 8597.746360423063,
+      "mean_gross_exposure_pct": 5.624429589003962,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 4.929385973697764,
+      "max_drawdown_pct": 2.3896822007272833,
+      "round_trips": 2,
+      "positive_day_pct": 7.835820895522389,
+      "worst_month_pct": 0.0,
+      "fees": 21.456762207737505,
+      "carry": 0.0,
+      "turnover": 8582.704883095,
+      "mean_gross_exposure_pct": 5.61863358373613,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -0.8512580835815742,
+      "max_drawdown_pct": 16.625157458990614,
+      "round_trips": 45,
+      "positive_day_pct": 18.356164383561644,
+      "worst_month_pct": -5.18445023737849,
+      "fees": 418.21538673902506,
+      "carry": 0.0,
+      "turnover": 167286.15469560996,
+      "mean_gross_exposure_pct": 13.27711949200421,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -3.488908289082715,
+      "max_drawdown_pct": 18.552526202322028,
+      "round_trips": 45,
+      "positive_day_pct": 17.671232876712327,
+      "worst_month_pct": -5.2900543709245795,
+      "fees": 412.2617349377656,
+      "carry": 0.0,
+      "turnover": 164904.69397510626,
+      "mean_gross_exposure_pct": 13.266040421571324,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 14.173706228761107,
+      "max_drawdown_pct": 21.5574782873994,
+      "round_trips": 67,
+      "positive_day_pct": 26.402188782489738,
+      "worst_month_pct": -5.281727811613934,
+      "fees": 722.6385016685405,
+      "carry": 0.0,
+      "turnover": 289055.40066741646,
+      "mean_gross_exposure_pct": 17.78986154158809,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 9.655810539695375,
+      "max_drawdown_pct": 22.635592706804385,
+      "round_trips": 67,
+      "positive_day_pct": 26.12859097127223,
+      "worst_month_pct": -5.528310888114218,
+      "fees": 707.1200203166574,
+      "carry": 0.0,
+      "turnover": 282848.00812666287,
+      "mean_gross_exposure_pct": 17.77686857715068,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 3.6103420522417995,
+      "max_drawdown_pct": 4.187261632537121,
+      "round_trips": 19,
+      "positive_day_pct": 12.686567164179104,
+      "worst_month_pct": -2.4873759373905346,
+      "fees": 189.15774703493238,
+      "carry": 0.0,
+      "turnover": 75663.09881397293,
+      "mean_gross_exposure_pct": 10.004470383515265,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 2.4292651337086246,
+      "max_drawdown_pct": 4.865565319384846,
+      "round_trips": 19,
+      "positive_day_pct": 12.686567164179104,
+      "worst_month_pct": -2.7162884878192517,
+      "fees": 187.875459298665,
+      "carry": 0.0,
+      "turnover": 75150.18371946602,
+      "mean_gross_exposure_pct": 9.995605179738048,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": false,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -0.2963581185094655,
+      "max_drawdown_pct": 11.386301507407715,
+      "round_trips": 10,
+      "positive_day_pct": 19.589041095890412,
+      "worst_month_pct": -6.027116965284729,
+      "fees": 93.18170389087862,
+      "carry": 0.0,
+      "turnover": 37272.68155635144,
+      "mean_gross_exposure_pct": 12.727531078495991,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": true,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -0.8864362474193199,
+      "max_drawdown_pct": 11.523053663138095,
+      "round_trips": 10,
+      "positive_day_pct": 19.45205479452055,
+      "worst_month_pct": -6.046998963022987,
+      "fees": 92.82034250188406,
+      "carry": 0.0,
+      "turnover": 37128.13700075363,
+      "mean_gross_exposure_pct": 12.71637222055839,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 31.97484222810594,
+      "max_drawdown_pct": 13.969271943470641,
+      "round_trips": 10,
+      "positive_day_pct": 28.454172366621066,
+      "worst_month_pct": -8.535094470886618,
+      "fees": 125.94035419768821,
+      "carry": 0.0,
+      "turnover": 50376.141679075256,
+      "mean_gross_exposure_pct": 19.34920151783447,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 31.119149591011166,
+      "max_drawdown_pct": 14.09529482886872,
+      "round_trips": 10,
+      "positive_day_pct": 28.454172366621066,
+      "worst_month_pct": -8.560324120553375,
+      "fees": 125.3812072676496,
+      "carry": 0.0,
+      "turnover": 50152.48290705986,
+      "mean_gross_exposure_pct": 19.334462475827664,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": false,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": -0.19659924639457982,
+      "max_drawdown_pct": 4.848575780360309,
+      "round_trips": 6,
+      "positive_day_pct": 16.044776119402986,
+      "worst_month_pct": -1.9792614583833301,
+      "fees": 58.76522209478446,
+      "carry": 0.0,
+      "turnover": 23506.08883791379,
+      "mean_gross_exposure_pct": 11.00371604471469,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": true,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": -0.553283701491436,
+      "max_drawdown_pct": 4.9814962978599215,
+      "round_trips": 6,
+      "positive_day_pct": 16.044776119402986,
+      "worst_month_pct": -2.033242836893856,
+      "fees": 58.60573292304781,
+      "carry": 0.0,
+      "turnover": 23442.293169219123,
+      "mean_gross_exposure_pct": 10.994111573490043,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": false,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": 1.4291208915872655,
+      "max_drawdown_pct": 6.2514294737541665,
+      "round_trips": 79,
+      "positive_day_pct": 9.178082191780822,
+      "worst_month_pct": -3.4327055530775086,
+      "fees": 801.4518375297092,
+      "carry": 0.0,
+      "turnover": 320580.7350118835,
+      "mean_gross_exposure_pct": 5.55803580423217,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": true,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -3.2645332466828436,
+      "max_drawdown_pct": 8.482957252109069,
+      "round_trips": 79,
+      "positive_day_pct": 8.767123287671232,
+      "worst_month_pct": -3.888574642285325,
+      "fees": 781.9971924575985,
+      "carry": 0.0,
+      "turnover": 312798.8769830394,
+      "mean_gross_exposure_pct": 5.552740877165439,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": -8.272977090087586,
+      "max_drawdown_pct": 10.908010328294592,
+      "round_trips": 114,
+      "positive_day_pct": 15.45827633378933,
+      "worst_month_pct": -2.959505695617559,
+      "fees": 1107.3337549659227,
+      "carry": 0.0,
+      "turnover": 442933.50198636943,
+      "mean_gross_exposure_pct": 8.91138189651767,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": -14.319405955710318,
+      "max_drawdown_pct": 16.180450752507102,
+      "round_trips": 114,
+      "positive_day_pct": 15.321477428180575,
+      "worst_month_pct": -3.3034365164611112,
+      "fees": 1069.8833873514463,
+      "carry": 0.0,
+      "turnover": 427953.35494057863,
+      "mean_gross_exposure_pct": 8.902623826864868,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": false,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 0.9873620977510766,
+      "max_drawdown_pct": 1.1755230593897492,
+      "round_trips": 8,
+      "positive_day_pct": 1.8656716417910446,
+      "worst_month_pct": 0.0,
+      "fees": 81.04290032972332,
+      "carry": 0.0,
+      "turnover": 32417.160131889326,
+      "mean_gross_exposure_pct": 1.3405248769333573,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": true,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 0.5024773666095328,
+      "max_drawdown_pct": 1.3534879697570834,
+      "round_trips": 8,
+      "positive_day_pct": 1.8656716417910446,
+      "worst_month_pct": 0.0,
+      "fees": 80.76820318515641,
+      "carry": 0.0,
+      "turnover": 32307.281274062574,
+      "mean_gross_exposure_pct": 1.3392754243284948,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -9.512407230305907,
+      "max_drawdown_pct": 28.044057045948044,
+      "round_trips": 2,
+      "positive_day_pct": 48.90410958904109,
+      "worst_month_pct": -11.656208725986017,
+      "fees": 17.616063038298574,
+      "carry": 0.0,
+      "turnover": 7046.425215319429,
+      "mean_gross_exposure_pct": 26.877284707133114,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "development",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -9.603733247903634,
+      "max_drawdown_pct": 28.019153632994843,
+      "round_trips": 2,
+      "positive_day_pct": 48.90410958904109,
+      "worst_month_pct": -11.643777884126017,
+      "fees": 17.593174312083605,
+      "carry": 0.0,
+      "turnover": 7037.269724833442,
+      "mean_gross_exposure_pct": 26.848328338618867,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 26.94205392625124,
+      "max_drawdown_pct": 24.898475695940913,
+      "round_trips": 2,
+      "positive_day_pct": 52.53077975376197,
+      "worst_month_pct": -12.982763037421163,
+      "fees": 26.752519468513405,
+      "carry": 0.0,
+      "turnover": 10701.00778740536,
+      "mean_gross_exposure_pct": 51.85880137932904,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 26.741528051969233,
+      "max_drawdown_pct": 24.88303441222177,
+      "round_trips": 2,
+      "positive_day_pct": 52.53077975376197,
+      "worst_month_pct": -12.974255182564232,
+      "fees": 26.70226235716452,
+      "carry": 0.0,
+      "turnover": 10680.904942865807,
+      "mean_gross_exposure_pct": 51.821848695746155,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": -2.9024674978050613,
+      "max_drawdown_pct": 19.829735601292477,
+      "round_trips": 2,
+      "positive_day_pct": 49.62686567164179,
+      "worst_month_pct": -7.036400490205585,
+      "fees": 19.272689537672218,
+      "carry": 0.0,
+      "turnover": 7709.075815068887,
+      "mean_gross_exposure_pct": 34.1504875673496,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_2",
+      "window": "recent",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": -3.013593683848048,
+      "max_drawdown_pct": 19.81270895111772,
+      "round_trips": 2,
+      "positive_day_pct": 49.62686567164179,
+      "worst_month_pct": -7.0293955738762515,
+      "fees": 19.244838363225355,
+      "carry": 0.0,
+      "turnover": 7697.935345290141,
+      "mean_gross_exposure_pct": 34.11698760714021,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -2.2392637302401597,
+      "max_drawdown_pct": 17.499410528580228,
+      "round_trips": 54,
+      "positive_day_pct": 26.71232876712329,
+      "worst_month_pct": -4.386360003131118,
+      "fees": 259.7542420217254,
+      "carry": 0.0,
+      "turnover": 103901.69680869018,
+      "mean_gross_exposure_pct": 14.452441296671212,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -3.819411056969735,
+      "max_drawdown_pct": 18.12278716025355,
+      "round_trips": 54,
+      "positive_day_pct": 26.575342465753426,
+      "worst_month_pct": -4.6662434090506855,
+      "fees": 257.4149780135035,
+      "carry": 0.0,
+      "turnover": 102965.9912054014,
+      "mean_gross_exposure_pct": 14.4525578995612,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 22.97681310682338,
+      "max_drawdown_pct": 14.066096455822652,
+      "round_trips": 41,
+      "positive_day_pct": 36.66210670314637,
+      "worst_month_pct": -11.187658642204179,
+      "fees": 237.86786561383852,
+      "carry": 0.0,
+      "turnover": 95147.1462455354,
+      "mean_gross_exposure_pct": 24.197485290867746,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 21.431453612848195,
+      "max_drawdown_pct": 14.178471845722706,
+      "round_trips": 41,
+      "positive_day_pct": 36.52530779753762,
+      "worst_month_pct": -11.22212618996029,
+      "fees": 236.06160679092866,
+      "carry": 0.0,
+      "turnover": 94424.64271637144,
+      "mean_gross_exposure_pct": 24.182215550777826,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 9.671435270900087,
+      "max_drawdown_pct": 3.9309514918537736,
+      "round_trips": 5,
+      "positive_day_pct": 8.208955223880597,
+      "worst_month_pct": 0.0,
+      "fees": 27.663378878099675,
+      "carry": 0.0,
+      "turnover": 11065.35155123987,
+      "mean_gross_exposure_pct": 5.2267279036550764,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 9.486243082298195,
+      "max_drawdown_pct": 3.927081256674314,
+      "round_trips": 5,
+      "positive_day_pct": 8.208955223880597,
+      "worst_month_pct": 0.0,
+      "fees": 27.60680005963653,
+      "carry": 0.0,
+      "turnover": 11042.720023854612,
+      "mean_gross_exposure_pct": 5.221084304258816,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -12.130857751699809,
+      "max_drawdown_pct": 21.486063265168042,
+      "round_trips": 106,
+      "positive_day_pct": 27.397260273972602,
+      "worst_month_pct": -4.011633911247536,
+      "fees": 461.6313075803326,
+      "carry": 0.0,
+      "turnover": 184652.5230321329,
+      "mean_gross_exposure_pct": 13.533654547619319,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -14.863131175470679,
+      "max_drawdown_pct": 23.353783307540354,
+      "round_trips": 106,
+      "positive_day_pct": 26.986301369863014,
+      "worst_month_pct": -4.1064810188194745,
+      "fees": 454.10793993933703,
+      "carry": 0.0,
+      "turnover": 181643.17597573472,
+      "mean_gross_exposure_pct": 13.523079352954587,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 0.1643931406337007,
+      "max_drawdown_pct": 22.17400113602437,
+      "round_trips": 126,
+      "positive_day_pct": 29.411764705882355,
+      "worst_month_pct": -6.145038747821118,
+      "fees": 635.8119513259907,
+      "carry": 0.0,
+      "turnover": 254324.78053039644,
+      "mean_gross_exposure_pct": 16.387717744661195,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": -3.5432327280064735,
+      "max_drawdown_pct": 23.063882157716197,
+      "round_trips": 126,
+      "positive_day_pct": 29.2749658002736,
+      "worst_month_pct": -6.307561307940035,
+      "fees": 623.1655509866212,
+      "carry": 0.0,
+      "turnover": 249266.2203946483,
+      "mean_gross_exposure_pct": 16.377013324906944,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 8.93872613841924,
+      "max_drawdown_pct": 5.1324795302426836,
+      "round_trips": 29,
+      "positive_day_pct": 16.417910447761194,
+      "worst_month_pct": -1.4929548395797632,
+      "fees": 147.5478625499023,
+      "carry": 0.0,
+      "turnover": 59019.14501996092,
+      "mean_gross_exposure_pct": 9.32920928625366,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 7.981944648674988,
+      "max_drawdown_pct": 5.300681327522094,
+      "round_trips": 29,
+      "positive_day_pct": 15.671641791044777,
+      "worst_month_pct": -1.637162648836954,
+      "fees": 146.7278625442142,
+      "carry": 0.0,
+      "turnover": 58691.145017685674,
+      "mean_gross_exposure_pct": 9.32119682913,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": false,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -3.424531717858992,
+      "max_drawdown_pct": 16.63529738069107,
+      "round_trips": 18,
+      "positive_day_pct": 23.972602739726025,
+      "worst_month_pct": -3.725333574864742,
+      "fees": 82.07755199254868,
+      "carry": 0.0,
+      "turnover": 32831.02079701947,
+      "mean_gross_exposure_pct": 10.423979485822976,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": true,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -3.9339428061421655,
+      "max_drawdown_pct": 16.962942108674383,
+      "round_trips": 18,
+      "positive_day_pct": 23.698630136986303,
+      "worst_month_pct": -3.7740114846064654,
+      "fees": 81.77513408253692,
+      "carry": 0.0,
+      "turnover": 32710.05363301478,
+      "mean_gross_exposure_pct": 10.412741838652957,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 19.69580068842449,
+      "max_drawdown_pct": 14.443993876419947,
+      "round_trips": 19,
+      "positive_day_pct": 30.506155950752394,
+      "worst_month_pct": -9.777999939742966,
+      "fees": 112.8960691972018,
+      "carry": 0.0,
+      "turnover": 45158.42767888073,
+      "mean_gross_exposure_pct": 18.169180167458997,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 18.9719545137798,
+      "max_drawdown_pct": 14.539652495747069,
+      "round_trips": 19,
+      "positive_day_pct": 30.36935704514364,
+      "worst_month_pct": -9.798479733134613,
+      "fees": 112.41238216070207,
+      "carry": 0.0,
+      "turnover": 44964.952864280815,
+      "mean_gross_exposure_pct": 18.1532703562492,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": false,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 2.754064841557291,
+      "max_drawdown_pct": 5.138515602233118,
+      "round_trips": 10,
+      "positive_day_pct": 18.28358208955224,
+      "worst_month_pct": -3.246930636507861,
+      "fees": 50.033419433256704,
+      "carry": 0.0,
+      "turnover": 20013.367773302678,
+      "mean_gross_exposure_pct": 9.445075448292787,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": true,
+      "rule": "breakout_55_20",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 2.4399754944141483,
+      "max_drawdown_pct": 5.255574162598853,
+      "round_trips": 10,
+      "positive_day_pct": 17.91044776119403,
+      "worst_month_pct": -3.3266631393704116,
+      "fees": 49.90224307800514,
+      "carry": 0.0,
+      "turnover": 19960.897231202056,
+      "mean_gross_exposure_pct": 9.434935538845385,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": false,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -1.2879685886742487,
+      "max_drawdown_pct": 6.0357252412882705,
+      "round_trips": 133,
+      "positive_day_pct": 13.835616438356164,
+      "worst_month_pct": -3.115766935783737,
+      "fees": 661.0588863928483,
+      "carry": 0.0,
+      "turnover": 264423.55455713946,
+      "mean_gross_exposure_pct": 4.782153266520633,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": true,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -5.142130493797725,
+      "max_drawdown_pct": 8.223421497387074,
+      "round_trips": 133,
+      "positive_day_pct": 13.424657534246576,
+      "worst_month_pct": -3.4276351271914973,
+      "fees": 647.3936513170567,
+      "carry": 0.0,
+      "turnover": 258957.4605268228,
+      "mean_gross_exposure_pct": 4.776915560211664,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": -13.378996772534247,
+      "max_drawdown_pct": 15.002803657800568,
+      "round_trips": 194,
+      "positive_day_pct": 19.699042407660738,
+      "worst_month_pct": -5.7693415305614115,
+      "fees": 902.9437435213172,
+      "carry": 0.0,
+      "turnover": 361177.49740852707,
+      "mean_gross_exposure_pct": 7.632658133174665,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": -18.244150139428463,
+      "max_drawdown_pct": 19.522137718654285,
+      "round_trips": 194,
+      "positive_day_pct": 19.562243502051984,
+      "worst_month_pct": -6.096510361196838,
+      "fees": 876.8726446645339,
+      "carry": 0.0,
+      "turnover": 350749.05786581326,
+      "mean_gross_exposure_pct": 7.624481773632214,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": false,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 0.5243222114922785,
+      "max_drawdown_pct": 1.7515623721947593,
+      "round_trips": 15,
+      "positive_day_pct": 3.3582089552238807,
+      "worst_month_pct": -0.28354424493555186,
+      "fees": 75.24349944226913,
+      "carry": 0.0,
+      "turnover": 30097.399776907667,
+      "mean_gross_exposure_pct": 1.3298297973005688,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": true,
+      "rule": "reversion_2_200",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": 0.07213441932594211,
+      "max_drawdown_pct": 1.8831513706319525,
+      "round_trips": 15,
+      "positive_day_pct": 2.9850746268656714,
+      "worst_month_pct": -0.3725082296766935,
+      "fees": 74.98894866743825,
+      "carry": 0.0,
+      "turnover": 29995.579466975298,
+      "mean_gross_exposure_pct": 1.328397030019217,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -12.213598097170486,
+      "max_drawdown_pct": 28.72734173100001,
+      "round_trips": 4,
+      "positive_day_pct": 52.054794520547944,
+      "worst_month_pct": -8.532169579992189,
+      "fees": 16.939072846101933,
+      "carry": 0.0,
+      "turnover": 6775.629138440773,
+      "mean_gross_exposure_pct": 25.951178147170946,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "development",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2022-01-01 00:00:00+00:00",
+      "end": "2023-12-31 00:00:00+00:00",
+      "days": 730,
+      "return_pct": -12.296832659122469,
+      "max_drawdown_pct": 28.702146386816253,
+      "round_trips": 4,
+      "positive_day_pct": 52.054794520547944,
+      "worst_month_pct": -8.524169684196892,
+      "fees": 16.91821205363277,
+      "carry": 0.0,
+      "turnover": 6767.284821453108,
+      "mean_gross_exposure_pct": 25.922858462138183,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 12.040583655265703,
+      "max_drawdown_pct": 26.680644377430905,
+      "round_trips": 4,
+      "positive_day_pct": 51.84678522571819,
+      "worst_month_pct": -11.891710486541363,
+      "fees": 23.017815139945593,
+      "carry": 0.0,
+      "turnover": 9207.126055978235,
+      "mean_gross_exposure_pct": 47.859151455440944,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2024-01-01 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 731,
+      "return_pct": 11.884695347041463,
+      "max_drawdown_pct": 26.663268257271223,
+      "round_trips": 4,
+      "positive_day_pct": 51.84678522571819,
+      "worst_month_pct": -11.883668625244436,
+      "fees": 22.978745388510944,
+      "carry": 0.0,
+      "turnover": 9191.498155404377,
+      "mean_gross_exposure_pct": 47.822160728099504,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": -0.7106997960514727,
+      "max_drawdown_pct": 20.03441851161917,
+      "round_trips": 4,
+      "positive_day_pct": 49.62686567164179,
+      "worst_month_pct": -6.928026231101736,
+      "fees": 19.822004751144295,
+      "carry": 0.0,
+      "turnover": 7928.801900457718,
+      "mean_gross_exposure_pct": 33.587136994490116,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 10,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "crypto_4",
+      "window": "recent",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "BTC/USD",
+        "ETH/USD",
+        "LTC/USD",
+        "LINK/USD"
+      ],
+      "start": "2026-01-01 00:00:00+00:00",
+      "end": "2026-09-25 00:00:00+00:00",
+      "days": 268,
+      "return_pct": -0.8283914534064074,
+      "max_drawdown_pct": 20.017132975420783,
+      "round_trips": 4,
+      "positive_day_pct": 49.62686567164179,
+      "worst_month_pct": -6.977510481130011,
+      "fees": 19.792508095165612,
+      "carry": 0.0,
+      "turnover": 7917.003238066243,
+      "mean_gross_exposure_pct": 33.55391620324325,
+      "costs": {
+        "fee_bps": 25,
+        "slippage_bps": 25,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 3.0457274075552876,
+      "max_drawdown_pct": 5.695148892796265,
+      "round_trips": 19,
+      "positive_day_pct": 27.14570858283433,
+      "worst_month_pct": -3.2495368000018288,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 74138.08446353226,
+      "mean_gross_exposure_pct": 19.47888167198011,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 2.266176749115023,
+      "max_drawdown_pct": 6.027286808407462,
+      "round_trips": 19,
+      "positive_day_pct": 26.94610778443114,
+      "worst_month_pct": -3.3619148433765456,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 73807.35299246159,
+      "mean_gross_exposure_pct": 19.4741748660585,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 12.235955020834854,
+      "max_drawdown_pct": 4.761095525179815,
+      "round_trips": 14,
+      "positive_day_pct": 50.99601593625498,
+      "worst_month_pct": -1.771166716662087,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 60347.42454535402,
+      "mean_gross_exposure_pct": 36.619485696368436,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 11.595098994656873,
+      "max_drawdown_pct": 4.758466466485755,
+      "round_trips": 14,
+      "positive_day_pct": 50.39840637450199,
+      "worst_month_pct": -1.7701462429202008,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 60133.69936546584,
+      "mean_gross_exposure_pct": 36.59943755527683,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 3.9464117536937238,
+      "max_drawdown_pct": 3.384903176045917,
+      "round_trips": 8,
+      "positive_day_pct": 43.169398907103826,
+      "worst_month_pct": -1.4688144671739178,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 32034.0405422429,
+      "mean_gross_exposure_pct": 35.39452138327449,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 3.609349540170448,
+      "max_drawdown_pct": 3.3829913482796736,
+      "round_trips": 8,
+      "positive_day_pct": 43.169398907103826,
+      "worst_month_pct": -1.4679793931079654,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 31962.28013988166,
+      "mean_gross_exposure_pct": 35.37487932172308,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 1.7882106473650072,
+      "max_drawdown_pct": 7.603357240823295,
+      "round_trips": 41,
+      "positive_day_pct": 52.69461077844312,
+      "worst_month_pct": -3.9254926134937196,
+      "fees": 0.0,
+      "carry": 124.43284492348211,
+      "turnover": 158611.81872808316,
+      "mean_gross_exposure_pct": 35.65377015607715,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": -2.1037378481920443,
+      "max_drawdown_pct": 9.134673295925811,
+      "round_trips": 41,
+      "positive_day_pct": 51.69660678642715,
+      "worst_month_pct": -4.159063934789842,
+      "fees": 0.0,
+      "carry": 338.1853918108141,
+      "turnover": 155247.2365671291,
+      "mean_gross_exposure_pct": 35.742016246212756,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 9.555032861390721,
+      "max_drawdown_pct": 7.563208386931852,
+      "round_trips": 17,
+      "positive_day_pct": 54.980079681274894,
+      "worst_month_pct": -2.7954509659572357,
+      "fees": 0.0,
+      "carry": 29.067389778036954,
+      "turnover": 72422.55349413457,
+      "mean_gross_exposure_pct": 39.986953233856,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 8.262748905028094,
+      "max_drawdown_pct": 7.977338868295314,
+      "round_trips": 17,
+      "positive_day_pct": 54.18326693227091,
+      "worst_month_pct": -3.103103539175023,
+      "fees": 0.0,
+      "carry": 79.83064438967855,
+      "turnover": 71937.93073340754,
+      "mean_gross_exposure_pct": 39.978277250488304,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_90_200",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 2.697443393591792,
+      "max_drawdown_pct": 3.9809965333760133,
+      "round_trips": 11,
+      "positive_day_pct": 45.90163934426229,
+      "worst_month_pct": -1.4688144671739178,
+      "fees": 0.0,
+      "carry": 7.62111400034553,
+      "turnover": 43739.72481178912,
+      "mean_gross_exposure_pct": 37.981082413884124,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_90_200",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 2.0976097470471355,
+      "max_drawdown_pct": 4.361257944085639,
+      "round_trips": 11,
+      "positive_day_pct": 45.90163934426229,
+      "worst_month_pct": -1.4679793931079765,
+      "fees": 0.0,
+      "carry": 20.932325791439755,
+      "turnover": 43618.447376779506,
+      "mean_gross_exposure_pct": 37.96612691011754,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 2.524102584267207,
+      "max_drawdown_pct": 6.589578062589673,
+      "round_trips": 28,
+      "positive_day_pct": 25.149700598802394,
+      "worst_month_pct": -2.3550415084289344,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 109339.49662098086,
+      "mean_gross_exposure_pct": 16.693290666969137,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 1.3798428845739563,
+      "max_drawdown_pct": 7.047605262647904,
+      "round_trips": 28,
+      "positive_day_pct": 24.9500998003992,
+      "worst_month_pct": -2.4496846132404104,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 108656.79667133241,
+      "mean_gross_exposure_pct": 16.683780618929095,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 9.312642734299414,
+      "max_drawdown_pct": 4.24139356314056,
+      "round_trips": 36,
+      "positive_day_pct": 46.21513944223107,
+      "worst_month_pct": -1.923627051161514,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 153205.53367897857,
+      "mean_gross_exposure_pct": 30.308603664078937,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 7.739581572369314,
+      "max_drawdown_pct": 4.449203161384663,
+      "round_trips": 36,
+      "positive_day_pct": 46.015936254980076,
+      "worst_month_pct": -2.0020546223764812,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 151988.57319551308,
+      "mean_gross_exposure_pct": 30.293256286625127,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 2.779471456228766,
+      "max_drawdown_pct": 2.934451031455465,
+      "round_trips": 23,
+      "positive_day_pct": 36.6120218579235,
+      "worst_month_pct": -2.4196847882146932,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 93724.52348801159,
+      "mean_gross_exposure_pct": 22.443835343663842,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 1.8349085691208522,
+      "max_drawdown_pct": 3.436707609804368,
+      "round_trips": 23,
+      "positive_day_pct": 34.42622950819672,
+      "worst_month_pct": -2.5375245752012887,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 93226.7975026627,
+      "mean_gross_exposure_pct": 22.431601775990874,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 4.22028107227157,
+      "max_drawdown_pct": 5.621398552699408,
+      "round_trips": 61,
+      "positive_day_pct": 45.70858283433134,
+      "worst_month_pct": -1.728025715151671,
+      "fees": 0.0,
+      "carry": 114.54212477842935,
+      "turnover": 243187.85973757328,
+      "mean_gross_exposure_pct": 30.817152845182495,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": -0.3192571158978752,
+      "max_drawdown_pct": 7.411181590135274,
+      "round_trips": 61,
+      "positive_day_pct": 44.71057884231537,
+      "worst_month_pct": -2.0318163483224128,
+      "fees": 0.0,
+      "carry": 309.6709196230838,
+      "turnover": 237529.70905268993,
+      "mean_gross_exposure_pct": 30.84446558001713,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 6.147450807830057,
+      "max_drawdown_pct": 6.442243073493959,
+      "round_trips": 45,
+      "positive_day_pct": 50.79681274900398,
+      "worst_month_pct": -2.8356470942391243,
+      "fees": 0.0,
+      "carry": 31.355646106953195,
+      "turnover": 187488.22603847148,
+      "mean_gross_exposure_pct": 34.11499683566088,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 3.677172863899769,
+      "max_drawdown_pct": 6.771627385375623,
+      "round_trips": 45,
+      "positive_day_pct": 50.39840637450199,
+      "worst_month_pct": -3.043736307427891,
+      "fees": 0.0,
+      "carry": 85.2866544357437,
+      "turnover": 185385.02615793282,
+      "mean_gross_exposure_pct": 34.11160762584768,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": false,
+      "rule": "momentum_20_100",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": -0.37625834873009634,
+      "max_drawdown_pct": 3.705381056718482,
+      "round_trips": 34,
+      "positive_day_pct": 44.80874316939891,
+      "worst_month_pct": -2.420032660890392,
+      "fees": 0.0,
+      "carry": 21.441599872984728,
+      "turnover": 135520.9732282416,
+      "mean_gross_exposure_pct": 30.01152443830008,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": true,
+      "rule": "momentum_20_100",
+      "shorts": true,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": -2.1118527661160846,
+      "max_drawdown_pct": 4.58802091332966,
+      "round_trips": 34,
+      "positive_day_pct": 42.07650273224044,
+      "worst_month_pct": -2.5385959283402704,
+      "fees": 0.0,
+      "carry": 58.66131094133527,
+      "turnover": 134294.89293174117,
+      "mean_gross_exposure_pct": 30.019845283997743,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 0.4419964481966687,
+      "max_drawdown_pct": 12.08184077209098,
+      "round_trips": 2,
+      "positive_day_pct": 50.69860279441117,
+      "worst_month_pct": -4.231109776370367,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 8044.199644819668,
+      "mean_gross_exposure_pct": 36.09367919399462,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "development",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2022-01-03 00:00:00+00:00",
+      "end": "2023-12-29 00:00:00+00:00",
+      "days": 501,
+      "return_pct": 0.36119319794809535,
+      "max_drawdown_pct": 12.074612078894475,
+      "round_trips": 2,
+      "positive_day_pct": 50.69860279441117,
+      "worst_month_pct": -4.228498126423375,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 8036.119319794809,
+      "mean_gross_exposure_pct": 36.07068363139727,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 19.097398437628456,
+      "max_drawdown_pct": 9.771675006951618,
+      "round_trips": 2,
+      "positive_day_pct": 57.37051792828686,
+      "worst_month_pct": -3.0819680840323938,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 9909.739843762845,
+      "mean_gross_exposure_pct": 45.09399899461112,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "reused_validation",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2024-01-02 00:00:00+00:00",
+      "end": "2025-12-31 00:00:00+00:00",
+      "days": 502,
+      "return_pct": 18.979321629004197,
+      "max_drawdown_pct": 9.766470339411203,
+      "round_trips": 2,
+      "positive_day_pct": 57.37051792828686,
+      "worst_month_pct": -3.080291418464598,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 9897.932162900419,
+      "mean_gross_exposure_pct": 45.06933730716265,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": false,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 6.24582089437955,
+      "max_drawdown_pct": 4.227672481056565,
+      "round_trips": 2,
+      "positive_day_pct": 50.81967213114754,
+      "worst_month_pct": -2.033793122940797,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 8624.582089437954,
+      "mean_gross_exposure_pct": 41.481295218879104,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 5,
+        "short_carry_pct": 4
+      }
+    },
+    {
+      "universe": "etfs",
+      "window": "recent",
+      "stressed": true,
+      "rule": "buy_hold",
+      "shorts": false,
+      "symbols": [
+        "SPY",
+        "QQQ"
+      ],
+      "start": "2026-01-02 00:00:00+00:00",
+      "end": "2026-09-24 00:00:00+00:00",
+      "days": 183,
+      "return_pct": 6.15342158260308,
+      "max_drawdown_pct": 4.225155941554892,
+      "round_trips": 2,
+      "positive_day_pct": 50.81967213114754,
+      "worst_month_pct": -2.0325691803258383,
+      "fees": 0.0,
+      "carry": 0.0,
+      "turnover": 8615.342158260308,
+      "mean_gross_exposure_pct": 41.457073408881485,
+      "costs": {
+        "fee_bps": 0,
+        "slippage_bps": 15,
+        "short_carry_pct": 11
+      }
+    }
+  ],
+  "limitations": [
+    "Later historical periods were already inspected in prior work; they are reused validation, not pristine holdouts.",
+    "No strategy is guaranteed to profit daily. Cash benchmark is zero; uninvested cash earns zero.",
+    "Universe chosen today; common-history comparison is not survivorship-free.",
+    "40% of equity allocated across new entries; weights drift; all entries use next daily open.",
+    "ETF returns exclude cash dividends; shorts pay modeled 3% borrow + 1% dividend drag annually (10% + 1% under stress). These are scenarios, not measured borrow quotes.",
+    "IEX data may differ from consolidated prices; historical short availability is not reconstructed.",
+    "Crypto shorting is unsupported by Alpaca and is not submitted or simulated as an executable Alpaca strategy.",
+    "Multiple comparisons are exploratory; the frozen paper baseline is not automatically replaced."
+  ]
+}
